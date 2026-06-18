@@ -1,0 +1,15 @@
+*.iml
+.gradle/
+.kotlin/
+/local.properties
+.idea/
+.DS_Store
+# Un-anchored so it also covers the module build dir (app/build), not just /build.
+build/
+captures/
+.externalNativeBuild
+.cxx
+*.apk
+*.aab
+*.keystore
+keystore.properties

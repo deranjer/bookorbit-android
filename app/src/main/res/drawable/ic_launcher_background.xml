@@ -1,0 +1,24 @@
+<!--
+  Adaptive-icon background: the warm dark diagonal gradient from the web app icon
+  (client/public/pwa-icon-source.svg). Full-bleed 108x108 so it fills any launcher mask shape.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M0,0 L108,0 L108,108 L0,108 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="108"
+                android:endY="108">
+                <item android:offset="0.0" android:color="#FF2C2C22" />
+                <item android:offset="1.0" android:color="#FF1A1A10" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

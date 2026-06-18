@@ -1,0 +1,48 @@
+<!--
+  Adaptive-icon foreground: the BookOrbit "Orbit" mark (Lucide), ported from
+  client/public/pwa-icon-source.svg. The 24x24 glyph is scaled (~x2.8) and centered into the
+  108x108 adaptive viewport so it sits inside the safe zone. Stroked white; circles are arc paths
+  (VectorDrawable has no circle element).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="2.8"
+        android:scaleY="2.8"
+        android:translateX="20.4"
+        android:translateY="20.4">
+        <path
+            android:pathData="M20.341 6.484A10 10 0 0 1 10.266 21.85"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M3.659 17.516A10 10 0 0 1 13.74 2.152"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M9,12 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M17,5 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M3,19 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>
