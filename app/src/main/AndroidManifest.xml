@@ -54,6 +54,11 @@
                 <action android:name="androidx.media3.session.MediaLibraryService" />
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
+            <!-- Lets Assistant / Android Auto voice search ("play X on BookOrbit") reach the
+                 MediaSession callback (onSetMediaItems / search). -->
+            <intent-filter>
+                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+            </intent-filter>
         </service>
 
         <!-- Declares BookOrbit as an Android Auto media app (see res/xml/automotive_app_desc.xml). -->

@@ -10,6 +10,7 @@ import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSession.ControllerInfo
 import androidx.media3.session.MediaSession.MediaItemsWithStartPosition
+import androidx.media3.session.SessionError
 import com.bookorbit.feature.downloads.DownloadsRepository
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.ListenableFuture
@@ -75,7 +76,7 @@ class MediaLibraryCallback @Inject constructor(
         if (bookId != null) {
             val entry = AutoBrowseTree.downloadedAudiobooks(catalog()).find { it.mediaId == mediaId }
             if (entry != null) LibraryResult.ofItem(AutoBrowseTree.toMediaItem(entry), null)
-            else LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE)
+            else LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
         } else {
             val node = AutoBrowseTree.rootChildren().find { it.mediaId == mediaId }
             if (node != null) LibraryResult.ofItem(AutoBrowseTree.toMediaItem(node), null)
