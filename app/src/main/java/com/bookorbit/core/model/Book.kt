@@ -147,6 +147,7 @@ data class FileProgress(
 data class SaveFileProgress(
     val cfi: String? = null,
     val percentage: Double,
+    val pageNumber: Int? = null,
 )
 
 // --- Mutation request bodies ---

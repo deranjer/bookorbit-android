@@ -12,6 +12,7 @@ import com.bookorbit.feature.main.MainShell
 import com.bookorbit.feature.player.PlayerScreen
 import com.bookorbit.feature.player.PlayerViewModel
 import com.bookorbit.feature.reader.ReaderScreen
+import com.bookorbit.feature.reader.pdf.PdfReaderScreen
 
 /**
  * App-level navigation host for the signed-in area. Holds full-screen destinations that sit OUTSIDE
@@ -32,6 +33,7 @@ fun AuthenticatedApp(user: AuthUser, onSignOut: () -> Unit) {
                 user = user,
                 onSignOut = onSignOut,
                 onOpenReader = { id -> navController.navigate(AppRoutes.reader(id)) },
+                onOpenPdf = { id -> navController.navigate(AppRoutes.pdf(id)) },
                 onListen = { id ->
                     playerVm.loadAndPlay(id)
                     navController.navigate(AppRoutes.PLAYER)
@@ -45,6 +47,12 @@ fun AuthenticatedApp(user: AuthUser, onSignOut: () -> Unit) {
         ) {
             ReaderScreen(onBack = { navController.popBackStack() })
         }
+        composable(
+            route = AppRoutes.PDF,
+            arguments = listOf(navArgument("id") { type = NavType.IntType }),
+        ) {
+            PdfReaderScreen(onBack = { navController.popBackStack() })
+        }
         composable(AppRoutes.PLAYER) {
             PlayerScreen(onBack = { navController.popBackStack() })
         }
@@ -54,6 +62,8 @@ fun AuthenticatedApp(user: AuthUser, onSignOut: () -> Unit) {
 object AppRoutes {
     const val MAIN = "main"
     const val READER = "reader/{id}"
+    const val PDF = "pdf/{id}"
     const val PLAYER = "player"
     fun reader(id: Int) = "reader/$id"
+    fun pdf(id: Int) = "pdf/$id"
 }

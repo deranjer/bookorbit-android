@@ -62,6 +62,7 @@ import com.bookorbit.ui.components.StarRating
 fun BookDetailScreen(
     onBack: () -> Unit,
     onRead: (Int) -> Unit,
+    onReadPdf: (Int) -> Unit,
     onListen: (Int) -> Unit,
     onBookClick: (Int) -> Unit,
     vm: BookDetailViewModel = hiltViewModel(),
@@ -94,6 +95,7 @@ fun BookDetailScreen(
                     vm = vm,
                     ui = ui,
                     onRead = onRead,
+                    onReadPdf = onReadPdf,
                     onListen = onListen,
                     onBookClick = onBookClick,
                     onOpenStatusSheet = { statusSheet = true },
@@ -131,6 +133,7 @@ private fun BookDetailContent(
     vm: BookDetailViewModel,
     ui: BookDetailViewModel.UiState,
     onRead: (Int) -> Unit,
+    onReadPdf: (Int) -> Unit,
     onListen: (Int) -> Unit,
     onBookClick: (Int) -> Unit,
     onOpenStatusSheet: () -> Unit,
@@ -139,7 +142,8 @@ private fun BookDetailContent(
     val imageUrls = LocalImageUrls.current
     val uriHandler = LocalUriHandler.current
     val canListen = BookFiles.isAudiobook(book)
-    val canRead = BookFiles.isReadable(book)
+    val readingTarget = BookFiles.readingTarget(book)
+    val canRead = readingTarget != BookFiles.ReadingTarget.None
     val goodreadsId = book.providerIds["goodreads"]
 
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
@@ -188,7 +192,15 @@ private fun BookDetailContent(
                 }
             }
             if (canRead) {
-                Button(onClick = { onRead(book.id) }, modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        when (readingTarget) {
+                            is BookFiles.ReadingTarget.Pdf -> onReadPdf(book.id)
+                            else -> onRead(book.id)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Icon(Icons.Filled.Book, contentDescription = null)
                     Text("Read", modifier = Modifier.padding(start = 8.dp))
                 }

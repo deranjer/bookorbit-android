@@ -19,11 +19,15 @@ class ReaderProgressRepository @Inject constructor(
     private val dao: ReaderProgressDao,
     private val api: ApiService,
 ) {
-    /** Save locally, then attempt to push to the server (clearing dirty on success). */
-    suspend fun report(fileId: Int, cfi: String?, percentage: Double) {
+    /**
+     * Save locally, then attempt to push to the server (clearing dirty on success). [pageNumber] is
+     * forwarded to the server for cross-client parity (used by the PDF reader); the local Room store
+     * keeps only cfi + percentage, from which a stable PDF page count is recoverable on resume.
+     */
+    suspend fun report(fileId: Int, cfi: String?, percentage: Double, pageNumber: Int? = null) {
         dao.upsert(ReaderProgressEntity(fileId, cfi, percentage, System.currentTimeMillis(), dirty = true))
         runCatching {
-            api.saveFileProgress(fileId, SaveFileProgress(cfi, percentage))
+            api.saveFileProgress(fileId, SaveFileProgress(cfi, percentage, pageNumber))
             dao.markSynced(fileId)
         }
     }

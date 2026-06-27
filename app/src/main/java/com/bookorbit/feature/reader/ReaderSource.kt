@@ -2,6 +2,7 @@ package com.bookorbit.feature.reader
 
 import android.content.Context
 import com.bookorbit.core.model.BookDetail
+import com.bookorbit.core.model.BookFileRef
 import com.bookorbit.core.model.BookFiles
 import com.bookorbit.core.network.ApiService
 import com.bookorbit.feature.downloads.DownloadsRepository
@@ -25,8 +26,23 @@ class ReaderSource @Inject constructor(
 ) {
     data class ResolvedFile(val file: File, val format: String, val fileId: Int)
 
-    suspend fun resolve(book: BookDetail): ResolvedFile = withContext(Dispatchers.IO) {
+    /** Resolve the foliate-readable file for a book to a local file. */
+    suspend fun resolve(book: BookDetail): ResolvedFile {
         val ref = BookFiles.readableFile(book) ?: throw IllegalStateException("This book has no readable file.")
+        return resolveFile(book, ref)
+    }
+
+    /** Resolve the PDF file for a book to a local file (native PDF reader). */
+    suspend fun resolvePdf(book: BookDetail): ResolvedFile {
+        val ref = BookFiles.pdfFile(book) ?: throw IllegalStateException("This book has no PDF file.")
+        return resolveFile(book, ref)
+    }
+
+    /**
+     * Resolve a specific book file to a local file: an offline download wins, otherwise it is
+     * fetched once into a reader cache reused on reopen. The host owns all networking.
+     */
+    suspend fun resolveFile(book: BookDetail, ref: BookFileRef): ResolvedFile = withContext(Dispatchers.IO) {
         val format = ref.format?.lowercase().orEmpty()
         val ext = format.filter { it.isLetterOrDigit() }.ifEmpty { "bin" }
 
