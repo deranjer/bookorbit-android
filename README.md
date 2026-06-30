@@ -1,13 +1,13 @@
 # BookOrbit — Android (native)
 
-Native Kotlin / Jetpack Compose client for a self-hosted [BookOrbit](../README.md) server. This is a
-**standalone Gradle project**, intentionally isolated from the repo's pnpm workspace — it does not
-participate in `pnpm install` / `pnpm dev`.
+Native Kotlin / Jetpack Compose client for a self-hosted
+[BookOrbit](https://github.com/bookorbit/bookorbit) server. This is a **standalone Gradle project** —
+open this repository's root directly in Android Studio.
 
 > **Status:** this is the BookOrbit mobile client. It supports auth + OIDC, library browsing, search,
 > smart scopes, collections, authors/series, book detail, the foliate.js ebook reader, the Media3
-> audiobook player, and downloads/offline. See the repo `CLAUDE.md` ("Android") for architecture
-> notes.
+> audiobook player, and downloads/offline. See [Architecture & conventions](#architecture--conventions)
+> below and the [Cross-repo couplings](#cross-repo-couplings) section.
 
 ## Prerequisites
 
@@ -38,8 +38,7 @@ right version (8.11.1) on first run.
 
 ## Run it in Android Studio (recommended)
 
-1. **File → Open** and select the **`android/`** folder (not the repo root — this is its own Gradle
-   project).
+1. **File → Open** and select this repository's **root** folder.
 2. Wait for the initial **Gradle sync** to finish (first time pulls dependencies).
 3. Pick a device in the toolbar's device dropdown (or create one in **Device Manager**).
 4. Click **Run ▶**. Studio builds, installs, and launches the app.
@@ -49,7 +48,7 @@ and release builds coexist on one device).
 
 ## Run it from the command line
 
-From the `android/` directory:
+From the repository root:
 
 ```bash
 ./gradlew :app:installDebug      # build + install on the connected device/emulator
@@ -82,8 +81,7 @@ exposed. For **OIDC** login, the server must whitelist the mobile redirect URI
 ## Project layout
 
 ```
-android/
-  app/src/main/
+app/src/main/
     assets/reader/            # foliate.js + bridge.js + index.html (foliate copied verbatim from the web client's build)
     java/com/bookorbit/
       app/                    # Application (Hilt), MainActivity, nav graph (BookOrbitApp / AuthenticatedApp)
@@ -110,12 +108,12 @@ android/
   audiobooks via Media3/ExoPlayer; persistence via Room + DataStore; downloads via WorkManager.
 - **No emoji as icons** — use `androidx.compose.material.icons` (Material Symbols), matching the repo
   convention.
-- **The server is unchanged** and API models are hand-written (there is no OpenAPI codegen), so DTO
-  changes must be mirrored from the server by hand.
+- **API models are hand-written** Kotlin `@Serializable` classes (there is no OpenAPI codegen), so
+  server DTO changes must be mirrored here by hand. See [Cross-repo couplings](#cross-repo-couplings).
 - **Reader theming is a three-way sync.** The foliate assets (`assets/reader/`) are a verbatim copy of
   the web client's build; when the web foliate or its `bridge.js` `THEMES`/`generateCSS` changes,
-  re-copy into `assets/reader/` and keep `feature/reader/ReaderThemes.kt` aligned. See the repo
-  `CLAUDE.md` for the full rule.
+  re-copy into `assets/reader/` and keep `feature/reader/ReaderThemes.kt` aligned. See
+  [Cross-repo couplings](#cross-repo-couplings) for the full rule.
 
 ## Testing
 
@@ -123,5 +121,22 @@ android/
 ./gradlew :app:testDebugUnitTest    # unit tests (query builder, playback math, serialization)
 ```
 
-CI (`.github/workflows/android-build.yml`) runs lint + unit tests + `assembleDebug` on PRs and pushes
-that touch `android/**`.
+CI (`.github/workflows/android-build.yml`) runs lint + unit tests + `assembleDebug` on every PR and
+on pushes to `main`.
+
+## Cross-repo couplings
+
+This app is developed independently of the [BookOrbit server](https://github.com/bookorbit/bookorbit),
+but two things must be kept in sync **by hand** when the server/web client changes — there is no build
+dependency or codegen that enforces them:
+
+1. **API DTOs.** The models in `app/src/main/java/com/bookorbit/core/model/` are hand-written
+   `@Serializable` mirrors of the server's `/api/v1` response types. When a server endpoint's shape
+   changes, update the matching Kotlin model here. `BaseUrlInterceptor` rewrites every request onto the
+   configured server + `/api/v1`.
+2. **Foliate reader assets (three-way sync).** `app/src/main/assets/reader/` is a verbatim copy of the
+   web client's foliate.js build (`client/public/assets/foliate/` in the server repo) plus `bridge.js`,
+   `index.html`. When the web client updates foliate or the `bridge.js` `THEMES`/`generateCSS` block,
+   re-copy those files here and keep the settings-UI swatches in
+   `app/src/main/java/com/bookorbit/feature/reader/ReaderThemes.kt` aligned with the same theme
+   definitions. This preserves byte-identical EPUB CFI sync with the web client and Kobo.
