@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,6 +8,16 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
 }
+
+// Release signing is loaded from keystore.properties (gitignored, see keystore.properties.example)
+// rather than committed, so debug/lint/test builds and CI runs without secrets keep working.
+val keystoreProperties = Properties().apply {
+    val propsFile = rootProject.file("app/keystore.properties")
+    if (propsFile.exists()) {
+        propsFile.inputStream().use { load(it) }
+    }
+}
+val hasReleaseSigning = keystoreProperties.containsKey("storeFile")
 
 android {
     namespace = "com.bookorbit"
@@ -26,6 +38,17 @@ android {
         manifestPlaceholders["appAuthRedirectScheme"] = "bookorbit"
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = project.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -38,6 +61,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

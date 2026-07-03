@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cleartext HTTP is allowed because users point this app at their own self-hosted
+     BookOrbit server, which is often plain HTTP on a LAN without a TLS certificate. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

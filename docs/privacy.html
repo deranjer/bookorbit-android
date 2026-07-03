@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BookOrbit Android - Privacy Policy</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; max-width: 40em; margin: 2em auto; padding: 0 1em; line-height: 1.5; color: #222; }
+  h1 { font-size: 1.5em; }
+  h2 { font-size: 1.15em; margin-top: 1.5em; }
+  code { background: #f0f0f0; padding: 0.1em 0.3em; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1>BookOrbit Android - Privacy Policy</h1>
+<p><em>Last updated: 2026-06-30</em></p>
+
+<p>BookOrbit Android is a client app for <strong>BookOrbit</strong>, a self-hosted digital library
+server. This policy explains how the app handles your data.</p>
+
+<h2>Your server, your data</h2>
+<p>BookOrbit is not a hosted service operated by the developer. When you use this app, you connect
+it to a BookOrbit server that you (or someone you trust) run and control &mdash; the app does not
+talk to any server operated by the developer. All data described below is sent only to the server
+address you configure, and is stored there under your control, not by the developer or any
+third party.</p>
+
+<h2>What the app handles</h2>
+<ul>
+  <li><strong>Account credentials / sign-in tokens</strong> &mdash; used to authenticate you to your
+  configured server. Tokens are stored on-device using Android's encrypted storage
+  (<code>EncryptedSharedPreferences</code>) and are sent only to that server.</li>
+  <li><strong>Library and reading data</strong> &mdash; book metadata, reading/listening progress,
+  collections, and search queries, exchanged with your configured server to provide the app's
+  features.</li>
+  <li><strong>Downloaded book files</strong> &mdash; stored locally on your device for offline
+  reading/listening when you choose to download a title.</li>
+</ul>
+
+<h2>What the app does not do</h2>
+<ul>
+  <li>No analytics, advertising, or crash-reporting SDKs are included in the app.</li>
+  <li>No data is sold, shared with advertisers, or sent to any third party.</li>
+  <li>No data is sent to the developer of this app.</li>
+</ul>
+
+<h2>Permissions</h2>
+<p>The app requests network access (to reach your server), notification and foreground-service
+permissions (to show playback controls and continue audiobook playback in the background), and
+wake-lock (to keep audio playing while the screen is off). None of these are used to collect data
+beyond what's described above.</p>
+
+<h2>Data deletion</h2>
+<p>Because your data lives on your own server, you can delete it there at any time. Uninstalling
+the app removes all locally cached data and downloaded files from your device.</p>
+
+<h2>Contact</h2>
+<p>Questions about this policy can be sent to
+<a href="mailto:deranjer@gmail.com">deranjer@gmail.com</a> or filed as an issue on the
+<a href="https://github.com/deranjer/bookorbit-android">GitHub repository</a>.</p>
+</body>
+</html>
