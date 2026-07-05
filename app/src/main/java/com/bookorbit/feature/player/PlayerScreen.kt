@@ -41,6 +41,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.bookorbit.ui.LocalImageUrls
@@ -61,6 +63,10 @@ fun PlayerScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     val imageUrls = LocalImageUrls.current
     var scrubbing by remember { mutableStateOf<Float?>(null) }
+
+    // Re-check the server for progress made elsewhere (e.g. web) whenever this screen becomes
+    // visible again — covers both navigating in via the mini-player and resuming the app in place.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refreshIfStale() }
 
     val book = state.currentBook
     if (book == null) {
