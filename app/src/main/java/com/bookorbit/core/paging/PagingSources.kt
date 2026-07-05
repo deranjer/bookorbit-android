@@ -4,6 +4,7 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.bookorbit.core.model.AuthorSummary
 import com.bookorbit.core.model.BookCard
+import com.bookorbit.core.model.BookDockFile
 import com.bookorbit.core.model.SeriesSummary
 
 const val DEFAULT_PAGE_SIZE = 50
@@ -31,6 +32,37 @@ class BookPagingSource(
             LoadResult.Page(
                 data = items,
                 prevKey = if (page == 0) null else page - 1,
+                nextKey = if (loaded < total) page + 1 else null,
+            )
+        } catch (e: Exception) {
+            LoadResult.Error(e)
+        }
+    }
+}
+
+/**
+ * Paging over `GET /book-dock/files`, whose envelope is **1-indexed** (`page` starts at 1) unlike
+ * the 0-indexed book envelope above.
+ */
+class BookDockPagingSource(
+    private val pageSize: Int,
+    private val loadPage: suspend (page: Int, size: Int) -> Triple<List<BookDockFile>, Int, Int>,
+) : PagingSource<Int, BookDockFile>() {
+
+    override fun getRefreshKey(state: PagingState<Int, BookDockFile>): Int? =
+        state.anchorPosition?.let { anchor ->
+            val closest = state.closestPageToPosition(anchor)
+            closest?.prevKey?.plus(1) ?: closest?.nextKey?.minus(1)
+        }
+
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, BookDockFile> {
+        val page = params.key ?: 1
+        return try {
+            val (items, total, size) = loadPage(page, pageSize)
+            val loaded = page * size
+            LoadResult.Page(
+                data = items,
+                prevKey = if (page <= 1) null else page - 1,
                 nextKey = if (loaded < total) page + 1 else null,
             )
         } catch (e: Exception) {

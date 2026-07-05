@@ -19,4 +19,6 @@ class ImageUrls @Inject constructor(
     fun thumbnail(bookId: Int): String = "${base()}/books/$bookId/thumbnail"
 
     fun authorThumbnail(authorId: Int): String = "${base()}/authors/$authorId/thumbnail"
+
+    fun bookDockCover(fileId: Int): String = "${base()}/book-dock/files/$fileId/cover"
 }

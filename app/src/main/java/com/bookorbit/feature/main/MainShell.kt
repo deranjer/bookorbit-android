@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Adjust
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.LocalLibrary
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Search
@@ -45,6 +46,7 @@ import androidx.navigation.compose.rememberNavController
 import com.bookorbit.core.model.AuthUser
 import com.bookorbit.feature.authors.AuthorsScreen
 import com.bookorbit.feature.bookdetail.BookDetailScreen
+import com.bookorbit.feature.bookdrop.BookDropScreen
 import com.bookorbit.feature.collections.CollectionsScreen
 import com.bookorbit.feature.dashboard.DashboardScreen
 import com.bookorbit.feature.downloads.DownloadsScreen
@@ -67,9 +69,13 @@ private object DrawerRoute {
     const val AUTHORS = "authors"
     const val SERIES = "series"
     const val DOWNLOADS = "downloads"
+    const val BOOK_DROP = "bookdrop"
     const val BOOK_DETAIL = "book/{id}"
     fun bookDetail(id: Int) = "book/$id"
 }
+
+/** Server permission required to see / use the Book Dock. */
+private const val BOOK_DOCK_PERMISSION = "book_dock_access"
 
 /**
  * Authenticated shell: a navigation drawer (profile, Authors/Series/Downloads, sign out) plus a
@@ -119,6 +125,7 @@ fun MainShell(
         DrawerRoute.AUTHORS -> "Authors"
         DrawerRoute.SERIES -> "Series"
         DrawerRoute.DOWNLOADS -> "Downloads"
+        DrawerRoute.BOOK_DROP -> "Book Drop"
         else -> "BookOrbit"
     }
 
@@ -177,6 +184,7 @@ fun MainShell(
                 composable(DrawerRoute.AUTHORS) { AuthorsScreen(onBookClick = onBookClick) }
                 composable(DrawerRoute.SERIES) { SeriesScreen(onBookClick = onBookClick) }
                 composable(DrawerRoute.DOWNLOADS) { DownloadsScreen(onBookClick = onBookClick) }
+                composable(DrawerRoute.BOOK_DROP) { BookDropScreen() }
                 composable(
                     route = DrawerRoute.BOOK_DETAIL,
                     arguments = listOf(navArgument("id") { type = NavType.IntType }),
@@ -237,6 +245,15 @@ private fun DrawerContent(
             onClick = { onNavigate(DrawerRoute.DOWNLOADS) },
             modifier = Modifier.padding(horizontal = 12.dp),
         )
+        if (user.isSuperuser || BOOK_DOCK_PERMISSION in user.permissions) {
+            NavigationDrawerItem(
+                label = { Text("Book Drop") },
+                selected = false,
+                icon = { Icon(Icons.Outlined.Inbox, contentDescription = null) },
+                onClick = { onNavigate(DrawerRoute.BOOK_DROP) },
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
+        }
         Spacer(modifier = Modifier.weight(1f))
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         NavigationDrawerItem(

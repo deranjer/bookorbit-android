@@ -9,8 +9,17 @@ data class Library(
     val icon: String? = null,
     val displayOrder: Int = 0,
     val bookCount: Int? = null,
+    val folders: List<LibraryFolder> = emptyList(),
     val createdAt: String,
     val updatedAt: String,
+)
+
+/** A configured root folder of a [Library]; a Book Dock file is finalized into one of these. */
+@Serializable
+data class LibraryFolder(
+    val id: Int,
+    val path: String,
+    val createdAt: String? = null,
 )
 
 @Serializable

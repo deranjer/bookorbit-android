@@ -5,6 +5,12 @@ import com.bookorbit.core.model.AudioProgress
 import com.bookorbit.core.model.AuthUser
 import com.bookorbit.core.model.AuthorsPage
 import com.bookorbit.core.model.BookDetail
+import com.bookorbit.core.model.BookDockBulkCounts
+import com.bookorbit.core.model.BookDockFile
+import com.bookorbit.core.model.BookDockFilesPage
+import com.bookorbit.core.model.BookDockFinalizeResult
+import com.bookorbit.core.model.BookDockSelection
+import com.bookorbit.core.model.BookDockSummary
 import com.bookorbit.core.model.BookQuery
 import com.bookorbit.core.model.BookRecommendation
 import com.bookorbit.core.model.BooksPage
@@ -27,14 +33,21 @@ import com.bookorbit.core.model.SeriesBooksPage
 import com.bookorbit.core.model.SeriesPage
 import com.bookorbit.core.model.SetRatingRequest
 import com.bookorbit.core.model.SetReadStatusRequest
+import com.bookorbit.core.model.SetTargetRequest
+import com.bookorbit.core.model.FinalizeRequest
 import com.bookorbit.core.model.SmartScope
+import com.bookorbit.core.model.UpdateBookDockFileRequest
 import com.bookorbit.core.model.UserBookStatus
+import okhttp3.MultipartBody
 import okhttp3.ResponseBody
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.HTTP
+import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 import retrofit2.http.Streaming
@@ -225,6 +238,48 @@ interface ApiService {
         @Query("limit") limit: Int = 20,
         @Query("smartScopeId") smartScopeId: Int? = null,
     ): List<com.bookorbit.core.model.BookCard>
+
+    // --- Book Dock (staging / ingest review) ---
+    @GET("book-dock/files")
+    suspend fun getBookDockFiles(
+        @Query("status") status: String? = null,
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 20,
+        @Query("sort") sort: String = "createdAt",
+        @Query("order") order: String = "desc",
+        @Query("search") search: String? = null,
+    ): BookDockFilesPage
+
+    @GET("book-dock/summary")
+    suspend fun getBookDockSummary(): BookDockSummary
+
+    @GET("book-dock/files/{id}")
+    suspend fun getBookDockFile(@Path("id") id: Int): BookDockFile
+
+    @Multipart
+    @POST("book-dock/upload")
+    suspend fun uploadBookDockFile(@Part file: MultipartBody.Part): BookDockFile
+
+    @PATCH("book-dock/files/{id}")
+    suspend fun updateBookDockFile(
+        @Path("id") id: Int,
+        @Body body: UpdateBookDockFileRequest,
+    ): BookDockFile
+
+    @DELETE("book-dock/files/{id}")
+    suspend fun discardBookDockFile(@Path("id") id: Int)
+
+    @POST("book-dock/files/discard")
+    suspend fun bulkDiscardBookDock(@Body body: BookDockSelection)
+
+    @POST("book-dock/files/apply-fetched")
+    suspend fun applyFetchedBookDock(@Body body: BookDockSelection): BookDockBulkCounts
+
+    @POST("book-dock/files/set-target")
+    suspend fun setBookDockTarget(@Body body: SetTargetRequest): BookDockBulkCounts
+
+    @POST("book-dock/finalize")
+    suspend fun finalizeBookDock(@Body body: FinalizeRequest): BookDockFinalizeResult
 
     // --- App info ---
     @GET("app-info")
