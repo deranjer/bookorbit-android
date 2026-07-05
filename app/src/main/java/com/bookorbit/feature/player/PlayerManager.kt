@@ -188,6 +188,29 @@ class PlayerManager @Inject constructor(
         _state.update { it.copy(skipForwardSeconds = value) }
     }
 
+    /**
+     * Re-checks the server for a newer position (e.g. progress made on another device) and seeks
+     * there if it differs meaningfully from where this device's session currently sits. Only acts
+     * while paused — an actively playing session is always the source of truth for itself. Called
+     * whenever the player screen (or mini-player) becomes visible again, since a long-lived app
+     * process otherwise never re-fetches after the initial [loadAndPlay].
+     */
+    fun refreshIfStale() = scope.launch {
+        val c = controller ?: return@launch
+        if (c.isPlaying) return@launch
+        val book = _state.value.currentBook ?: return@launch
+        val files = _state.value.files
+        if (files.isEmpty()) return@launch
+        val resume = audioProgress.resolveResume(book.id) ?: return@launch
+        val resumeIdx = files.indexOfFirst { it.id == resume.currentFileId }.coerceAtLeast(0)
+        val resumeAbs = PlaybackQueue.toAbsoluteSec(files, resumeIdx, resume.positionSeconds)
+        val currentAbs = PlaybackQueue.toAbsoluteSec(files, c.currentMediaItemIndex, c.currentPosition / 1000.0)
+        if (kotlin.math.abs(resumeAbs - currentAbs) > STALE_THRESHOLD_SEC) {
+            c.seekTo(resumeIdx, (resume.positionSeconds * 1000).toLong())
+            updatePosition()
+        }
+    }
+
     fun stop() = scope.launch {
         report(force = true)
         controller?.run {
@@ -228,5 +251,10 @@ class PlayerManager @Inject constructor(
         val pct = PlaybackQueue.percentageFor(files, idx, posSec)
         lastReport = System.currentTimeMillis()
         audioProgress.report(book.id, files[idx].id, posSec, pct)
+    }
+
+    private companion object {
+        /** Minimum drift (seconds) before [refreshIfStale] bothers seeking to a server-side position. */
+        const val STALE_THRESHOLD_SEC = 5.0
     }
 }

@@ -132,6 +132,14 @@ data class AudioProgress(
     val currentFileId: Int,
     val positionSeconds: Double,
     val percentage: Double,
+    val updatedAt: String? = null,
+)
+
+@Serializable
+data class SaveAudioProgress(
+    val currentFileId: Int,
+    val positionSeconds: Double,
+    val percentage: Double,
 )
 
 /** Server stores a richer shape; the app only reads the CFI + percentage the reader needs. */

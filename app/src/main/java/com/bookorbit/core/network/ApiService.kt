@@ -20,6 +20,7 @@ import com.bookorbit.core.model.OidcCallbackRequest
 import com.bookorbit.core.model.OidcCallbackResponse
 import com.bookorbit.core.model.OidcProviderPublic
 import com.bookorbit.core.model.OidcStateResponse
+import com.bookorbit.core.model.SaveAudioProgress
 import com.bookorbit.core.model.SaveFileProgress
 import com.bookorbit.core.model.SearchResult
 import com.bookorbit.core.model.SeriesBooksPage
@@ -124,7 +125,7 @@ interface ApiService {
     @PATCH("books/{id}/audio-progress")
     suspend fun saveAudioProgress(
         @Path("id") id: Int,
-        @Body body: AudioProgress,
+        @Body body: SaveAudioProgress,
     )
 
     // --- Libraries ---

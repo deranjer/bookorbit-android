@@ -26,7 +26,7 @@ fun DashboardScreen(
     vm: DashboardViewModel = hiltViewModel(),
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
-    val isEmpty = !ui.loading && ui.continueReading.isEmpty() && ui.recentlyAdded.isEmpty()
+    val isEmpty = !ui.loading && ui.continueReading.isEmpty() && ui.continueListening.isEmpty() && ui.recentlyAdded.isEmpty()
 
     PullToRefreshBox(
         isRefreshing = ui.loading,
@@ -44,6 +44,9 @@ fun DashboardScreen(
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 if (ui.continueReading.isNotEmpty()) {
                     HorizontalBookScroller("Continue Reading", ui.continueReading, onBookClick)
+                }
+                if (ui.continueListening.isNotEmpty()) {
+                    HorizontalBookScroller("Continue Listening", ui.continueListening, onBookClick)
                 }
                 if (ui.recentlyAdded.isNotEmpty()) {
                     HorizontalBookScroller("Recently Added", ui.recentlyAdded, onBookClick)

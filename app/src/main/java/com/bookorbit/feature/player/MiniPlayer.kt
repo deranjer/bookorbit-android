@@ -25,6 +25,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.bookorbit.ui.LocalImageUrls
@@ -39,6 +41,11 @@ fun MiniPlayer(
     val state by vm.state.collectAsStateWithLifecycle()
     val book = state.currentBook ?: return
     val imageUrls = LocalImageUrls.current
+
+    // The mini-player is what's visible when the app resumes with a loaded book but the full
+    // player screen isn't on top — re-check the server here too so a paused session doesn't sit on
+    // a stale position after progress was made elsewhere (e.g. web).
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refreshIfStale() }
 
     Row(
         modifier = modifier

@@ -12,6 +12,7 @@ class PlayerViewModel @Inject constructor(
     val state = manager.state
 
     fun loadAndPlay(bookId: Int) = manager.loadAndPlay(bookId)
+    fun refreshIfStale() = manager.refreshIfStale()
     fun togglePlay() = manager.togglePlay()
     fun skipBack() = manager.skipBack()
     fun skipForward() = manager.skipForward()

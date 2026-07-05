@@ -19,6 +19,7 @@ class DashboardViewModel @Inject constructor(
 
     data class UiState(
         val continueReading: List<BookCard> = emptyList(),
+        val continueListening: List<BookCard> = emptyList(),
         val recentlyAdded: List<BookCard> = emptyList(),
         val loading: Boolean = true,
     )
@@ -34,8 +35,9 @@ class DashboardViewModel @Inject constructor(
         _ui.value = _ui.value.copy(loading = true)
         viewModelScope.launch {
             val continueReading = async { runCatching { repo.scroller(ScrollerType.CONTINUE_READING) }.getOrDefault(emptyList()) }
+            val continueListening = async { runCatching { repo.scroller(ScrollerType.CONTINUE_LISTENING) }.getOrDefault(emptyList()) }
             val recentlyAdded = async { runCatching { repo.scroller(ScrollerType.RECENTLY_ADDED) }.getOrDefault(emptyList()) }
-            _ui.value = UiState(continueReading.await(), recentlyAdded.await(), loading = false)
+            _ui.value = UiState(continueReading.await(), continueListening.await(), recentlyAdded.await(), loading = false)
         }
     }
 }

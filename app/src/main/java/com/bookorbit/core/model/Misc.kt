@@ -18,6 +18,7 @@ data class NamedResult(val name: String? = null)
 object ScrollerType {
     const val RECENTLY_ADDED = "recently-added"
     const val CONTINUE_READING = "continue-reading"
+    const val CONTINUE_LISTENING = "continue-listening"
     const val RANDOM = "random"
     const val SMART_SCOPE = "smart-scope"
 }
