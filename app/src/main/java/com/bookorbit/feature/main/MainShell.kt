@@ -43,6 +43,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.bookorbit.BuildConfig
 import com.bookorbit.core.model.AuthUser
 import com.bookorbit.feature.authors.AuthorsScreen
 import com.bookorbit.feature.bookdetail.BookDetailScreen
@@ -262,13 +263,15 @@ private fun DrawerContent(
             onClick = onSignOut,
             modifier = Modifier.padding(horizontal = 12.dp),
         )
-        serverVersion?.let {
-            Text(
-                "Server $it",
-                style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
-                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(16.dp),
-            )
+        val versionLabel = buildString {
+            append("App ${BuildConfig.VERSION_NAME}")
+            serverVersion?.let { append(" · Server $it") }
         }
+        Text(
+            versionLabel,
+            style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(16.dp),
+        )
     }
 }

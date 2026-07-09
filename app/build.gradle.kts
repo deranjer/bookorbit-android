@@ -19,6 +19,12 @@ val keystoreProperties = Properties().apply {
 }
 val hasReleaseSigning = keystoreProperties.containsKey("storeFile")
 
+// CI sets this (via ORG_GRADLE_PROJECT_versionCode, from the GitHub Actions run number) so every
+// release build gets a fresh, strictly increasing versionCode without a manual bump. Local/debug
+// builds without the property fall back to 1. versionName stays manual -- bump it by hand to tag
+// an actual release.
+val autoVersionCode = (findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
+
 android {
     namespace = "com.bookorbit"
     compileSdk = 36
@@ -27,7 +33,7 @@ android {
         applicationId = "com.bookorbit"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
+        versionCode = autoVersionCode
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
