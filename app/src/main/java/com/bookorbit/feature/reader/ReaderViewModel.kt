@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bookorbit.feature.bookdetail.BookDetailRepository
+import com.bookorbit.feature.downloads.DownloadsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +20,7 @@ private const val PROGRESS_THROTTLE_MS = 2_000L
 class ReaderViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val bookRepo: BookDetailRepository,
+    private val downloads: DownloadsRepository,
     private val source: ReaderSource,
     private val progress: ReaderProgressRepository,
     private val settingsStore: ReaderSettingsStore,
@@ -63,7 +65,8 @@ class ReaderViewModel @Inject constructor(
             val showHint = settings.flow == "paginated" && !settingsStore.hasSeenPagingHint()
             _ui.update { it.copy(settings = settings, showPagingHint = showHint) }
 
-            val book = runCatching { bookRepo.detail(bookId) }.getOrNull()
+            // Fall back to the offline-downloaded copy when the network is unavailable.
+            val book = runCatching { bookRepo.detail(bookId) }.getOrNull() ?: downloads.cachedBook(bookId)
             if (book == null) {
                 _ui.update { it.copy(loadingFile = false, error = "Failed to load book") }
                 return@launch

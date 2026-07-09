@@ -264,7 +264,9 @@ private fun DrawerContent(
             modifier = Modifier.padding(horizontal = 12.dp),
         )
         val versionLabel = buildString {
-            append("App ${BuildConfig.VERSION_NAME}")
+            // VERSION_CODE is what actually changes build-to-build (CI run number); VERSION_NAME
+            // is bumped by hand, so show both -- otherwise this always reads "0.1.0".
+            append("App ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
             serverVersion?.let { append(" · Server $it") }
         }
         Text(

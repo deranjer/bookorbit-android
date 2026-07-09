@@ -36,6 +36,10 @@ class DownloadsRepository @Inject constructor(
 
     suspend fun isDownloaded(bookId: Int): Boolean = dao.get(bookId)?.status == DownloadStatus.COMPLETE.name
 
+    /** The BookDetail persisted at download time, so book detail/reader/player screens work fully offline. */
+    suspend fun cachedBook(bookId: Int): BookDetail? =
+        dao.get(bookId)?.let { runCatching { json.decodeFromString(BookDetail.serializer(), it.bookJson) }.getOrNull() }
+
     /** Map of fileId -> local file path for a completed download (else empty). */
     suspend fun localFiles(bookId: Int): Map<Int, String> {
         val entity = dao.get(bookId)?.takeIf { it.status == DownloadStatus.COMPLETE.name } ?: return emptyMap()

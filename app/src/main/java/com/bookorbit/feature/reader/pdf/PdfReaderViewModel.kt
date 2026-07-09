@@ -6,6 +6,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bookorbit.feature.bookdetail.BookDetailRepository
+import com.bookorbit.feature.downloads.DownloadsRepository
 import com.bookorbit.feature.reader.ReaderProgressRepository
 import com.bookorbit.feature.reader.ReaderSource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,6 +24,7 @@ private const val PROGRESS_THROTTLE_MS = 2_000L
 class PdfReaderViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val bookRepo: BookDetailRepository,
+    private val downloads: DownloadsRepository,
     private val source: ReaderSource,
     private val progress: ReaderProgressRepository,
     private val settingsStore: PdfReaderSettingsStore,
@@ -72,7 +74,8 @@ class PdfReaderViewModel @Inject constructor(
             val settings = settingsStore.load()
             _ui.update { it.copy(settings = settings) }
 
-            val book = runCatching { bookRepo.detail(bookId) }.getOrNull()
+            // Fall back to the offline-downloaded copy when the network is unavailable.
+            val book = runCatching { bookRepo.detail(bookId) }.getOrNull() ?: downloads.cachedBook(bookId)
             if (book == null) {
                 _ui.update { it.copy(loading = false, error = "Failed to load book") }
                 return@launch
