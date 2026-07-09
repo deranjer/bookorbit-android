@@ -4,6 +4,9 @@ Native Kotlin / Jetpack Compose client for a self-hosted
 [BookOrbit](https://github.com/bookorbit/bookorbit) server. This is a **standalone Gradle project** —
 open this repository's root directly in Android Studio.
 
+> User-facing docs: **https://deranjer.github.io/bookorbit-android/** (source in [`website/`](website/)).
+> Privacy policy: **https://deranjer.github.io/bookorbit-android/privacy.html**.
+
 > **Status:** this is the BookOrbit mobile client. It supports auth + OIDC, library browsing, search,
 > smart scopes, collections, authors/series, book detail, the foliate.js ebook reader, the Media3
 > audiobook player, and downloads/offline. See [Architecture & conventions](#architecture--conventions)
