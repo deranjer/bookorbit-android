@@ -2,8 +2,10 @@ package com.bookorbit.feature.player
 
 import android.net.Uri
 import android.os.Bundle
+import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.util.UnstableApi
 import com.bookorbit.core.auth.SessionManager
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFileRef
@@ -28,6 +30,7 @@ class PlayerRepository @Inject constructor(
         val mediaItems: List<MediaItem>,
     )
 
+    @OptIn(UnstableApi::class)
     suspend fun resolve(bookId: Int): PlayerData? {
         // Use the offline copy's persisted BookDetail when present (works fully offline).
         val download = downloads.get(bookId)?.takeIf { it.isAudiobook }

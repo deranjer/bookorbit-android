@@ -3,6 +3,7 @@ package com.bookorbit.feature.player
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
+import androidx.media3.common.util.UnstableApi
 
 /**
  * Presents the whole-book position/duration to every observer of the [PlaybackService]'s
@@ -19,6 +20,7 @@ import androidx.media3.common.Timeline
  * metadata extras ([PlayerRepository] embeds them there) rather than [Timeline.Window.durationUs],
  * which is unset for queue items ExoPlayer hasn't buffered yet.
  */
+@UnstableApi
 class BookAggregatingPlayer(player: Player) : ForwardingPlayer(player) {
 
     private val window = Timeline.Window()
