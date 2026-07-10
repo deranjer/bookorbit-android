@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Pause
@@ -47,7 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.bookorbit.ui.LocalImageUrls
 
-private fun formatTime(totalSeconds: Double): String {
+internal fun formatTime(totalSeconds: Double): String {
     val s = totalSeconds.toLong().coerceAtLeast(0)
     val h = s / 3600
     val m = (s % 3600) / 60
@@ -63,6 +64,7 @@ fun PlayerScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     val imageUrls = LocalImageUrls.current
     var scrubbing by remember { mutableStateOf<Float?>(null) }
+    var showSleepTimerSheet by remember { mutableStateOf(false) }
 
     // Re-check the server for progress made elsewhere (e.g. web) whenever this screen becomes
     // visible again — covers both navigating in via the mini-player and resuming the app in place.
@@ -113,7 +115,14 @@ fun PlayerScreen(
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
             )
-            Box(Modifier.size(48.dp))
+            val timerActive = state.sleepTimerRemainingSec != null
+            IconButton(onClick = { showSleepTimerSheet = true }) {
+                Icon(
+                    Icons.Filled.Bedtime,
+                    contentDescription = if (timerActive) "Sleep timer active" else "Sleep timer",
+                    tint = if (timerActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
 
         Column(
@@ -226,5 +235,17 @@ fun PlayerScreen(
                 )
             }
         }
+    }
+
+    if (showSleepTimerSheet) {
+        SleepTimerSheet(
+            remainingSec = state.sleepTimerRemainingSec,
+            endOfChapter = state.sleepTimerEndOfChapter,
+            hasChapters = state.chapters.isNotEmpty(),
+            onSetMinutes = { vm.setSleepTimer(it) },
+            onSetEndOfChapter = { vm.setSleepTimerEndOfChapter() },
+            onCancel = { vm.cancelSleepTimer() },
+            onDismiss = { showSleepTimerSheet = false },
+        )
     }
 }
