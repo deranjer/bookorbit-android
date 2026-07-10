@@ -49,6 +49,8 @@ class PlayerManager @Inject constructor(
         val speed: Float = DEFAULT_SPEED,
         val skipBackSeconds: Int = DEFAULT_SKIP_BACK,
         val skipForwardSeconds: Int = DEFAULT_SKIP_FORWARD,
+        val sleepTimerRemainingSec: Long? = null,
+        val sleepTimerEndOfChapter: Boolean = false,
     )
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
@@ -59,6 +61,10 @@ class PlayerManager @Inject constructor(
     private var pollJob: Job? = null
     private var settings = AudioSettings()
     private var lastReport = 0L
+
+    /** Wall-clock deadline for a duration-based sleep timer; null when off or in end-of-chapter mode. */
+    private var sleepTimerEndAtMs: Long? = null
+    private var sleepTimerEndOfChapter = false
 
     private val listener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -97,6 +103,7 @@ class PlayerManager @Inject constructor(
     }
 
     fun loadAndPlay(bookId: Int) {
+        cancelSleepTimer()
         scope.launch {
             val data = repo.resolve(bookId) ?: return@launch
             val c = controller()
@@ -188,6 +195,50 @@ class PlayerManager @Inject constructor(
         _state.update { it.copy(skipForwardSeconds = value) }
     }
 
+    /** Arms a countdown that pauses playback after [minutes] of wall-clock time. */
+    fun setSleepTimer(minutes: Int) {
+        sleepTimerEndOfChapter = false
+        sleepTimerEndAtMs = System.currentTimeMillis() + minutes * 60_000L
+        _state.update { it.copy(sleepTimerRemainingSec = minutes * 60L, sleepTimerEndOfChapter = false) }
+    }
+
+    /** Arms a countdown that pauses playback when the current chapter ends. */
+    fun setSleepTimerEndOfChapter() {
+        sleepTimerEndOfChapter = true
+        sleepTimerEndAtMs = null
+        _state.update { it.copy(sleepTimerEndOfChapter = true) }
+        tickSleepTimer()
+    }
+
+    fun cancelSleepTimer() {
+        sleepTimerEndAtMs = null
+        sleepTimerEndOfChapter = false
+        _state.update { it.copy(sleepTimerRemainingSec = null, sleepTimerEndOfChapter = false) }
+    }
+
+    /** Recomputes the remaining time and pauses playback once it lapses. Driven by the poller tick. */
+    private fun tickSleepTimer() {
+        val endAt = sleepTimerEndAtMs
+        if (endAt == null && !sleepTimerEndOfChapter) return
+
+        val remainingSec = if (sleepTimerEndOfChapter) {
+            val s = _state.value
+            val idx = PlaybackQueue.currentChapterIndex(s.chapters, s.positionSec)
+            val chapterEnd = s.chapters.getOrNull(idx + 1)?.startSec ?: s.totalDurationSec
+            (chapterEnd - s.positionSec).toLong().coerceAtLeast(0)
+        } else {
+            ((endAt!! - System.currentTimeMillis()) / 1000).coerceAtLeast(0)
+        }
+
+        _state.update { it.copy(sleepTimerRemainingSec = remainingSec) }
+        if (remainingSec <= 0) {
+            controller?.pause()
+            sleepTimerEndAtMs = null
+            sleepTimerEndOfChapter = false
+            _state.update { it.copy(sleepTimerRemainingSec = null, sleepTimerEndOfChapter = false) }
+        }
+    }
+
     /**
      * Re-checks the server for a newer position (e.g. progress made on another device) and seeks
      * there if it differs meaningfully from where this device's session currently sits. Only acts
@@ -218,6 +269,7 @@ class PlayerManager @Inject constructor(
             clearMediaItems()
         }
         pollJob?.cancel()
+        cancelSleepTimer()
         _state.update { it.copy(currentBook = null, isPlaying = false) }
     }
 
@@ -226,6 +278,7 @@ class PlayerManager @Inject constructor(
         pollJob = scope.launch {
             while (isActive) {
                 updatePosition()
+                tickSleepTimer()
                 if (System.currentTimeMillis() - lastReport >= 5_000) report(force = false)
                 delay(500)
             }
