@@ -1,6 +1,7 @@
 package com.bookorbit.feature.player
 
 import android.net.Uri
+import android.os.Bundle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import com.bookorbit.core.auth.SessionManager
@@ -43,6 +44,7 @@ class PlayerRepository @Inject constructor(
         val localFiles = downloads.localFiles(bookId)
         val coverPath = downloads.coverPath(bookId)
         val performer = PlaybackQueue.performerLabel(book)
+        val chapterStarts = PlaybackQueue.resolveChapters(book).map { it.startSec }.toDoubleArray()
 
         val items = files.map { file ->
             val localPath = localFiles[file.id]?.takeIf { File(it).exists() }
@@ -51,9 +53,16 @@ class PlayerRepository @Inject constructor(
                 base != null -> "$base/api/v1/books/files/${file.id}/serve"
                 else -> return null
             }
+            // Extras carry data BookAggregatingPlayer needs to present a whole-book timeline to the
+            // MediaSession (Bluetooth/Android Auto) instead of ExoPlayer's real per-file position/duration.
+            val extras = Bundle().apply {
+                putDouble(BookAggregatingPlayer.EXTRA_DURATION_SEC, file.durationSeconds ?: 0.0)
+                if (chapterStarts.size >= 2) putDoubleArray(BookAggregatingPlayer.EXTRA_CHAPTER_STARTS_SEC, chapterStarts)
+            }
             val metadata = MediaMetadata.Builder()
                 .setTitle(book.title ?: "Audiobook")
                 .setArtist(performer)
+                .setExtras(extras)
                 .apply {
                     // Lock-screen art only for local covers (the remote endpoint needs auth headers).
                     if (localPath != null && coverPath != null) setArtworkUri(Uri.fromFile(File(coverPath)))

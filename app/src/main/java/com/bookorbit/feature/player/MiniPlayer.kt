@@ -76,7 +76,7 @@ fun MiniPlayer(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                PlaybackQueue.performerLabel(book),
+                if (state.isCasting) "Casting to ${state.castDeviceName ?: "device"}" else PlaybackQueue.performerLabel(book),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,

@@ -22,3 +22,12 @@ annotation class RefreshClient
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class ImageClient
+
+/**
+ * Client used by the Cast proxy server to fetch server-streamed audio on behalf of a Cast device.
+ * Adds the bearer token and 401-refresh-retry but NO base-URL rewrite, since the proxy forwards
+ * already-absolute serve URLs baked into the [androidx.media3.common.MediaItem] queue.
+ */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class CastUpstreamClient

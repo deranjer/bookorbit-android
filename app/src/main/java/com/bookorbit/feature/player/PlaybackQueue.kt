@@ -23,23 +23,34 @@ object PlaybackQueue {
         else book.authors.joinToString(", ") { it.name }
     }
 
-    fun totalDurationSec(files: List<BookFileRef>): Double =
-        files.sumOf { it.durationSeconds ?: 0.0 }
+    fun totalDurationSec(files: List<BookFileRef>): Double = sumDurationsSec(files.map { it.durationSeconds ?: 0.0 })
 
-    fun toAbsoluteSec(files: List<BookFileRef>, index: Int, offsetSec: Double): Double {
+    fun toAbsoluteSec(files: List<BookFileRef>, index: Int, offsetSec: Double): Double =
+        absoluteSecFrom(files.map { it.durationSeconds ?: 0.0 }, index, offsetSec)
+
+    fun locateAbsolute(files: List<BookFileRef>, absoluteSec: Double): FileLocation =
+        locateWithinDurations(files.map { it.durationSeconds ?: 0.0 }, absoluteSec)
+
+    /** Duration-only variants so callers that only have raw durations (e.g. [BookAggregatingPlayer],
+     * which reads them from [androidx.media3.common.MediaItem] metadata rather than [BookFileRef]s)
+     * can share this exact math instead of duplicating it. Named distinctly from the [BookFileRef]
+     * overloads above since `List<BookFileRef>` and `List<Double>` erase to the same JVM signature. */
+    fun sumDurationsSec(durationsSec: List<Double>): Double = durationsSec.sum()
+
+    fun absoluteSecFrom(durationsSec: List<Double>, index: Int, offsetSec: Double): Double {
         var abs = 0.0
         for (i in 0 until index) {
-            if (i >= files.size) break
-            abs += files[i].durationSeconds ?: 0.0
+            if (i >= durationsSec.size) break
+            abs += durationsSec[i]
         }
         return abs + offsetSec
     }
 
-    fun locateAbsolute(files: List<BookFileRef>, absoluteSec: Double): FileLocation {
+    fun locateWithinDurations(durationsSec: List<Double>, absoluteSec: Double): FileLocation {
         var remaining = absoluteSec.coerceAtLeast(0.0)
-        for (i in files.indices) {
-            val dur = files[i].durationSeconds ?: 0.0
-            if (i == files.lastIndex || remaining < dur) return FileLocation(i, remaining)
+        for (i in durationsSec.indices) {
+            val dur = durationsSec[i]
+            if (i == durationsSec.lastIndex || remaining < dur) return FileLocation(i, remaining)
             remaining -= dur
         }
         return FileLocation(0, 0.0)

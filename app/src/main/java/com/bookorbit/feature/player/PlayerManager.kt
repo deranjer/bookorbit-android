@@ -10,6 +10,7 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFileRef
+import com.bookorbit.feature.cast.CastSessionController
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +19,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -37,6 +39,7 @@ class PlayerManager @Inject constructor(
     private val repo: PlayerRepository,
     private val audioProgress: AudioProgressRepository,
     private val settingsStore: AudioSettingsStore,
+    private val castSessionController: CastSessionController,
 ) {
     data class UiState(
         val currentBook: BookDetail? = null,
@@ -51,6 +54,8 @@ class PlayerManager @Inject constructor(
         val skipForwardSeconds: Int = DEFAULT_SKIP_FORWARD,
         val sleepTimerRemainingSec: Long? = null,
         val sleepTimerEndOfChapter: Boolean = false,
+        val isCasting: Boolean = false,
+        val castDeviceName: String? = null,
     )
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
@@ -85,6 +90,11 @@ class PlayerManager @Inject constructor(
                     skipBackSeconds = settings.skipBackSeconds,
                     skipForwardSeconds = settings.skipForwardSeconds,
                 )
+            }
+        }
+        scope.launch {
+            castSessionController.state.collect { cast ->
+                _state.update { it.copy(isCasting = cast.isConnected, castDeviceName = cast.deviceName) }
             }
         }
     }
@@ -255,7 +265,7 @@ class PlayerManager @Inject constructor(
         val resume = audioProgress.resolveResume(book.id) ?: return@launch
         val resumeIdx = files.indexOfFirst { it.id == resume.currentFileId }.coerceAtLeast(0)
         val resumeAbs = PlaybackQueue.toAbsoluteSec(files, resumeIdx, resume.positionSeconds)
-        val currentAbs = PlaybackQueue.toAbsoluteSec(files, c.currentMediaItemIndex, c.currentPosition / 1000.0)
+        val currentAbs = c.currentPosition / 1000.0
         if (kotlin.math.abs(resumeAbs - currentAbs) > STALE_THRESHOLD_SEC) {
             c.seekTo(resumeIdx, (resume.positionSeconds * 1000).toLong())
             updatePosition()
@@ -287,10 +297,8 @@ class PlayerManager @Inject constructor(
 
     private fun updatePosition() {
         val c = controller ?: return
-        val files = _state.value.files
-        if (files.isEmpty()) return
-        val abs = PlaybackQueue.toAbsoluteSec(files, c.currentMediaItemIndex, c.currentPosition / 1000.0)
-        _state.update { it.copy(positionSec = abs) }
+        if (_state.value.files.isEmpty()) return
+        _state.update { it.copy(positionSec = c.currentPosition / 1000.0) }
     }
 
     private suspend fun report(force: Boolean) {
@@ -299,11 +307,12 @@ class PlayerManager @Inject constructor(
         val files = _state.value.files
         if (files.isEmpty()) return
         if (!force && !c.isPlaying) return
-        val idx = c.currentMediaItemIndex.coerceIn(0, files.lastIndex)
-        val posSec = c.currentPosition / 1000.0
-        val pct = PlaybackQueue.percentageFor(files, idx, posSec)
+        // c.currentPosition is the whole-book aggregate (see BookAggregatingPlayer); recompute the
+        // real file + in-file offset together rather than pairing a stale currentMediaItemIndex with it.
+        val loc = PlaybackQueue.locateAbsolute(files, c.currentPosition / 1000.0)
+        val pct = PlaybackQueue.percentageFor(files, loc.index, loc.offsetSec)
         lastReport = System.currentTimeMillis()
-        audioProgress.report(book.id, files[idx].id, posSec, pct)
+        audioProgress.report(book.id, files[loc.index].id, loc.offsetSec, pct)
     }
 
     private companion object {
