@@ -6,11 +6,13 @@ open this repository's root directly in Android Studio.
 
 > User-facing docs: **https://deranjer.github.io/bookorbit-android/** (source in [`website/`](website/)).
 > Privacy policy: **https://deranjer.github.io/bookorbit-android/privacy.html**.
+> Planned work: see [`ROADMAP.md`](ROADMAP.md).
 
 > **Status:** this is the BookOrbit mobile client. It supports auth + OIDC, library browsing, search,
 > smart scopes, collections, authors/series, book detail, the foliate.js ebook reader, the Media3
-> audiobook player, and downloads/offline. See [Architecture & conventions](#architecture--conventions)
-> below and the [Cross-repo couplings](#cross-repo-couplings) section.
+> audiobook player (with sleep timer and Chromecast), and downloads/offline. See
+> [Architecture & conventions](#architecture--conventions) below, the
+> [Cross-repo couplings](#cross-repo-couplings) section, and [`ROADMAP.md`](ROADMAP.md) for what's next.
 
 ## Prerequisites
 
