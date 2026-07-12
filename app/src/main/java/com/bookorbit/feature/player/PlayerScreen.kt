@@ -46,6 +46,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.bookorbit.feature.cast.CastButton
 import com.bookorbit.ui.LocalImageUrls
 
 internal fun formatTime(totalSeconds: Double): String {
@@ -115,6 +116,7 @@ fun PlayerScreen(
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
             )
+            CastButton()
             val timerActive = state.sleepTimerRemainingSec != null
             IconButton(onClick = { showSleepTimerSheet = true }) {
                 Icon(
@@ -155,6 +157,14 @@ fun PlayerScreen(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 6.dp),
             )
+            if (state.isCasting) {
+                Text(
+                    "Casting to ${state.castDeviceName ?: "device"}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
             currentChapter?.let {
                 Text(
                     it,

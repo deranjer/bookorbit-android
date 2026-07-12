@@ -66,6 +66,12 @@
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
 
+        <!-- Cast SDK entry point: points at the OptionsProvider that configures the stock Default
+             Media Receiver as the cast target (no custom receiver app). -->
+        <meta-data
+            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+            android:value="com.bookorbit.feature.cast.CastOptionsProvider" />
+
         <!-- WorkManager is initialized on demand via Hilt (see BookOrbitApplication). -->
         <provider
             android:name="androidx.startup.InitializationProvider"
