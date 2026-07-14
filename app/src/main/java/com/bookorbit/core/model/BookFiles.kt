@@ -17,6 +17,20 @@ object BookFiles {
     /** Formats that can be handed to an external viewer via the share sheet. */
     val EBOOK_OPENABLE = setOf("epub", "pdf", "cbz", "cbr", "mobi", "azw3", "azw", "fb2", "txt")
 
+    /** Legitimate book content formats, as opposed to incidental files like a folder's cover image. */
+    private val CONTENT_FORMATS = AUDIO_FORMATS + READER_SUPPORTED + PDF_FORMATS
+
+    /**
+     * Format to show as a card's badge: the primary file if it's a known content format, else the
+     * first file that is, else null. Guards against a non-content file (e.g. a stray cover.jpg
+     * picked up during ingest) winning the "first file" slot and showing as the book's format.
+     */
+    fun badgeFormat(files: List<BookFileRef>): String? {
+        val primary = files.firstOrNull { it.role == "primary" }?.format?.lowercase()
+        if (primary != null && primary in CONTENT_FORMATS) return primary
+        return files.firstOrNull { it.format?.lowercase() in CONTENT_FORMATS }?.format?.lowercase()
+    }
+
     fun audioFiles(book: BookDetail): List<BookFileRef> =
         book.files.filter { it.format != null && it.format.lowercase() in AUDIO_FORMATS }
 

@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.bookorbit.core.model.BookCard
+import com.bookorbit.core.model.BookFiles
 import com.bookorbit.ui.LocalImageUrls
 import com.bookorbit.ui.theme.Accent
 
@@ -46,7 +47,7 @@ fun BookCard(
     modifier: Modifier = Modifier,
 ) {
     val imageUrls = LocalImageUrls.current
-    val primaryFormat = book.files.firstOrNull()?.format?.lowercase()
+    val primaryFormat = BookFiles.badgeFormat(book.files)
     val progress = book.readingProgress
 
     Column(

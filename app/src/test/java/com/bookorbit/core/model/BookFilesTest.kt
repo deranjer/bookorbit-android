@@ -60,4 +60,23 @@ class BookFilesTest {
         assertNull(BookFiles.pdfFile(b))
         assertEquals(BookFiles.ReadingTarget.None, BookFiles.readingTarget(b))
     }
+
+    @Test
+    fun `badgeFormat ignores a stray non-content file ahead of the real one`() {
+        // Regression for a book card badge showing "JPG" instead of the audiobook's real format.
+        val files = listOf(file(1, "jpg"), file(2, "m4b", role = "primary"))
+        assertEquals("m4b", BookFiles.badgeFormat(files))
+    }
+
+    @Test
+    fun `badgeFormat falls back to the first content file when primary is not content`() {
+        val files = listOf(file(1, "jpg", role = "primary"), file(2, "epub"))
+        assertEquals("epub", BookFiles.badgeFormat(files))
+    }
+
+    @Test
+    fun `badgeFormat returns null when no file is a known content format`() {
+        val files = listOf(file(1, "jpg", role = "primary"))
+        assertNull(BookFiles.badgeFormat(files))
+    }
 }
