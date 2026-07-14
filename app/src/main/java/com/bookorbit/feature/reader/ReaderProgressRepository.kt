@@ -4,6 +4,7 @@ import com.bookorbit.core.db.ReaderProgressDao
 import com.bookorbit.core.db.ReaderProgressEntity
 import com.bookorbit.core.model.SaveFileProgress
 import com.bookorbit.core.network.ApiService
+import com.bookorbit.core.sync.SyncScheduler
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,6 +19,7 @@ data class InitialProgress(val cfi: String?, val fraction: Double?)
 class ReaderProgressRepository @Inject constructor(
     private val dao: ReaderProgressDao,
     private val api: ApiService,
+    private val syncScheduler: SyncScheduler,
 ) {
     /**
      * Save locally, then attempt to push to the server (clearing dirty on success). [pageNumber] is
@@ -26,25 +28,21 @@ class ReaderProgressRepository @Inject constructor(
      */
     suspend fun report(fileId: Int, cfi: String?, percentage: Double, pageNumber: Int? = null) {
         dao.upsert(ReaderProgressEntity(fileId, cfi, percentage, System.currentTimeMillis(), dirty = true))
-        runCatching {
+        val ok = runCatching {
             api.saveFileProgress(fileId, SaveFileProgress(cfi, percentage, pageNumber))
-            dao.markSynced(fileId)
-        }
+        }.isSuccess
+        if (ok) dao.markSynced(fileId) else syncScheduler.schedule()
     }
 
-    /** Push every pending position to the server; entries that fail stay dirty. Returns count synced. */
-    suspend fun flushPending(): Int {
-        var synced = 0
+    /** Push every dirty position to the server. Returns true if anything is still dirty afterward. */
+    suspend fun flushPending(): Boolean {
         for (entry in dao.dirtyEntries()) {
             val ok = runCatching {
                 api.saveFileProgress(entry.fileId, SaveFileProgress(entry.cfi, entry.percentage))
             }.isSuccess
-            if (ok) {
-                dao.markSynced(entry.fileId)
-                synced++
-            }
+            if (ok) dao.markSynced(entry.fileId)
         }
-        return synced
+        return dao.dirtyEntries().isNotEmpty()
     }
 
     /**

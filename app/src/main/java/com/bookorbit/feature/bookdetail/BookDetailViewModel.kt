@@ -66,8 +66,7 @@ class BookDetailViewModel @Inject constructor(
     fun load() {
         _ui.update { it.copy(loading = true, error = false) }
         viewModelScope.launch {
-            // Fall back to the offline-downloaded copy when the network is unavailable.
-            val book = runCatching { repo.detail(bookId) }.getOrNull() ?: downloads.cachedBook(bookId)
+            val book = loadedBook()
             if (book == null) {
                 _ui.update { it.copy(loading = false, error = true) }
                 return@launch
@@ -135,7 +134,16 @@ class BookDetailViewModel @Inject constructor(
     }
 
     private suspend fun reloadBook() {
-        val book = runCatching { repo.detail(bookId) }.getOrNull() ?: downloads.cachedBook(bookId)
+        val book = loadedBook()
         if (book != null) _ui.update { it.copy(book = book) }
+    }
+
+    /**
+     * Server detail if reachable, else the offline-downloaded copy, with any not-yet-synced local
+     * rating/read-status overlaid so a queued offline edit never appears to be lost or reverted.
+     */
+    private suspend fun loadedBook(): BookDetail? {
+        val book = runCatching { repo.detail(bookId) }.getOrNull() ?: downloads.cachedBook(bookId)
+        return book?.let { repo.applyPending(it) }
     }
 }

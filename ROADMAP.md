@@ -16,6 +16,8 @@ updated 11 Jul 2026 after Chromecast support shipped.
   sleep timer (5–60 min presets + "end of chapter"), Chromecast support, Android Auto browse tree
 - **Downloads** — offline files via WorkManager, cached book detail fallback
 - **Book Drop** — upload, server-side metadata fetch, review-and-finalize into library
+- **Offline write queue** — ratings, read-status, and reading/listening progress made offline are
+  queued in Room and auto-flushed by a WorkManager `SyncWorker` on reconnect
 
 ## P1 — Next up
 
@@ -37,13 +39,6 @@ and a configurable **download save location** (see below).
 them. A drawer badge or dashboard banner is most of the remaining work.
 
 **Why:** the server already tells the client an update exists; that signal is currently thrown away.
-
-### Queue writes made while offline
-
-Ratings, read-status changes, and reading/listening progress saved while offline should queue
-locally and flush on reconnect instead of silently failing.
-
-**Why:** offline is only half-solved if you can read a book offline but lose your progress for it.
 
 ### Save downloads to a user-chosen local storage folder
 

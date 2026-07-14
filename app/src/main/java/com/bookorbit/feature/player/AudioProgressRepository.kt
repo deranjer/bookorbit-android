@@ -5,6 +5,7 @@ import com.bookorbit.core.db.AudioProgressEntity
 import com.bookorbit.core.model.AudioProgress
 import com.bookorbit.core.model.SaveAudioProgress
 import com.bookorbit.core.network.ApiService
+import com.bookorbit.core.sync.SyncScheduler
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,29 +18,27 @@ import javax.inject.Singleton
 class AudioProgressRepository @Inject constructor(
     private val dao: AudioProgressDao,
     private val api: ApiService,
+    private val syncScheduler: SyncScheduler,
 ) {
     suspend fun report(bookId: Int, currentFileId: Int, positionSeconds: Double, percentage: Double) {
         dao.upsert(
             AudioProgressEntity(bookId, currentFileId, positionSeconds, percentage, System.currentTimeMillis(), dirty = true),
         )
-        runCatching {
+        val ok = runCatching {
             api.saveAudioProgress(bookId, SaveAudioProgress(currentFileId, positionSeconds, percentage))
-            dao.markSynced(bookId)
-        }
+        }.isSuccess
+        if (ok) dao.markSynced(bookId) else syncScheduler.schedule()
     }
 
-    suspend fun flushPending(): Int {
-        var synced = 0
+    /** Push every dirty position to the server. Returns true if anything is still dirty afterward. */
+    suspend fun flushPending(): Boolean {
         for (e in dao.dirtyEntries()) {
             val ok = runCatching {
                 api.saveAudioProgress(e.bookId, SaveAudioProgress(e.currentFileId, e.positionSeconds, e.percentage))
             }.isSuccess
-            if (ok) {
-                dao.markSynced(e.bookId)
-                synced++
-            }
+            if (ok) dao.markSynced(e.bookId)
         }
-        return synced
+        return dao.dirtyEntries().isNotEmpty()
     }
 
     /** Saved positions, most recently played first (Android Auto "Continue listening" shelf). */
