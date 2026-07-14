@@ -21,6 +21,7 @@ data class ReaderSettings(
     val isDark: Boolean = true,
     val themeName: String = "default",
     val flow: String = "paginated", // "paginated" | "scrolled"
+    val pageTurnMode: String = "tap", // "tap" | "swipe"
 )
 
 val FONT_SIZE_RANGE = 10..32

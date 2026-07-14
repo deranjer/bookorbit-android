@@ -94,12 +94,23 @@ fun ReaderScreen(
     ) {
         ReaderWebView(controller = controller, modifier = Modifier.fillMaxSize())
 
-        // Tap zones for paging (paginated mode) + chrome toggle.
+        // Tap zones for paging (paginated mode) + chrome toggle. In swipe mode the side zones are
+        // left uncovered so touches fall through to the WebView, where foliate's own paginator
+        // already handles swipe/snap page turns; only a center strip remains for the chrome toggle.
         if (paginated && !tocVisible && !settingsVisible) {
+            val swipeMode = ui.settings.pageTurnMode == "swipe"
             Row(modifier = Modifier.fillMaxSize()) {
-                TapZone(weight = 0.3f, onTap = controller::prev)
+                if (swipeMode) {
+                    Box(modifier = Modifier.weight(0.3f).fillMaxHeight())
+                } else {
+                    TapZone(weight = 0.3f, onTap = controller::prev)
+                }
                 TapZone(weight = 0.4f, onTap = { chromeVisible = !chromeVisible })
-                TapZone(weight = 0.3f, onTap = controller::next)
+                if (swipeMode) {
+                    Box(modifier = Modifier.weight(0.3f).fillMaxHeight())
+                } else {
+                    TapZone(weight = 0.3f, onTap = controller::next)
+                }
             }
         }
 

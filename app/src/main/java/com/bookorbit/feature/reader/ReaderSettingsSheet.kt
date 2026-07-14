@@ -85,6 +85,12 @@ fun ReaderSettingsSheet(
                 FilterChip(selected = settings.flow == "scrolled", onClick = { onChange(settings.copy(flow = "scrolled")) }, label = { Text("Scrolled") })
             }
 
+            Label("Page turn")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = settings.pageTurnMode == "tap", onClick = { onChange(settings.copy(pageTurnMode = "tap")) }, label = { Text("Tap") })
+                FilterChip(selected = settings.pageTurnMode == "swipe", onClick = { onChange(settings.copy(pageTurnMode = "swipe")) }, label = { Text("Swipe") })
+            }
+
             Stepper(
                 label = "Font size",
                 value = "${settings.fontSize}",
