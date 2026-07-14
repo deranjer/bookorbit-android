@@ -4,10 +4,10 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
-// BookOrbit is dark-first (matching the web client). A light scheme can be added
-// later; for now both system modes resolve to the dark palette to preserve the existing look.
+// BookOrbit is dark-first (matching the web client), so the dark palette is the "native" one.
 private val DarkColors = darkColorScheme(
     primary = Accent,
     onPrimary = TextPrimary,
@@ -21,13 +21,26 @@ private val DarkColors = darkColorScheme(
     error = ErrorRed,
 )
 
+private val LightColors = lightColorScheme(
+    primary = Accent,
+    onPrimary = TextPrimary,
+    background = LightBackground,
+    onBackground = LightTextPrimary,
+    surface = LightSurface,
+    onSurface = LightTextPrimary,
+    surfaceVariant = LightSurface,
+    onSurfaceVariant = LightTextSecondary,
+    outline = LightBorder,
+    error = ErrorRed,
+)
+
 @Composable
 fun BookOrbitTheme(
-    @Suppress("UNUSED_PARAMETER") darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
     MaterialTheme(
-        colorScheme = DarkColors,
+        colorScheme = if (darkTheme) DarkColors else LightColors,
         typography = BookOrbitTypography,
     ) {
         // Surface establishes the app background and the default LocalContentColor (onBackground),

@@ -12,8 +12,10 @@ import com.bookorbit.core.db.DownloadDao
 import com.bookorbit.core.db.DownloadEntity
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFiles
+import com.bookorbit.core.settings.AppSettingsStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -27,6 +29,7 @@ class DownloadsRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val dao: DownloadDao,
     private val json: Json,
+    private val appSettings: AppSettingsStore,
 ) {
     val downloads: Flow<List<DownloadEntity>> = dao.observeAll()
 
@@ -73,9 +76,10 @@ class DownloadsRepository @Inject constructor(
             ),
         )
 
+        val networkType = if (appSettings.wifiOnlyDownloads.first()) NetworkType.UNMETERED else NetworkType.CONNECTED
         val request = OneTimeWorkRequestBuilder<DownloadWorker>()
             .setInputData(workDataOf(DownloadWorker.KEY_BOOK_ID to book.id))
-            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(networkType).build())
             .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
             .addTag(DownloadWorker.tag(book.id))
             .build()
@@ -88,5 +92,10 @@ class DownloadsRepository @Inject constructor(
         WorkManager.getInstance(context).cancelUniqueWork(DownloadWorker.tag(bookId))
         dao.delete(bookId)
         File(context.filesDir, "downloads/$bookId").deleteRecursively()
+    }
+
+    /** Cancels and removes every download, for the Settings screen's "clear all downloads" action. */
+    suspend fun deleteAll() {
+        dao.observeAll().first().forEach { delete(it.bookId) }
     }
 }

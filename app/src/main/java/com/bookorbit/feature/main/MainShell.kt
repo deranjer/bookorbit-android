@@ -14,6 +14,7 @@ import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.LocalLibrary
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -56,6 +57,7 @@ import com.bookorbit.feature.player.MiniPlayer
 import com.bookorbit.feature.scopes.SmartScopesScreen
 import com.bookorbit.feature.search.SearchScreen
 import com.bookorbit.feature.series.SeriesScreen
+import com.bookorbit.feature.settings.SettingsScreen
 import kotlinx.coroutines.launch
 
 private enum class Tab(val route: String, val label: String, val icon: ImageVector) {
@@ -71,6 +73,7 @@ private object DrawerRoute {
     const val SERIES = "series"
     const val DOWNLOADS = "downloads"
     const val BOOK_DROP = "bookdrop"
+    const val SETTINGS = "settings"
     const val BOOK_DETAIL = "book/{id}"
     fun bookDetail(id: Int) = "book/$id"
 }
@@ -127,6 +130,7 @@ fun MainShell(
         DrawerRoute.SERIES -> "Series"
         DrawerRoute.DOWNLOADS -> "Downloads"
         DrawerRoute.BOOK_DROP -> "Book Drop"
+        DrawerRoute.SETTINGS -> "Settings"
         else -> "BookOrbit"
     }
 
@@ -186,6 +190,7 @@ fun MainShell(
                 composable(DrawerRoute.SERIES) { SeriesScreen(onBookClick = onBookClick) }
                 composable(DrawerRoute.DOWNLOADS) { DownloadsScreen(onBookClick = onBookClick) }
                 composable(DrawerRoute.BOOK_DROP) { BookDropScreen() }
+                composable(DrawerRoute.SETTINGS) { SettingsScreen() }
                 composable(
                     route = DrawerRoute.BOOK_DETAIL,
                     arguments = listOf(navArgument("id") { type = NavType.IntType }),
@@ -255,6 +260,13 @@ private fun DrawerContent(
                 modifier = Modifier.padding(horizontal = 12.dp),
             )
         }
+        NavigationDrawerItem(
+            label = { Text("Settings") },
+            selected = false,
+            icon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
+            onClick = { onNavigate(DrawerRoute.SETTINGS) },
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
         Spacer(modifier = Modifier.weight(1f))
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         NavigationDrawerItem(

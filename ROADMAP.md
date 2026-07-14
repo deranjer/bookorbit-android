@@ -18,20 +18,13 @@ updated 11 Jul 2026 after Chromecast support shipped.
 - **Book Drop** — upload, server-side metadata fetch, review-and-finalize into library
 - **Offline write queue** — ratings, read-status, and reading/listening progress made offline are
   queued in Room and auto-flushed by a WorkManager `SyncWorker` on reconnect
+- **Settings screen** — appearance (system/light/dark, with a real light `ColorScheme`, not just
+  system-dark repeated), Wi-Fi-only downloads, image cache / bulk downloads clearing, and default
+  playback speed
 
 ## P1 — Next up
 
 No screen exists for these yet, and the gap already shows.
-
-### A Settings screen
-
-There is currently no app-level preferences surface at all. `Theme.kt` already takes a
-`darkTheme` parameter but suppresses it and forces dark always — that's a manual
-light/dark/system toggle waiting to be wired up. Bundle in: Wi-Fi-only downloads,
-cache/storage management (clear image cache, bulk-remove downloads), default playback speed,
-and a configurable **download save location** (see below).
-
-**Why:** every one of these is a one-line change blocked only by not having anywhere to put a toggle.
 
 ### Surface the update check that's already wired server-side
 
@@ -53,8 +46,8 @@ shared `Downloads/`, etc.) via Android's Storage Access Framework
 **Why:** requested directly by a user.
 
 **Scope (medium lift, ~few days):**
-- **New UI**: a folder-picker launcher (SAF `ACTION_OPEN_DOCUMENT_TREE`) plus somewhere to put it
-  — either the new Settings screen above, or a control on the existing Downloads screen. No new
+- **New UI**: a folder-picker launcher (SAF `ACTION_OPEN_DOCUMENT_TREE`) plus a control on the
+  Settings screen (`feature/settings/SettingsScreen.kt`) or the existing Downloads screen. No new
   runtime permission is needed for SAF itself.
 - **New preference store**: a `DownloadLocationStore` following the existing per-feature
   `preferencesDataStore` pattern (`ReaderSettingsStore.kt`, `PdfReaderSettingsStore.kt`,
@@ -71,8 +64,7 @@ shared `Downloads/`, etc.) via Android's Storage Access Framework
 - **Edge cases**: handle a revoked folder permission or an ejected SD card gracefully (fall back
   to internal storage / re-prompt rather than silently failing downloads).
 
-Best scoped as its own item, paired with the Settings screen work above so there's a place to
-configure it.
+Best scoped as its own item; the Settings screen already shipped, so there's a place to configure it.
 
 ## P2 — Medium-term
 
@@ -91,8 +83,6 @@ Real value, larger lift — worth scoping once P0/P1 land.
 
 Real requests, but further out — sequence after the inner orbits settle.
 
-- **A real light theme** — both system modes currently resolve to the same hardcoded dark
-  palette; a proper light `ColorScheme` is a design pass, not just a toggle.
 - **Home-screen widget** — Continue Reading / Continue Listening as a glanceable widget.
 - **Push notifications** — new books added, downloads complete, Book Drop finished processing.
 - **Wear OS companion** — playback controls on the wrist for audiobook listeners.
