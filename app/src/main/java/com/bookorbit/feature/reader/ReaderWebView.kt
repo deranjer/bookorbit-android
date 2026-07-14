@@ -40,6 +40,10 @@ private data class OpenMeta(
 // Length stays a multiple of 4 so each slice decodes independently in the WebView.
 private const val CHUNK_CHARS = 256_000
 
+// Raw bytes per read, sized so CHUNK_BYTES * 4/3 == CHUNK_CHARS exactly. A multiple of 3 so every
+// chunk but the last encodes with no padding, keeping each slice independently decodable.
+private const val CHUNK_BYTES = CHUNK_CHARS / 4 * 3
+
 /**
  * Imperative handle over the reader WebView. Drives foliate via the begin/chunk/commit/command
  * protocol, buffering an open requested before the bridge signals ready.
@@ -86,17 +90,27 @@ class ReaderController {
     // The `window.__readerCommand &&` guard inside the JS no-ops if the bridge isn't ready yet.
     private fun command(json: String) = eval(ReaderBridge.jsCommand(json))
 
+    // Reads and encodes the file one CHUNK_BYTES slice at a time so peak memory stays bounded by
+    // the chunk size instead of the whole file (a naive readBytes()+encodeToString() on a 90MB
+    // EPUB peaks at ~450MB and reliably OOMs on default heap sizes).
     private fun runOpen(params: OpenParams) {
         val meta = OpenMeta(params.format, params.cfi, params.fraction, params.settings)
         val metaJson = ReaderBridge.json.encodeToString(OpenMeta.serializer(), meta)
         eval(ReaderBridge.jsBegin(metaJson))
 
-        val base64 = Base64.encodeToString(params.file.readBytes(), Base64.NO_WRAP)
-        var i = 0
-        while (i < base64.length) {
-            val end = minOf(i + CHUNK_CHARS, base64.length)
-            eval(ReaderBridge.jsChunk(base64.substring(i, end)))
-            i = end
+        params.file.inputStream().use { input ->
+            val buffer = ByteArray(CHUNK_BYTES)
+            while (true) {
+                var filled = 0
+                while (filled < CHUNK_BYTES) {
+                    val n = input.read(buffer, filled, CHUNK_BYTES - filled)
+                    if (n < 0) break
+                    filled += n
+                }
+                if (filled == 0) break
+                eval(ReaderBridge.jsChunk(Base64.encodeToString(buffer, 0, filled, Base64.NO_WRAP)))
+                if (filled < CHUNK_BYTES) break
+            }
         }
         eval(ReaderBridge.jsCommit())
     }
