@@ -8,12 +8,20 @@ import androidx.room.RoomDatabase
  * during the build-out don't require hand-written migrations; downloads tables are added later.
  */
 @Database(
-    entities = [ReaderProgressEntity::class, AudioProgressEntity::class, DownloadEntity::class],
-    version = 3,
+    entities = [
+        ReaderProgressEntity::class,
+        AudioProgressEntity::class,
+        DownloadEntity::class,
+        PendingRatingEntity::class,
+        PendingReadStatusEntity::class,
+    ],
+    version = 4,
     exportSchema = false,
 )
 abstract class BookOrbitDatabase : RoomDatabase() {
     abstract fun readerProgressDao(): ReaderProgressDao
     abstract fun audioProgressDao(): AudioProgressDao
     abstract fun downloadDao(): DownloadDao
+    abstract fun pendingRatingDao(): PendingRatingDao
+    abstract fun pendingReadStatusDao(): PendingReadStatusDao
 }

@@ -6,6 +6,7 @@ import androidx.work.Configuration
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import com.bookorbit.core.auth.SessionManager
+import com.bookorbit.core.sync.SyncScheduler
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -27,10 +28,16 @@ class BookOrbitApplication : Application(), Configuration.Provider, ImageLoaderF
     @Inject
     lateinit var imageLoader: ImageLoader
 
+    @Inject
+    lateinit var syncScheduler: SyncScheduler
+
     override fun onCreate() {
         super.onCreate()
         // Load persisted server URL / token / user so the nav graph can gate on the result.
         sessionManager.bootstrap()
+        // Safety net: flush any offline writes that were queued but not yet scheduled before the
+        // last process death (e.g. a crash between the local Room write and the enqueue call).
+        syncScheduler.schedule()
     }
 
     override fun newImageLoader(): ImageLoader = imageLoader
