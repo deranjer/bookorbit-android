@@ -565,7 +565,10 @@ export class Paginator extends HTMLElement {
       debounce(() => {
         if (this.scrolled) {
           if (this.#justAnchored) this.#justAnchored = false
-          else this.#afterScroll('scroll')
+          else {
+            this.#afterScroll('scroll')
+            this.#autoAdvance()
+          }
         }
       }, 250),
     )
@@ -857,7 +860,14 @@ export class Paginator extends HTMLElement {
   }
   #onTouchEnd() {
     this.#touchScrolled = false
-    if (this.scrolled) return
+    if (this.scrolled) {
+      // A native scroll that's already pinned at the very bottom (e.g. a book reopened right at
+      // a section boundary) never fires a 'scroll' event, since the browser only fires one when
+      // the position actually changes — so the debounced listener that normally drives
+      // #autoAdvance never runs. Checking again on touch release catches that case too.
+      this.#autoAdvance()
+      return
+    }
 
     // XXX: Firefox seems to report scale as 1... sometimes...?
     // at this point I'm basically throwing `requestAnimationFrame` at
@@ -963,6 +973,20 @@ export class Paginator extends HTMLElement {
       detail.size = 1 / (pages - 2)
     }
     this.dispatchEvent(new CustomEvent('relocate', { detail }))
+  }
+  // In scrolled flow the container's native scroll has no way to carry on past the end of the
+  // loaded section on its own — the browser just stops at the bottom of that iframe's content,
+  // since the next section isn't in the DOM yet. Reuse the same "at the edge" check `next()`
+  // uses for an explicit page-turn so continuous scroll actually flows across section
+  // boundaries instead of dead-ending until something else forces a section load.
+  #autoAdvance() {
+    if (this.#locked) return
+    // `start > 0` guards against a section that's shorter than the viewport: landing on one
+    // scrolls it to anchor 0, which can surface as a zero-movement 'scroll' event before the
+    // reader has actually scrolled anywhere. Without this check that phantom event would satisfy
+    // the "at the edge" test immediately and chain into the next section, and the next, with no
+    // user input in between.
+    if (this.start > 0 && this.viewSize - this.end <= 2 && this.#adjacentIndex(1) != null) this.next()
   }
   async #display(promise) {
     const { index, src, anchor, onLoad, select } = await promise
