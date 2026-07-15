@@ -1,17 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base Activity theme. UI is rendered by Compose; this only controls the window chrome. -->
-    <style name="Theme.BookOrbit" parent="android:Theme.Material.NoActionBar">
+    <!-- Base Activity theme. UI is rendered by Compose; this only controls the window chrome.
+         Parent must be an AppCompat theme (available transitively via androidx.mediarouter): the
+         Cast device-picker (MediaRouteChooserDialogFragment, opened by CastButton.kt) builds its
+         dialog from the *activity's* theme - the ContextThemeWrapper CastButton applies to the
+         button itself never reaches the fragment. MediaRouterThemeHelper.getRouterThemeId()
+         resolves AppCompat's ?attr/colorPrimary off that theme and crashes
+         ("background can not be translucent: #0") if it's unset/transparent, as it is on a plain
+         android:Theme.Material parent - hence the explicit opaque colorPrimary here too. -->
+    <style name="Theme.BookOrbit" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/accent</item>
         <item name="android:windowBackground">@color/background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
-    <!-- Themes the legacy MediaRouteButton/Cast dialogs (CastButton.kt): the app has no AppCompat
-         theme of its own, so android:colorBackground and (more importantly) AppCompat's colorPrimary
-         are otherwise unset/transparent here. MediaRouterThemeHelper.getRouterThemeId() resolves
-         ?attr/colorPrimary directly off the context's theme (not colorBackground) to decide the
-         icon-tint contrast, and crashes if it comes back as fully transparent (#0). -->
+    <!-- Themes the legacy MediaRouteButton itself (CastButton.kt wraps its context in these so the
+         icon tint matches the app's light/dark mode rather than the system's). The colorPrimary /
+         colorBackground items exist for the same MediaRouterThemeHelper contrast check described
+         above - it runs against whatever theme the button's own context carries, which is this one,
+         not the activity's. -->
+
     <style name="Theme.BookOrbit.MediaRouter" parent="@style/Theme.MediaRouter">
         <item name="android:colorBackground">@color/background</item>
         <item name="colorPrimary">@color/accent</item>
