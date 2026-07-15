@@ -1,6 +1,7 @@
 package com.bookorbit.feature.downloads
 
 import android.content.Context
+import androidx.documentfile.provider.DocumentFile
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
@@ -13,6 +14,10 @@ import com.bookorbit.core.db.DownloadEntity
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFiles
 import com.bookorbit.core.settings.AppSettingsStore
+import com.bookorbit.core.settings.DownloadLocationStore
+import com.bookorbit.core.storage.DownloadFileNaming
+import com.bookorbit.core.storage.LocalRef
+import com.bookorbit.core.storage.delete
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -30,6 +35,7 @@ class DownloadsRepository @Inject constructor(
     private val dao: DownloadDao,
     private val json: Json,
     private val appSettings: AppSettingsStore,
+    private val locationStore: DownloadLocationStore,
 ) {
     val downloads: Flow<List<DownloadEntity>> = dao.observeAll()
 
@@ -37,7 +43,7 @@ class DownloadsRepository @Inject constructor(
 
     suspend fun get(bookId: Int): DownloadEntity? = dao.get(bookId)
 
-    suspend fun isDownloaded(bookId: Int): Boolean = dao.get(bookId)?.status == DownloadStatus.COMPLETE.name
+    suspend fun isDownloaded(bookId: Int): Boolean = dao.get(bookId)?.status?.isCompleteDownloadStatus() == true
 
     /** The BookDetail persisted at download time, so book detail/reader/player screens work fully offline. */
     suspend fun cachedBook(bookId: Int): BookDetail? =
@@ -45,12 +51,12 @@ class DownloadsRepository @Inject constructor(
 
     /** Map of fileId -> local file path for a completed download (else empty). */
     suspend fun localFiles(bookId: Int): Map<Int, String> {
-        val entity = dao.get(bookId)?.takeIf { it.status == DownloadStatus.COMPLETE.name } ?: return emptyMap()
+        val entity = dao.get(bookId)?.takeIf { it.status.isCompleteDownloadStatus() } ?: return emptyMap()
         return decodeFiles(entity).associate { it.id to it.localPath }
     }
 
     suspend fun coverPath(bookId: Int): String? =
-        dao.get(bookId)?.takeIf { it.status == DownloadStatus.COMPLETE.name }?.coverLocalPath
+        dao.get(bookId)?.takeIf { it.status.isCompleteDownloadStatus() }?.coverLocalPath
 
     fun decodeFiles(entity: DownloadEntity): List<DownloadedFile> =
         runCatching { json.decodeFromString(ListSerializer(DownloadedFile.serializer()), entity.filesJson) }
@@ -90,8 +96,22 @@ class DownloadsRepository @Inject constructor(
 
     suspend fun delete(bookId: Int) {
         WorkManager.getInstance(context).cancelUniqueWork(DownloadWorker.tag(bookId))
+        val entity = dao.get(bookId)
         dao.delete(bookId)
+        entity?.let {
+            deleteSafFolderIfAny(it)
+            // Per-file fallback in case the folder-name re-derivation misses (e.g. the tree Uri
+            // changed since download) - each file still gets removed via its own stored ref.
+            decodeFiles(it).forEach { f -> LocalRef.parse(f.localPath).delete(context) }
+        }
+        // Handles the cover (always internal) plus legacy/fallback-mode files in one sweep.
         File(context.filesDir, "downloads/$bookId").deleteRecursively()
+    }
+
+    private suspend fun deleteSafFolderIfAny(entity: DownloadEntity) {
+        val tree = locationStore.treeUri.first() ?: return
+        val name = DownloadFileNaming.bookFolderName(entity.title, entity.bookId)
+        runCatching { DocumentFile.fromTreeUri(context, tree)?.findFile(name)?.delete() }
     }
 
     /** Cancels and removes every download, for the Settings screen's "clear all downloads" action. */

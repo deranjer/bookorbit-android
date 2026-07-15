@@ -117,8 +117,15 @@ class CastProxyServer @Inject constructor(
         return rewritten
     }
 
+    // A content:// local Uri (SAF-backed download) isn't castable — RandomAccessFile has no SAF
+    // equivalent — but it must still route to Local so serveLocal() 404s it cleanly instead of
+    // Remote handing a non-http(s) scheme to OkHttp, which throws.
     private fun targetFor(uri: Uri): ProxyTarget =
-        if (uri.scheme == "file") ProxyTarget.Local(uri.path ?: uri.toString()) else ProxyTarget.Remote(uri.toString())
+        if (uri.scheme == "file" || uri.scheme == "content") {
+            ProxyTarget.Local(uri.path ?: uri.toString())
+        } else {
+            ProxyTarget.Remote(uri.toString())
+        }
 
     private fun handle(socket: Socket) {
         socket.use {

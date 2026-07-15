@@ -10,6 +10,8 @@ import com.bookorbit.feature.downloads.DownloadsRepository
 import com.bookorbit.feature.reader.ReaderProgressRepository
 import com.bookorbit.feature.reader.ReaderSource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +30,7 @@ class PdfReaderViewModel @Inject constructor(
     private val source: ReaderSource,
     private val progress: ReaderProgressRepository,
     private val settingsStore: PdfReaderSettingsStore,
+    @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
@@ -85,7 +88,7 @@ class PdfReaderViewModel @Inject constructor(
             try {
                 val resolved = source.resolvePdf(book)
                 fileId = resolved.fileId
-                val core = PdfRenderCore.open(resolved.file)
+                val core = PdfRenderCore.open(context, resolved.ref)
                 val initial = progress.resolveInitial(resolved.fileId)
                 val page = PdfProgress.fractionToPage(initial.fraction, core.pageCount)
                 _ui.update {

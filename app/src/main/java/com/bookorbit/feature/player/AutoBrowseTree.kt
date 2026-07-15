@@ -1,12 +1,12 @@
 package com.bookorbit.feature.player
 
-import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import com.bookorbit.core.db.AudioProgressEntity
 import com.bookorbit.core.db.DownloadEntity
-import com.bookorbit.feature.downloads.DownloadStatus
-import java.io.File
+import com.bookorbit.core.storage.LocalRef
+import com.bookorbit.core.storage.toUri
+import com.bookorbit.feature.downloads.isCompleteDownloadStatus
 
 /**
  * Builds the Android Auto browse hierarchy from the offline catalog. The car shows a root with two
@@ -75,7 +75,7 @@ object AutoBrowseTree {
                 .setIsBrowsable(false)
                 .setIsPlayable(true)
                 .setMediaType(MediaMetadata.MEDIA_TYPE_AUDIO_BOOK)
-                .apply { entry.coverPath?.let { setArtworkUri(Uri.fromFile(File(it))) } }
+                .apply { entry.coverPath?.let { setArtworkUri(LocalRef.parse(it).toUri()) } }
                 .build()
             MediaItem.Builder().setMediaId(entry.mediaId).setMediaMetadata(metadata).build()
         } else {
@@ -94,7 +94,7 @@ object AutoBrowseTree {
     }
 
     private val DownloadEntity.isComplete: Boolean
-        get() = isAudiobook && status == DownloadStatus.COMPLETE.name
+        get() = isAudiobook && status.isCompleteDownloadStatus()
 
     private fun DownloadEntity.toBrowseEntry(): BrowseEntry = BrowseEntry(
         mediaId = bookMediaId(bookId),

@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -53,6 +54,8 @@ fun ReaderScreen(
     var chromeVisible by remember { mutableStateOf(true) }
     var tocVisible by remember { mutableStateOf(false) }
     var settingsVisible by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
 
     // Keep the screen on while reading.
     val view = LocalView.current
@@ -77,7 +80,7 @@ fun ReaderScreen(
         if (ready && resolved != null && !opened) {
             opened = true
             withContext(Dispatchers.IO) {
-                controller.open(openParamsFor(resolved.file, resolved.format, resolved.initial, ui.settings))
+                controller.open(openParamsFor(resolved.ref, resolved.format, resolved.initial, ui.settings), context)
             }
         }
     }

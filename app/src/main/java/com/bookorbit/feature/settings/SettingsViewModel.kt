@@ -1,14 +1,19 @@
 package com.bookorbit.feature.settings
 
+import android.content.Context
+import android.net.Uri
+import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.ImageLoader
 import com.bookorbit.core.settings.AppSettingsStore
+import com.bookorbit.core.settings.DownloadLocationStore
 import com.bookorbit.core.settings.ThemeMode
 import com.bookorbit.feature.downloads.DownloadsRepository
 import com.bookorbit.feature.player.AudioSettingsStore
 import com.bookorbit.feature.player.DEFAULT_SPEED
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +31,8 @@ class SettingsViewModel @Inject constructor(
     private val downloadsRepo: DownloadsRepository,
     private val audioSettingsStore: AudioSettingsStore,
     private val imageLoader: ImageLoader,
+    private val locationStore: DownloadLocationStore,
+    @ApplicationContext private val context: Context,
 ) : ViewModel() {
     val themeMode: StateFlow<ThemeMode> = appSettings.themeMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemeMode.SYSTEM)
@@ -39,6 +46,17 @@ class SettingsViewModel @Inject constructor(
 
     private val _defaultSpeed = MutableStateFlow(DEFAULT_SPEED)
     val defaultSpeed: StateFlow<Float> = _defaultSpeed.asStateFlow()
+
+    val downloadTreeUri: StateFlow<Uri?> = locationStore.treeUri
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val downloadLocationLabel: StateFlow<String> = downloadTreeUri
+        .map { it?.let(::labelFor) ?: "App storage (default)" }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "App storage (default)")
+
+    val downloadLocationAccessible: StateFlow<Boolean> = downloadTreeUri
+        .map { it == null || locationStore.isAccessible(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
@@ -72,6 +90,23 @@ class SettingsViewModel @Inject constructor(
             _message.value = "All downloads removed"
         }
     }
+
+    fun setDownloadLocation(uri: Uri) {
+        viewModelScope.launch {
+            locationStore.setTreeUri(uri)
+            _message.value = "Downloads will now be saved to ${labelFor(uri)}"
+        }
+    }
+
+    fun resetDownloadLocation() {
+        viewModelScope.launch {
+            locationStore.clear()
+            _message.value = "Downloads will be saved to app storage"
+        }
+    }
+
+    private fun labelFor(uri: Uri): String =
+        runCatching { DocumentFile.fromTreeUri(context, uri)?.name }.getOrNull() ?: "the selected folder"
 
     fun consumeMessage() {
         _message.value = null

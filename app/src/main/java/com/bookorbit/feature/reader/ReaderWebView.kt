@@ -1,6 +1,7 @@
 package com.bookorbit.feature.reader
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Base64
@@ -14,14 +15,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
+import com.bookorbit.core.storage.LocalRef
+import com.bookorbit.core.storage.openInputStream
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import java.io.File
 
 /** Parameters for opening a book in the reader. */
 data class OpenParams(
-    val file: File,
+    val ref: LocalRef,
     val format: String,
     val cfi: String?,
     val fraction: Double?,
@@ -72,7 +74,7 @@ class ReaderController {
      * Streams the book into foliate. Safe to call off the main thread (it reads the file and
      * evaluates JS via WebView.post); the screen calls it only after the bridge signals ready.
      */
-    fun open(params: OpenParams) = runOpen(params)
+    fun open(params: OpenParams, context: Context) = runOpen(params, context)
 
     fun goTo(target: String) = command(buildJsonObject { put("type", "goTo"); put("target", target) }.toString())
     fun goToFraction(value: Double) = command(buildJsonObject { put("type", "goToFraction"); put("value", value) }.toString())
@@ -93,12 +95,12 @@ class ReaderController {
     // Reads and encodes the file one CHUNK_BYTES slice at a time so peak memory stays bounded by
     // the chunk size instead of the whole file (a naive readBytes()+encodeToString() on a 90MB
     // EPUB peaks at ~450MB and reliably OOMs on default heap sizes).
-    private fun runOpen(params: OpenParams) {
+    private fun runOpen(params: OpenParams, context: Context) {
         val meta = OpenMeta(params.format, params.cfi, params.fraction, params.settings)
         val metaJson = ReaderBridge.json.encodeToString(OpenMeta.serializer(), meta)
         eval(ReaderBridge.jsBegin(metaJson))
 
-        params.file.inputStream().use { input ->
+        params.ref.openInputStream(context).use { input ->
             val buffer = ByteArray(CHUNK_BYTES)
             while (true) {
                 var filled = 0
@@ -170,8 +172,8 @@ fun ReaderWebView(
 
 /** Build OpenParams once the file and initial position are resolved. */
 fun openParamsFor(
-    file: File,
+    ref: LocalRef,
     format: String,
     initial: InitialProgress,
     settings: ReaderSettings,
-): OpenParams = OpenParams(file, format, initial.cfi, initial.fraction, settings)
+): OpenParams = OpenParams(ref, format, initial.cfi, initial.fraction, settings)
