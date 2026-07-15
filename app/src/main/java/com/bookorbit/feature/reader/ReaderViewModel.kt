@@ -3,6 +3,7 @@ package com.bookorbit.feature.reader
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bookorbit.core.storage.LocalRef
 import com.bookorbit.feature.bookdetail.BookDetailRepository
 import com.bookorbit.feature.downloads.DownloadsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -10,7 +11,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.File
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
@@ -29,7 +29,7 @@ class ReaderViewModel @Inject constructor(
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
 
     data class ResolvedOpen(
-        val file: File,
+        val ref: LocalRef,
         val format: String,
         val fileId: Int,
         val initial: InitialProgress,
@@ -79,7 +79,7 @@ class ReaderViewModel @Inject constructor(
                 _ui.update {
                     it.copy(
                         loadingFile = false,
-                        resolved = ResolvedOpen(resolved.file, resolved.format, resolved.fileId, initial),
+                        resolved = ResolvedOpen(resolved.ref, resolved.format, resolved.fileId, initial),
                     )
                 }
             } catch (e: Exception) {

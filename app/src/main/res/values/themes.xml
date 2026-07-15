@@ -6,4 +6,14 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
+
+    <!-- Themes the legacy MediaRouteButton/Cast dialogs (CastButton.kt): the app has no AppCompat
+         theme of its own, so android:colorBackground is otherwise unset/transparent here, which
+         crashes MediaRouterThemeHelper's icon-tint contrast calculation. -->
+    <style name="Theme.BookOrbit.MediaRouter" parent="@style/Theme.MediaRouter">
+        <item name="android:colorBackground">@color/background</item>
+    </style>
+    <style name="Theme.BookOrbit.MediaRouter.Light" parent="@style/Theme.MediaRouter.Light">
+        <item name="android:colorBackground">@color/background</item>
+    </style>
 </resources>

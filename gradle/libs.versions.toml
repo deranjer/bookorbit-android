@@ -33,6 +33,7 @@ androidxMediarouter = "1.7.0"
 room = "2.6.1"
 datastore = "1.1.1"
 securityCrypto = "1.1.0-alpha06"
+documentfile = "1.1.0"
 
 # Paging
 paging = "3.3.5"
@@ -100,6 +101,7 @@ androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = 
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
+androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
 
 # Paging
 androidx-paging-runtime = { group = "androidx.paging", name = "paging-runtime", version.ref = "paging" }
