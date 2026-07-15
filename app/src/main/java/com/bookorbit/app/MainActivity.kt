@@ -1,7 +1,6 @@
 package com.bookorbit.app
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -9,14 +8,22 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bookorbit.core.settings.ThemeMode
 import com.bookorbit.ui.theme.BookOrbitTheme
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * FragmentActivity (not the plainer ComponentActivity) because androidx.mediarouter's
+ * MediaRouteButton.showDialog() (used by CastButton.kt) hard-requires a FragmentActivity to host its
+ * device-picker dialog fragment via getSupportFragmentManager() - on a bare ComponentActivity it
+ * throws IllegalStateException on tap, uncaught by CastButton's own setup-time try/catch since that
+ * only wraps construction, not the click listener the library installs internally.
+ */
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
