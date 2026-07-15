@@ -1,5 +1,6 @@
 package com.bookorbit.feature.reader.pdf
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Matrix
@@ -8,11 +9,12 @@ import android.graphics.pdf.PdfRenderer
 import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.util.LruCache
+import com.bookorbit.core.storage.LocalRef
+import com.bookorbit.core.storage.openParcelFileDescriptor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /**
  * Wraps [android.graphics.pdf.PdfRenderer] over a local file for the native PDF reader. PdfRenderer
@@ -133,9 +135,9 @@ class PdfRenderCore private constructor(
             return out
         }
 
-        /** Open a PDF from a local file. Throws if the file is not a valid/openable PDF. */
-        suspend fun open(file: File): PdfRenderCore = withContext(Dispatchers.IO) {
-            val pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+        /** Open a PDF from a local file/SAF document. Throws if it's not a valid/openable PDF. */
+        suspend fun open(context: Context, ref: LocalRef): PdfRenderCore = withContext(Dispatchers.IO) {
+            val pfd = ref.openParcelFileDescriptor(context, "r")
             val renderer = try {
                 PdfRenderer(pfd)
             } catch (e: Throwable) {

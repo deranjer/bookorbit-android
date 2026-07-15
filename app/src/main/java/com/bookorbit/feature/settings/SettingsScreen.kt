@@ -1,5 +1,7 @@
 package com.bookorbit.feature.settings
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,9 +47,15 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val downloadsSummary by vm.downloadsSummary.collectAsStateWithLifecycle()
     val defaultSpeed by vm.defaultSpeed.collectAsStateWithLifecycle()
     val message by vm.message.collectAsStateWithLifecycle()
+    val downloadTreeUri by vm.downloadTreeUri.collectAsStateWithLifecycle()
+    val downloadLocationLabel by vm.downloadLocationLabel.collectAsStateWithLifecycle()
+    val downloadLocationAccessible by vm.downloadLocationAccessible.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmClearDownloads by remember { mutableStateOf(false) }
+    val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) vm.setDownloadLocation(uri)
+    }
 
     LaunchedEffect(message) {
         message?.let {
@@ -82,6 +90,31 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                     subtitle = "Only download books over an unmetered connection",
                     trailing = { Switch(checked = wifiOnly, onCheckedChange = vm::setWifiOnlyDownloads) },
                 )
+            }
+            item {
+                SettingsRow(
+                    title = "Download location",
+                    subtitle = downloadLocationLabel,
+                    trailing = { TextButton(onClick = { folderLauncher.launch(null) }) { Text("Change") } },
+                )
+            }
+            if (downloadTreeUri != null) {
+                item {
+                    Row(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        TextButton(onClick = vm::resetDownloadLocation) { Text("Use app storage instead") }
+                    }
+                }
+            }
+            if (downloadTreeUri != null && !downloadLocationAccessible) {
+                item {
+                    Text(
+                        "This folder isn't accessible anymore (permission revoked or the storage was " +
+                            "removed). New downloads will use app storage until you pick a new folder.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                }
             }
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {

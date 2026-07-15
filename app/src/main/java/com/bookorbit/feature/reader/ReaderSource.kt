@@ -5,6 +5,8 @@ import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFileRef
 import com.bookorbit.core.model.BookFiles
 import com.bookorbit.core.network.ApiService
+import com.bookorbit.core.storage.LocalRef
+import com.bookorbit.core.storage.exists
 import com.bookorbit.feature.downloads.DownloadsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +26,7 @@ class ReaderSource @Inject constructor(
     private val downloads: DownloadsRepository,
     @ApplicationContext private val context: Context,
 ) {
-    data class ResolvedFile(val file: File, val format: String, val fileId: Int)
+    data class ResolvedFile(val ref: LocalRef, val format: String, val fileId: Int)
 
     /** Resolve the foliate-readable file for a book to a local file. */
     suspend fun resolve(book: BookDetail): ResolvedFile {
@@ -48,8 +50,8 @@ class ReaderSource @Inject constructor(
 
         // Prefer an offline download (plays without network).
         downloads.localFiles(book.id)[ref.id]?.let { path ->
-            val local = File(path)
-            if (local.exists()) return@withContext ResolvedFile(local, format, ref.id)
+            val local = LocalRef.parse(path)
+            if (local.exists(context)) return@withContext ResolvedFile(local, format, ref.id)
         }
 
         val cacheDir = File(context.cacheDir, "reader-cache").apply { mkdirs() }
@@ -58,12 +60,12 @@ class ReaderSource @Inject constructor(
         // Reuse a cached copy when it matches the server-reported size.
         val size = ref.sizeBytes
         if (dest.exists() && (size == null || size <= 0 || dest.length() == size)) {
-            return@withContext ResolvedFile(dest, format, ref.id)
+            return@withContext ResolvedFile(LocalRef.PlainFile(dest), format, ref.id)
         }
 
         api.serveFile(ref.id).byteStream().use { input ->
             dest.outputStream().use { output -> input.copyTo(output) }
         }
-        ResolvedFile(dest, format, ref.id)
+        ResolvedFile(LocalRef.PlainFile(dest), format, ref.id)
     }
 }

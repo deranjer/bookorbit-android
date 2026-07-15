@@ -32,7 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import java.io.File
+import com.bookorbit.core.storage.LocalRef
+import com.bookorbit.core.storage.toUri
 
 @Composable
 fun DownloadsScreen(
@@ -57,7 +58,7 @@ fun DownloadsScreen(
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                val coverModel = item.coverLocalPath?.let { File(it) }
+                val coverModel = item.coverLocalPath?.let { LocalRef.parse(it).toUri() }
                 AsyncImage(
                     model = coverModel,
                     contentDescription = item.title,
@@ -86,6 +87,15 @@ fun DownloadsScreen(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    if (item.status == DownloadStatus.COMPLETE_FALLBACK.name) {
+                        Text(
+                            "Saved to app storage (chosen folder was unavailable)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                     if (item.status == DownloadStatus.DOWNLOADING.name) {
                         LinearProgressIndicator(
                             progress = { item.progress },
