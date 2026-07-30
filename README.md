@@ -7,6 +7,7 @@ open this repository's root directly in Android Studio.
 > User-facing docs: **https://deranjer.github.io/bookorbit-android/** (source in [`website/`](website/)).
 > Privacy policy: **https://deranjer.github.io/bookorbit-android/privacy.html**.
 > Planned work: see [`ROADMAP.md`](ROADMAP.md).
+> Also available via [F-Droid](https://deranjer.github.io/fdroid/repo) (self-hosted repo).
 
 > **Status:** this is the BookOrbit mobile client. It supports auth + OIDC, library browsing, search,
 > smart scopes, collections, authors/series, book detail, the foliate.js ebook reader, the Media3
