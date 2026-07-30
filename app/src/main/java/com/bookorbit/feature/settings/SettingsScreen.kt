@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -34,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bookorbit.BuildConfig
 import com.bookorbit.core.settings.ThemeMode
 import com.bookorbit.feature.player.SPEED_PRESETS
 import kotlin.math.abs
@@ -50,6 +52,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val downloadTreeUri by vm.downloadTreeUri.collectAsStateWithLifecycle()
     val downloadLocationLabel by vm.downloadLocationLabel.collectAsStateWithLifecycle()
     val downloadLocationAccessible by vm.downloadLocationAccessible.collectAsStateWithLifecycle()
+    val appInfo by vm.appInfo.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmClearDownloads by remember { mutableStateOf(false) }
@@ -165,6 +168,30 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                             )
                         }
                     }
+                }
+            }
+
+            item { HorizontalDivider() }
+            item { SectionHeader("About") }
+            item {
+                SettingsRow(
+                    title = "App version",
+                    subtitle = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                    trailing = {},
+                )
+            }
+            if (appInfo != null) {
+                item {
+                    val updateAvailable = appInfo?.updateAvailable == true
+                    SettingsRow(
+                        title = if (updateAvailable) "Update available" else "Up to date",
+                        subtitle = if (updateAvailable) {
+                            "Server is on version ${appInfo?.latestVersion ?: "a newer version"}"
+                        } else {
+                            "Server: ${appInfo?.version}"
+                        },
+                        trailing = { if (updateAvailable) Badge() },
+                    )
                 }
             }
         }

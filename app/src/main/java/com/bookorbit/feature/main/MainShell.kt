@@ -15,6 +15,8 @@ import androidx.compose.material.icons.outlined.LocalLibrary
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -99,7 +101,10 @@ fun MainShell(
     val tabNav = rememberNavController()
     val drawerState = androidx.compose.material3.rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val serverVersion by vm.serverVersion.collectAsStateWithLifecycle()
+    val appInfo by vm.appInfo.collectAsStateWithLifecycle()
+    val serverVersion = appInfo?.version
+    val updateAvailable = appInfo?.updateAvailable == true
+    val latestVersion = appInfo?.latestVersion
 
     val backStackEntry by tabNav.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -140,6 +145,8 @@ fun MainShell(
             DrawerContent(
                 user = user,
                 serverVersion = serverVersion,
+                updateAvailable = updateAvailable,
+                latestVersion = latestVersion,
                 onNavigate = ::closeDrawerThen,
                 onSignOut = onSignOut,
             )
@@ -212,6 +219,8 @@ fun MainShell(
 private fun DrawerContent(
     user: AuthUser,
     serverVersion: String?,
+    updateAvailable: Boolean,
+    latestVersion: String?,
     onNavigate: (String) -> Unit,
     onSignOut: () -> Unit,
 ) {
@@ -263,7 +272,11 @@ private fun DrawerContent(
         NavigationDrawerItem(
             label = { Text("Settings") },
             selected = false,
-            icon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
+            icon = {
+                BadgedBox(badge = { if (updateAvailable) Badge() }) {
+                    Icon(Icons.Outlined.Settings, contentDescription = null)
+                }
+            },
             onClick = { onNavigate(DrawerRoute.SETTINGS) },
             modifier = Modifier.padding(horizontal = 12.dp),
         )
@@ -287,5 +300,13 @@ private fun DrawerContent(
             color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(16.dp),
         )
+        if (updateAvailable) {
+            Text(
+                "Update available" + (latestVersion?.let { " ($it)" } ?: ""),
+                style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
     }
 }
