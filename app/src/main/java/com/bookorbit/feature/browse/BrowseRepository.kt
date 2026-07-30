@@ -1,6 +1,5 @@
 package com.bookorbit.feature.browse
 
-import com.bookorbit.core.model.AppInfo
 import com.bookorbit.core.model.AuthorsPage
 import com.bookorbit.core.model.BookCard
 import com.bookorbit.core.model.BookQuery
@@ -52,8 +51,6 @@ class BrowseRepository @Inject constructor(
 
     suspend fun scroller(type: String, limit: Int = 20, smartScopeId: Int? = null): List<BookCard> =
         api.getScroller(type, limit, smartScopeId)
-
-    suspend fun appInfo(): AppInfo = api.getAppInfo()
 
     /** Catalog typeahead for the filter sheet (authors/genres/tags/languages). */
     suspend fun searchCatalog(kind: String, q: String): List<String> =

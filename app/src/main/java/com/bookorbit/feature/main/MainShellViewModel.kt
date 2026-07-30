@@ -1,24 +1,28 @@
 package com.bookorbit.feature.main
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
-import com.bookorbit.feature.browse.BrowseRepository
+import com.bookorbit.core.appinfo.AppInfoRepository
+import com.bookorbit.core.model.AppInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainShellViewModel @Inject constructor(
-    private val repo: BrowseRepository,
+    private val appInfoRepository: AppInfoRepository,
 ) : ViewModel() {
-    private val _serverVersion = MutableStateFlow<String?>(null)
-    val serverVersion = _serverVersion.asStateFlow()
+    val appInfo: StateFlow<AppInfo?> = appInfoRepository.appInfo
 
     init {
         viewModelScope.launch {
-            _serverVersion.value = runCatching { repo.appInfo().version }.getOrNull()
+            ProcessLifecycleOwner.get().lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                appInfoRepository.refresh()
+            }
         }
     }
 }

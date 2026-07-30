@@ -2,7 +2,8 @@
 
 A read of the current client against its own docs and code, turned into a priority list.
 Tiers are "orbits" — P0 sits closest to today, P3 furthest out. Originally drafted 10 Jul 2026,
-updated 11 Jul 2026 after Chromecast support shipped.
+updated 11 Jul 2026 after Chromecast support shipped, updated 29 Jul 2026 after the
+download-location and update-check items shipped.
 
 ## Already in orbit (shipped)
 
@@ -14,57 +15,17 @@ updated 11 Jul 2026 after Chromecast support shipped.
 - **PDF reader** — separate renderer with its own layout/zoom settings
 - **Audiobook player** — Media3/ExoPlayer, background playback, notification controls,
   sleep timer (5–60 min presets + "end of chapter"), Chromecast support, Android Auto browse tree
-- **Downloads** — offline files via WorkManager, cached book detail fallback
+- **Downloads** — offline files via WorkManager, cached book detail fallback, user-chosen local
+  storage folder via Storage Access Framework (falls back to app-private storage)
 - **Book Drop** — upload, server-side metadata fetch, review-and-finalize into library
 - **Offline write queue** — ratings, read-status, and reading/listening progress made offline are
   queued in Room and auto-flushed by a WorkManager `SyncWorker` on reconnect
 - **Settings screen** — appearance (system/light/dark, with a real light `ColorScheme`, not just
-  system-dark repeated), Wi-Fi-only downloads, image cache / bulk downloads clearing, and default
-  playback speed
-
-## P1 — Next up
-
-No screen exists for these yet, and the gap already shows.
-
-### Surface the update check that's already wired server-side
-
-`AppInfo.updateAvailable` / `latestVersion` are modeled and fetched but nothing in the UI reads
-them. A drawer badge or dashboard banner is most of the remaining work.
-
-**Why:** the server already tells the client an update exists; that signal is currently thrown away.
-
-### Save downloads to a user-chosen local storage folder
-
-Today, downloads are **app-private only** — `DownloadWorker` writes every file under
-`Context.filesDir/downloads/$bookId` (`feature/downloads/DownloadWorker.kt`), and `DownloadEntity`
-persists those as plain absolute path strings (`filesJson`). There's no SAF or MediaStore usage
-anywhere in the app. That storage vanishes on uninstall and is invisible to other apps (file
-managers, backup tools, other reader apps) — hence the request: let users pick a folder (SD card,
-shared `Downloads/`, etc.) via Android's Storage Access Framework
-(`ACTION_OPEN_DOCUMENT_TREE` + persisted `DocumentFile`/`Uri` permissions) instead.
-
-**Why:** requested directly by a user.
-
-**Scope (medium lift, ~few days):**
-- **New UI**: a folder-picker launcher (SAF `ACTION_OPEN_DOCUMENT_TREE`) plus a control on the
-  Settings screen (`feature/settings/SettingsScreen.kt`) or the existing Downloads screen. No new
-  runtime permission is needed for SAF itself.
-- **New preference store**: a `DownloadLocationStore` following the existing per-feature
-  `preferencesDataStore` pattern (`ReaderSettingsStore.kt`, `PdfReaderSettingsStore.kt`,
-  `AudioSettings.kt`), holding the picked tree `Uri` and calling
-  `takePersistableUriPermission`.
-- **`DownloadWorker` rewrite**: swap `File` I/O for `DocumentFile` / `ContentResolver.openOutputStream(uri)`
-  when a folder is configured, falling back to internal storage otherwise.
-- **Schema/model change**: `DownloadedFile.localPath` / `DownloadEntity` assume plain file paths
-  today — needs a Room migration to store a `Uri` (or a polymorphic path type), plus updates to
-  every downstream consumer of `localPath`: `DownloadsRepository` (`localFiles`, `coverPath`,
-  `delete`), the reader (`ReaderSource.kt`), the player (`PlayerRepository.kt`,
-  `AutoBrowseTree.kt`), and the Chromecast proxy (`CastProxyServer.kt`) — all need to accept
-  content `Uri`s, not just `File` paths.
-- **Edge cases**: handle a revoked folder permission or an ejected SD card gracefully (fall back
-  to internal storage / re-prompt rather than silently failing downloads).
-
-Best scoped as its own item; the Settings screen already shipped, so there's a place to configure it.
+  system-dark repeated), Wi-Fi-only downloads, image cache / bulk downloads clearing, default
+  playback speed, and an About section showing app/server version and update availability
+- **Update check** — `AppInfo.updateAvailable`/`latestVersion` surfaced via a drawer badge on
+  Settings, a drawer footer line, and the Settings About section; refreshed on every app
+  foreground while signed in
 
 ## P2 — Medium-term
 

@@ -6,6 +6,8 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.ImageLoader
+import com.bookorbit.core.appinfo.AppInfoRepository
+import com.bookorbit.core.model.AppInfo
 import com.bookorbit.core.settings.AppSettingsStore
 import com.bookorbit.core.settings.DownloadLocationStore
 import com.bookorbit.core.settings.ThemeMode
@@ -32,8 +34,11 @@ class SettingsViewModel @Inject constructor(
     private val audioSettingsStore: AudioSettingsStore,
     private val imageLoader: ImageLoader,
     private val locationStore: DownloadLocationStore,
+    private val appInfoRepository: AppInfoRepository,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
+    val appInfo: StateFlow<AppInfo?> = appInfoRepository.appInfo
+
     val themeMode: StateFlow<ThemeMode> = appSettings.themeMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemeMode.SYSTEM)
 
