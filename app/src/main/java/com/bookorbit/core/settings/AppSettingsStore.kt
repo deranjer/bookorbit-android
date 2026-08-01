@@ -12,6 +12,8 @@ import javax.inject.Singleton
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
+enum class SeriesViewMode { LIST, GRID }
+
 private val Context.appSettingsDataStore by preferencesDataStore("app_settings")
 
 /**
@@ -26,6 +28,7 @@ class AppSettingsStore @Inject constructor(
 ) {
     private val themeModeKey = stringPreferencesKey("theme_mode")
     private val wifiOnlyDownloadsKey = booleanPreferencesKey("wifi_only_downloads")
+    private val seriesViewModeKey = stringPreferencesKey("series_view_mode")
 
     val themeMode = context.appSettingsDataStore.data.map { prefs ->
         prefs[themeModeKey]?.let { raw -> runCatching { ThemeMode.valueOf(raw) }.getOrNull() } ?: ThemeMode.SYSTEM
@@ -39,5 +42,13 @@ class AppSettingsStore @Inject constructor(
 
     suspend fun setWifiOnlyDownloads(enabled: Boolean) {
         context.appSettingsDataStore.edit { it[wifiOnlyDownloadsKey] = enabled }
+    }
+
+    val seriesViewMode = context.appSettingsDataStore.data.map { prefs ->
+        prefs[seriesViewModeKey]?.let { raw -> runCatching { SeriesViewMode.valueOf(raw) }.getOrNull() } ?: SeriesViewMode.LIST
+    }
+
+    suspend fun setSeriesViewMode(mode: SeriesViewMode) {
+        context.appSettingsDataStore.edit { it[seriesViewModeKey] = mode.name }
     }
 }
