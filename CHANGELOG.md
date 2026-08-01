@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/deranjer/bookorbit-android/compare/v0.2.0...v0.2.1) (2026-08-01)
+
+
+### Bug Fixes
+
+* **series:** numeric series ID for book lookups + list/grid toggle ([0008707](https://github.com/deranjer/bookorbit-android/commit/0008707134370bf0d0b57548701a1294b9129666))
+
 ## [0.2.0](https://github.com/deranjer/bookorbit-android/compare/v0.1.0...v0.2.0) (2026-08-01)
 
 
