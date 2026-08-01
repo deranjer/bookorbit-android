@@ -42,11 +42,12 @@ android {
         applicationId = "com.bookorbit"
         minSdk = 26
         targetSdk = 36
-        // versionCode/versionName are bumped automatically by release-please (see
-        // .github/workflows/release-please.yml) -- both must stay plain literals so F-Droid's
-        // static manifest parser (and anything else that reads this file as text) can find them.
+        // versionCode/versionName are bumped automatically by a companion step in
+        // .github/workflows/release-please.yml (release-please's own generic-file updater is
+        // unreliable for this -- see the commit that introduced this comment). Both must stay
+        // plain literals so F-Droid's static manifest parser can find them too.
         versionCode = 100
-        versionName = "0.1.0" // x-release-please-version
+        versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

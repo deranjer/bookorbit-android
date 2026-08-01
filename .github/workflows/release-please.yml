@@ -6,10 +6,13 @@ name: Release Please
 # creates the tag and GitHub Release, which this same workflow run then uses to trigger the
 # signed APK build and (if configured) the Play Store internal-track upload.
 #
-# versionCode can't be bumped by release-please's own annotations (it needs an integer derived
-# from versionName, not a copy of it), so a companion step below computes it from whatever
-# version release-please just wrote into app/build.gradle.kts and pins it onto the same release
-# PR, before anyone merges it.
+# release-please's own generic-file updater (the `x-release-please-version` comment marker) is
+# unreliable in practice -- see https://github.com/googleapis/release-please-action/issues/1130
+# -- so app/build.gradle.kts isn't in its extra-files config at all. Instead, a companion step
+# below reads the version release-please just computed straight out of
+# .release-please-manifest.json (which it does update reliably) and writes both versionName and
+# the derived versionCode directly into app/build.gradle.kts, pinning them onto the same release
+# PR before anyone merges it.
 
 on:
   push:
@@ -37,20 +40,21 @@ jobs:
         with:
           ref: ${{ fromJson(steps.release.outputs.pr).headBranchName }}
 
-      - name: Pin a matching versionCode on the release PR
+      - name: Pin versionName/versionCode on the release PR
         if: ${{ steps.release.outputs.prs_created == 'true' }}
         run: |
           set -euo pipefail
-          versionName=$(sed -n 's/.*versionName = "\([0-9.]*\)".*/\1/p' app/build.gradle.kts)
+          versionName=$(jq -r '.["."]' .release-please-manifest.json)
           IFS='.' read -r major minor patch <<< "$versionName"
           versionCode=$((major * 10000 + minor * 100 + patch))
+          sed -i "s/versionName = \"[0-9.]*\"/versionName = \"${versionName}\"/" app/build.gradle.kts
           sed -i "s/versionCode = [0-9]\+/versionCode = ${versionCode}/" app/build.gradle.kts
           if git diff --quiet -- app/build.gradle.kts; then
-            echo "versionCode already ${versionCode}, nothing to commit"
+            echo "already at versionName ${versionName} / versionCode ${versionCode}, nothing to commit"
           else
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git commit -am "chore: pin versionCode ${versionCode} for v${versionName}"
+            git commit -am "chore: pin versionName ${versionName} / versionCode ${versionCode}"
             git push
           fi
 
