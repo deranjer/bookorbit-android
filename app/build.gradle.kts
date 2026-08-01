@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.play.publisher)
 }
 
 // Release signing is loaded from keystore.properties (gitignored, see keystore.properties.example)
@@ -19,11 +20,19 @@ val keystoreProperties = Properties().apply {
 }
 val hasReleaseSigning = keystoreProperties.containsKey("storeFile")
 
-// CI sets this (via ORG_GRADLE_PROJECT_versionCode, from the GitHub Actions run number) so every
-// release build gets a fresh, strictly increasing versionCode without a manual bump. Local/debug
-// builds without the property fall back to 1. versionName stays manual -- bump it by hand to tag
-// an actual release.
-val autoVersionCode = (findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
+// Play publishing (Gradle Play Publisher) is only configured when a service account credentials
+// file is present. It's gitignored; CI writes it from the PLAY_SERVICE_ACCOUNT_JSON secret. Never
+// present locally, so `publishBundle` et al. are simply unavailable outside that CI job -- every
+// other task (build/lint/test) is unaffected either way.
+val playServiceAccountFile = rootProject.file("app/play-service-account.json")
+if (playServiceAccountFile.exists()) {
+    play {
+        serviceAccountCredentials.set(playServiceAccountFile)
+        // Upload only -- promoting internal to production stays a manual step in Play Console.
+        track.set("internal")
+        defaultToAppBundles.set(true)
+    }
+}
 
 android {
     namespace = "com.bookorbit"
@@ -33,8 +42,11 @@ android {
         applicationId = "com.bookorbit"
         minSdk = 26
         targetSdk = 36
-        versionCode = autoVersionCode
-        versionName = "0.1.0"
+        // versionCode/versionName are bumped automatically by release-please (see
+        // .github/workflows/release-please.yml) -- both must stay plain literals so F-Droid's
+        // static manifest parser (and anything else that reads this file as text) can find them.
+        versionCode = 100
+        versionName = "0.1.0" // x-release-please-version
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

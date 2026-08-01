@@ -1,17 +1,26 @@
 name: Android Release APK
 
 # Builds a signed release APK and attaches it to a GitHub Release so the self-hosted F-Droid
-# repo (deranjer/fdroid) can pick it up. Triggered by pushing a version tag; versionName must
-# already be bumped by hand in app/build.gradle.kts to match (see the comment there).
+# repo (deranjer/fdroid) can pick it up. versionCode/versionName are plain literals in
+# app/build.gradle.kts (bumped automatically by release-please), so no CI-side override is
+# needed here.
+#
+# Normally invoked by release-please.yml right after it creates a release; `workflow_dispatch`
+# is kept as a manual fallback to (re)build and attach an APK to an existing tag.
 
 on:
-  push:
-    tags: ['v*.*.*']
+  workflow_call:
+    inputs:
+      tag:
+        description: Existing tag to build and attach an APK to
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       tag:
         description: Existing tag to (re)build and attach an APK to
-        required: false
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -20,20 +29,16 @@ jobs:
   build:
     name: Build & attach signed APK
     runs-on: ubuntu-latest
-    env:
-      # Maps to the Gradle `versionCode` project property (app/build.gradle.kts), giving every
-      # release a fresh, strictly increasing versionCode without a manual bump.
-      ORG_GRADLE_PROJECT_versionCode: ${{ github.run_number }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ inputs.tag }}
 
       - name: Resolve tag
         id: tag
-        run: echo "tag=${{ inputs.tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
+        run: echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
 
       - name: Set up JDK 21
         uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
