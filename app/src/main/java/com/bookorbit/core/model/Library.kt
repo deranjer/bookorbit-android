@@ -73,6 +73,7 @@ data class AuthorSummary(
 
 @Serializable
 data class SeriesSummary(
+    val id: Int,
     val name: String,
     val bookCount: Int = 0,
     val readCount: Int = 0,

@@ -46,8 +46,8 @@ class BrowseRepository @Inject constructor(
 
     suspend fun series(page: Int, size: Int): SeriesPage = api.getSeries(page = page, size = size)
 
-    suspend fun seriesBooks(name: String, page: Int, size: Int): SeriesBooksPage =
-        api.getSeriesBooks(name, page, size)
+    suspend fun seriesBooks(seriesId: Int, page: Int, size: Int): SeriesBooksPage =
+        api.getSeriesBooks(seriesId, page, size)
 
     suspend fun scroller(type: String, limit: Int = 20, smartScopeId: Int? = null): List<BookCard> =
         api.getScroller(type, limit, smartScopeId)

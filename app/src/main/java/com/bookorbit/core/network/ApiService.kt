@@ -217,9 +217,9 @@ interface ApiService {
         @Query("q") q: String? = null,
     ): SeriesPage
 
-    @GET("series/{name}/books")
+    @GET("series/{id}/books")
     suspend fun getSeriesBooks(
-        @Path("name") name: String,
+        @Path("id") id: Int,
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 100,
     ): SeriesBooksPage
