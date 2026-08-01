@@ -5,6 +5,9 @@ name: Android Release APK
 # app/build.gradle.kts (bumped automatically by release-please), so no CI-side override is
 # needed here.
 #
+# Builds the "full" flavor (keeps Chromecast support) -- the official F-Droid submission builds
+# the separate "fdroid" flavor itself, from its own recipe, not from this workflow's output.
+#
 # Normally invoked by release-please.yml right after it creates a release; `workflow_dispatch`
 # is kept as a manual fallback to (re)build and attach an APK to an existing tag.
 
@@ -68,7 +71,7 @@ jobs:
           EOF
 
       - name: Assemble signed release APK
-        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
+        run: ./gradlew :app:assembleFullRelease --no-daemon --stacktrace
 
       - name: Attach APK to release
         env:
@@ -76,6 +79,6 @@ jobs:
         run: |
           TAG="${{ steps.tag.outputs.tag }}"
           VERSION="${TAG#v}"
-          cp app/build/outputs/apk/release/app-release.apk "bookorbit-$VERSION.apk"
+          cp app/build/outputs/apk/full/release/app-full-release.apk "bookorbit-$VERSION.apk"
           gh release create "$TAG" "bookorbit-$VERSION.apk" --title "$TAG" --generate-notes ||
             gh release upload "$TAG" "bookorbit-$VERSION.apk" --clobber

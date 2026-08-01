@@ -1,14 +1,13 @@
 package com.bookorbit.feature.player
 
-import androidx.media3.cast.CastPlayer
-import androidx.media3.cast.SessionAvailabilityListener
+import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
+import com.bookorbit.feature.cast.CastHandoff
 import com.bookorbit.feature.cast.CastProxyServer
-import com.bookorbit.feature.cast.sharedCastContextOrNull
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -19,11 +18,13 @@ import javax.inject.Inject
  * head unit can list and start audiobooks. The UI drives playback through a MediaController bound to
  * this session ([PlayerManager]).
  *
- * Also owns the Cast handoff: [castPlayer] (built lazily, guarded for devices without Google Play
- * Services) is swapped in for [player] as the session's active player whenever a Cast session
- * connects, and swapped back out on disconnect - see [switchToCast]/[switchToLocal]. Every bound
+ * Also owns the Cast handoff, via [castHandoff]: the cast player it hands [switchToCast] is swapped
+ * in for [player] as the session's active player whenever a Cast session connects, and swapped back
+ * out on disconnect - see [switchToCast]/[switchToLocal]. Every bound
  * [androidx.media3.session.MediaController] (including [PlayerManager]'s) keeps working
  * transparently across the swap since it only ever talks to the session, never a concrete player.
+ * [CastHandoff] itself is flavor-specific (see its kdoc) so this class never references the Cast SDK
+ * directly.
  */
 @UnstableApi
 @AndroidEntryPoint
@@ -38,13 +39,10 @@ class PlaybackService : MediaLibraryService() {
     @Inject
     lateinit var castProxyServer: CastProxyServer
 
-    private var mediaSession: MediaLibrarySession? = null
-    private var castPlayer: CastPlayer? = null
+    @Inject
+    lateinit var castHandoff: CastHandoff
 
-    private val castSessionListener = object : SessionAvailabilityListener {
-        override fun onCastSessionAvailable() = switchToCast()
-        override fun onCastSessionUnavailable() = switchToLocal()
-    }
+    private var mediaSession: MediaLibrarySession? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -53,17 +51,14 @@ class PlaybackService : MediaLibraryService() {
         // instead of ExoPlayer's real per-file numbers. See BookAggregatingPlayer's kdoc.
         mediaSession = MediaLibrarySession.Builder(this, BookAggregatingPlayer(player), callback).build()
 
-        sharedCastContextOrNull(this)?.let { ctx ->
-            castPlayer = CastPlayer(ctx).apply { setSessionAvailabilityListener(castSessionListener) }
-        }
+        castHandoff.initialize(this, onSessionAvailable = ::switchToCast, onSessionUnavailable = ::switchToLocal)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? =
         mediaSession
 
-    /** Moves playback from the local [player] to [castPlayer], preserving position and play state. */
-    private fun switchToCast() {
-        val cast = castPlayer ?: return
+    /** Moves playback from the local [player] to [cast], preserving position and play state. */
+    private fun switchToCast(cast: Player) {
         val session = mediaSession ?: return
         val current = session.player
 
@@ -83,7 +78,7 @@ class PlaybackService : MediaLibraryService() {
         session.player.playWhenReady = wasPlaying
     }
 
-    /** Moves playback back from [castPlayer] to the local [player], preserving position and play state. */
+    /** Moves playback back from the cast player to the local [player], preserving position and play state. */
     private fun switchToLocal() {
         val session = mediaSession ?: return
         val current = session.player
@@ -114,12 +109,11 @@ class PlaybackService : MediaLibraryService() {
 
     override fun onDestroy() {
         // Release both possible players explicitly rather than through `mediaSession.player.release()`
-        // - if the service is destroyed while casting, the session's active player is `castPlayer`,
+        // - if the service is destroyed while casting, the session's active player is the cast one,
         // and that call alone would leak the local `player` (ExoPlayer) instance.
-        castPlayer?.setSessionAvailabilityListener(null)
+        castHandoff.release()
         mediaSession?.release()
         mediaSession = null
-        castPlayer?.release()
         player.release()
         castProxyServer.stop()
         super.onDestroy()
