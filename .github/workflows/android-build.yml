@@ -4,8 +4,9 @@ name: Android Build
 #
 # The signed release AAB step below only runs when RELEASE_KEYSTORE_BASE64 is configured as a
 # repo secret (see app/keystore.properties.example for the expected values); it produces a
-# downloadable artifact for manual upload to Play Console. There is no automated Play upload
-# step by design -- releases are pushed to Play Console by hand.
+# downloadable artifact, mainly useful for testing a Play Console upload by hand outside the
+# normal release flow. The actual automated Play Store publish (internal track only; promoting
+# to production stays manual) happens in play-publish.yml, invoked from release-please.yml.
 
 on:
   push:
@@ -22,9 +23,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HAS_RELEASE_SIGNING: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' }}
-      # Maps to the Gradle `versionCode` project property (app/build.gradle.kts), giving every
-      # build a fresh, strictly increasing versionCode without a manual bump before each release.
-      ORG_GRADLE_PROJECT_versionCode: ${{ github.run_number }}
 
     steps:
       - name: Checkout

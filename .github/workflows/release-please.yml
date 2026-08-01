@@ -1,0 +1,73 @@
+name: Release Please
+
+# Fully automates versioning. Merging a normal PR to main may add conventional commits
+# (feat:/fix:/etc.); release-please keeps an always-up-to-date "release PR" open with the
+# resulting version bump and changelog. Merging that PR is the only manual step left -- it
+# creates the tag and GitHub Release, which this same workflow run then uses to trigger the
+# signed APK build and (if configured) the Play Store internal-track upload.
+#
+# versionCode can't be bumped by release-please's own annotations (it needs an integer derived
+# from versionName, not a copy of it), so a companion step below computes it from whatever
+# version release-please just wrote into app/build.gradle.kts and pins it onto the same release
+# PR, before anyone merges it.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
+        id: release
+        with:
+          release-type: simple
+
+      - name: Checkout pending release PR branch
+        if: ${{ steps.release.outputs.prs_created == 'true' }}
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          ref: ${{ fromJson(steps.release.outputs.pr).headBranchName }}
+
+      - name: Pin a matching versionCode on the release PR
+        if: ${{ steps.release.outputs.prs_created == 'true' }}
+        run: |
+          set -euo pipefail
+          versionName=$(sed -n 's/.*versionName = "\([0-9.]*\)".*/\1/p' app/build.gradle.kts)
+          IFS='.' read -r major minor patch <<< "$versionName"
+          versionCode=$((major * 10000 + minor * 100 + patch))
+          sed -i "s/versionCode = [0-9]\+/versionCode = ${versionCode}/" app/build.gradle.kts
+          if git diff --quiet -- app/build.gradle.kts; then
+            echo "versionCode already ${versionCode}, nothing to commit"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -am "chore: pin versionCode ${versionCode} for v${versionName}"
+            git push
+          fi
+
+  build-release:
+    name: Build & attach signed APK
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    uses: ./.github/workflows/android-release.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag_name }}
+    secrets: inherit
+
+  publish-play:
+    name: Publish to Play Store
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    uses: ./.github/workflows/play-publish.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag_name }}
+    secrets: inherit

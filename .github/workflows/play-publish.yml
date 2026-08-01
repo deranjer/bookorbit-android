@@ -1,0 +1,70 @@
+name: Play Store Publish
+
+# Uploads the release AAB to Google Play's internal track via Gradle Play Publisher, invoked
+# from release-please.yml right after a release is created. Requires PLAY_SERVICE_ACCOUNT_JSON
+# as a repo secret (a Google Play service account key JSON, with Release Manager access to this
+# app) -- the job no-ops entirely when that secret isn't set. Promoting internal -> production
+# stays a manual step in Play Console by design; this only uploads to the internal track.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+
+jobs:
+  publish:
+    name: Upload AAB to internal track
+    runs-on: ubuntu-latest
+    env:
+      HAS_PLAY_PUBLISHING: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+      HAS_RELEASE_SIGNING: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' }}
+
+    steps:
+      - name: Checkout
+        if: ${{ env.HAS_PLAY_PUBLISHING == 'true' }}
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Set up JDK 21
+        if: ${{ env.HAS_PLAY_PUBLISHING == 'true' }}
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        if: ${{ env.HAS_PLAY_PUBLISHING == 'true' }}
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+
+      - name: Set up Gradle
+        if: ${{ env.HAS_PLAY_PUBLISHING == 'true' }}
+        uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
+
+      - name: Set up release signing
+        if: ${{ env.HAS_PLAY_PUBLISHING == 'true' && env.HAS_RELEASE_SIGNING == 'true' }}
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          cat > app/keystore.properties <<EOF
+          storeFile=$RUNNER_TEMP/release.jks
+          storePassword=$RELEASE_KEYSTORE_PASSWORD
+          keyAlias=$RELEASE_KEY_ALIAS
+          keyPassword=$RELEASE_KEY_PASSWORD
+          EOF
+
+      - name: Set up Play service account
+        if: ${{ env.HAS_PLAY_PUBLISHING == 'true' }}
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: echo "$PLAY_SERVICE_ACCOUNT_JSON" > app/play-service-account.json
+
+      - name: Publish bundle to internal track
+        if: ${{ env.HAS_PLAY_PUBLISHING == 'true' }}
+        run: ./gradlew :app:publishBundle --no-daemon --stacktrace
