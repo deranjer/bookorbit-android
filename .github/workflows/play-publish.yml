@@ -5,6 +5,9 @@ name: Play Store Publish
 # as a repo secret (a Google Play service account key JSON, with Release Manager access to this
 # app) -- the job no-ops entirely when that secret isn't set. Promoting internal -> production
 # stays a manual step in Play Console by design; this only uploads to the internal track.
+#
+# Publishes the "full" flavor -- Play Store gets Chromecast support; only the official F-Droid
+# submission builds the separate Cast-free "fdroid" flavor.
 
 on:
   workflow_call:
@@ -67,4 +70,4 @@ jobs:
 
       - name: Publish bundle to internal track
         if: ${{ env.HAS_PLAY_PUBLISHING == 'true' }}
-        run: ./gradlew :app:publishBundle --no-daemon --stacktrace
+        run: ./gradlew :app:publishFullReleaseBundle --no-daemon --stacktrace

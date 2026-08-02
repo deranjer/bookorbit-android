@@ -57,6 +57,28 @@ android {
         manifestPlaceholders["appAuthRedirectScheme"] = "bookorbit"
     }
 
+    // "full" (default) links Google's proprietary Cast SDK for Chromecast support; "fdroid"
+    // excludes it entirely -- see app/src/{full,fdroid}/java/com/bookorbit/feature/cast/. Both
+    // flavors share the same applicationId; this isn't a fork, just a dependency toggle.
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("full") {
+            dimension = "distribution"
+        }
+        create("fdroid") {
+            dimension = "distribution"
+        }
+    }
+
+    // The "Dependency metadata" block AGP stamps into the signing block is only useful for Play
+    // Console's own insights; it isn't needed for the GitHub/F-Droid channels, and its presence
+    // trips F-Droid's binary "check apk" scanner (it looks like an unexpected extra signing
+    // block). Disabled everywhere for one consistent binary across distribution channels.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     signingConfigs {
         if (hasReleaseSigning) {
             create("release") {
@@ -110,6 +132,10 @@ android {
 dependencies {
     // Core / lifecycle / activity
     implementation(libs.androidx.core.ktx)
+    // Theme.BookOrbit (themes.xml) needs an AppCompat parent theme. Previously this arrived only
+    // transitively via androidx.mediarouter (full flavor only); made explicit and shared so the
+    // fdroid flavor keeps a working base theme too.
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -147,10 +173,13 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.common)
-    implementation(libs.androidx.media3.cast)
-    implementation(libs.play.services.cast.framework)
-    implementation(libs.androidx.mediarouter)
     implementation(libs.coil.compose)
+
+    // Cast (Chromecast) -- proprietary, "full" flavor only. See the flavor comment in `android {}`
+    // and app/src/{full,fdroid}/java/com/bookorbit/feature/cast/.
+    "fullImplementation"(libs.androidx.media3.cast)
+    "fullImplementation"(libs.play.services.cast.framework)
+    "fullImplementation"(libs.androidx.mediarouter)
 
     // Persistence
     implementation(libs.androidx.room.runtime)

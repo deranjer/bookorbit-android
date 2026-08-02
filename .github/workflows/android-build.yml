@@ -2,11 +2,17 @@ name: Android Build
 
 # Builds and tests the native Kotlin Android app. Runs on every PR and on pushes to main.
 #
+# Two flavors: "full" (default, keeps Chromecast support) and "fdroid" (excludes Google's
+# proprietary Cast/Play-Services libraries entirely, for the official F-Droid submission) -- see
+# the flavor comment in app/build.gradle.kts. Lint/test/assemble run for both so a regression in
+# either flavor's flavor-specific sources (app/src/{full,fdroid}/) fails CI.
+#
 # The signed release AAB step below only runs when RELEASE_KEYSTORE_BASE64 is configured as a
-# repo secret (see app/keystore.properties.example for the expected values); it produces a
-# downloadable artifact, mainly useful for testing a Play Console upload by hand outside the
-# normal release flow. The actual automated Play Store publish (internal track only; promoting
-# to production stays manual) happens in play-publish.yml, invoked from release-please.yml.
+# repo secret (see app/keystore.properties.example for the expected values); it builds the "full"
+# flavor (matching what actually ships to Play Store) and produces a downloadable artifact,
+# mainly useful for testing a Play Console upload by hand outside the normal release flow. The
+# actual automated Play Store publish (internal track only; promoting to production stays
+# manual) happens in play-publish.yml, invoked from release-please.yml.
 
 on:
   push:
@@ -41,19 +47,26 @@ jobs:
         uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
 
       - name: Lint
-        run: ./gradlew :app:lintDebug --no-daemon
+        run: ./gradlew :app:lintFullDebug :app:lintFdroidDebug --no-daemon
 
       - name: Unit tests
-        run: ./gradlew :app:testDebugUnitTest --no-daemon
+        run: ./gradlew :app:testFullDebugUnitTest :app:testFdroidDebugUnitTest --no-daemon
 
-      - name: Assemble debug APK
-        run: ./gradlew :app:assembleDebug --no-daemon
+      - name: Assemble debug APKs
+        run: ./gradlew :app:assembleFullDebug :app:assembleFdroidDebug --no-daemon
 
-      - name: Upload debug APK
+      - name: Upload full-flavor debug APK
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: app-full-debug
+          path: app/build/outputs/apk/full/debug/app-full-debug.apk
+          if-no-files-found: error
+
+      - name: Upload fdroid-flavor debug APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: app-fdroid-debug
+          path: app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk
           if-no-files-found: error
 
       - name: Set up release signing
@@ -74,12 +87,12 @@ jobs:
 
       - name: Bundle signed release AAB
         if: ${{ github.event_name != 'pull_request' && env.HAS_RELEASE_SIGNING == 'true' }}
-        run: ./gradlew :app:bundleRelease --no-daemon
+        run: ./gradlew :app:bundleFullRelease --no-daemon
 
       - name: Upload release AAB
         if: ${{ github.event_name != 'pull_request' && env.HAS_RELEASE_SIGNING == 'true' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: app-release
-          path: app/build/outputs/bundle/release/app-release.aab
+          path: app/build/outputs/bundle/fullRelease/app-full-release.aab
           if-no-files-found: error
