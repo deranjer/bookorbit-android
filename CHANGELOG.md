@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/deranjer/bookorbit-android/compare/v0.2.1...v0.3.0) (2026-08-02)
+
+
+### Features
+
+* **fdroid:** add a Cast-free build flavor for official F-Droid ([fb6f252](https://github.com/deranjer/bookorbit-android/commit/fb6f252efdb9c014bcad0050c9e1f12910346558))
+* **fdroid:** add a Cast-free build flavor for official F-Droid ([592b016](https://github.com/deranjer/bookorbit-android/commit/592b0161f7d656704266252c8fa51632f7a64264))
+
 ## [0.2.1](https://github.com/deranjer/bookorbit-android/compare/v0.2.0...v0.2.1) (2026-08-01)
 
 
