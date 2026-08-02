@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.0](https://github.com/deranjer/bookorbit-android/compare/v0.3.0...v0.4.0) (2026-08-02)
+
+
+### Features
+
+* **fdroid:** add fastlane metadata for store listings ([d8915d6](https://github.com/deranjer/bookorbit-android/commit/d8915d6061fd35f8726c2bf336173cf4d44a8ccc))
+* **fdroid:** add fastlane metadata for store listings ([6b9daab](https://github.com/deranjer/bookorbit-android/commit/6b9daab7f4909336a235af0a3af942d334d2ef3e))
+* **fdroid:** also build and attach the fdroid-flavor APK to releases ([a462822](https://github.com/deranjer/bookorbit-android/commit/a4628224146a6b22aad39fc38ea2384e594a2262))
+* **fdroid:** also build and attach the fdroid-flavor APK to releases ([0c6fa26](https://github.com/deranjer/bookorbit-android/commit/0c6fa262fe56f09436350cf46913ea0a59222f36))
+
+
+### Bug Fixes
+
+* **fdroid:** match changelog filename to the real current versionCode ([07b78aa](https://github.com/deranjer/bookorbit-android/commit/07b78aa594db488e769305a35887b2d15affd619))
+
 ## [0.3.0](https://github.com/deranjer/bookorbit-android/compare/v0.2.1...v0.3.0) (2026-08-02)
 
 
