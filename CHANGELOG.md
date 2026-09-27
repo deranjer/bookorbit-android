@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1](https://github.com/deranjer/bookorbit-android/compare/v0.4.0...v0.4.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* **downloads,player:** surface real errors instead of silently failing ([f5aca78](https://github.com/deranjer/bookorbit-android/commit/f5aca7856f801b1b47ade3acff7fab070dc38866))
+* **downloads,player:** surface real errors instead of silently failing ([#38](https://github.com/deranjer/bookorbit-android/issues/38)) ([38d4c97](https://github.com/deranjer/bookorbit-android/commit/38d4c9744a4e9cbdb294909438f844f24d222068))
+
 ## [0.4.0](https://github.com/deranjer/bookorbit-android/compare/v0.3.0...v0.4.0) (2026-08-02)
 
 
