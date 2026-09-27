@@ -15,7 +15,7 @@ import androidx.room.RoomDatabase
         PendingRatingEntity::class,
         PendingReadStatusEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class BookOrbitDatabase : RoomDatabase() {

@@ -26,6 +26,10 @@ interface DownloadDao {
     @Query("UPDATE downloads SET status = :status WHERE bookId = :bookId")
     suspend fun updateStatus(bookId: Int, status: String)
 
+    /** Terminal failure: records why, so the UI can show it instead of silently reverting to "Download". */
+    @Query("UPDATE downloads SET status = :status, lastError = :lastError WHERE bookId = :bookId")
+    suspend fun updateFailure(bookId: Int, status: String, lastError: String)
+
     @Query("DELETE FROM downloads WHERE bookId = :bookId")
     suspend fun delete(bookId: Int)
 }

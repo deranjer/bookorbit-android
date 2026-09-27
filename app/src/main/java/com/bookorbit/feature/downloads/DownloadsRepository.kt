@@ -94,6 +94,11 @@ class DownloadsRepository @Inject constructor(
             .enqueueUniqueWork(DownloadWorker.tag(book.id), ExistingWorkPolicy.KEEP, request)
     }
 
+    /** Restarts a download after a terminal [DownloadStatus.FAILED], using the last-known book detail. */
+    suspend fun retryDownload(bookId: Int) {
+        cachedBook(bookId)?.let { startDownload(it) }
+    }
+
     suspend fun delete(bookId: Int) {
         WorkManager.getInstance(context).cancelUniqueWork(DownloadWorker.tag(bookId))
         val entity = dao.get(bookId)

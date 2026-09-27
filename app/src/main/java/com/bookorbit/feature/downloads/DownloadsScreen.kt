@@ -104,6 +104,19 @@ fun DownloadsScreen(
                                 .padding(top = 4.dp),
                         )
                     }
+                    if (item.status == DownloadStatus.FAILED.name) {
+                        Text(
+                            item.lastError ?: "Download failed",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        androidx.compose.material3.TextButton(
+                            onClick = { vm.retry(item.bookId) },
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+                        ) { Text("Retry") }
+                    }
                 }
                 IconButton(onClick = { vm.delete(item.bookId) }) {
                     Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
