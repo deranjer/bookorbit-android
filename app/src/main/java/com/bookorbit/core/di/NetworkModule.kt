@@ -78,7 +78,9 @@ object NetworkModule {
         .addInterceptor(logging)
         .authenticator(authenticator)
         .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
+        // Also carries file downloads (serveFile/serveCover): large audiobook files can go quiet
+        // for longer than a typical API call between reads, especially on slow/mobile networks.
+        .readTimeout(60, TimeUnit.SECONDS)
         .build()
 
     @Provides

@@ -23,4 +23,6 @@ data class DownloadEntity(
     val filesJson: String,
     val status: String,
     val progress: Float,
+    /** Human-readable reason for the most recent [status] == FAILED, surfaced in the UI. */
+    val lastError: String? = null,
 )

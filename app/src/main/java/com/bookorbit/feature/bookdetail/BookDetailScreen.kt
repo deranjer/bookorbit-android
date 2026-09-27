@@ -225,6 +225,20 @@ private fun BookDetailContent(
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                     Text("Downloading ${((download?.progress ?: 0f) * 100).toInt()}%")
                 }
+                "FAILED" -> Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        download?.lastError ?: "Download failed",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = vm::startDownload,
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    ) {
+                        Icon(Icons.Filled.Download, contentDescription = null)
+                        Text("Retry download", modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
                 else -> androidx.compose.material3.OutlinedButton(
                     onClick = vm::startDownload,
                     modifier = Modifier.fillMaxWidth(),

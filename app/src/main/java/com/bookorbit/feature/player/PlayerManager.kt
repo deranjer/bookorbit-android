@@ -2,8 +2,10 @@ package com.bookorbit.feature.player
 
 import android.content.ComponentName
 import android.content.Context
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.core.content.ContextCompat
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
@@ -56,6 +58,9 @@ class PlayerManager @Inject constructor(
         val sleepTimerEndOfChapter: Boolean = false,
         val isCasting: Boolean = false,
         val castDeviceName: String? = null,
+        /** Set on a load or playback failure so the UI can explain why nothing is playing, instead
+         * of silently doing nothing (see issue #38). Cleared on the next successful load/resume. */
+        val playerError: String? = null,
     )
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
@@ -73,11 +78,17 @@ class PlayerManager @Inject constructor(
 
     private val listener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
-            _state.update { it.copy(isPlaying = isPlaying) }
+            // A successful resume clears any earlier error - it's no longer the reason nothing is playing.
+            _state.update { it.copy(isPlaying = isPlaying, playerError = if (isPlaying) null else it.playerError) }
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
             _state.update { it.copy(buffering = playbackState == Player.STATE_BUFFERING) }
+        }
+
+        override fun onPlayerError(error: PlaybackException) {
+            Log.e(TAG, "playback error bookId=${_state.value.currentBook?.id} code=${error.errorCodeName}", error)
+            _state.update { it.copy(buffering = false, isPlaying = false, playerError = describePlayerError(error)) }
         }
     }
 
@@ -114,8 +125,17 @@ class PlayerManager @Inject constructor(
 
     fun loadAndPlay(bookId: Int) {
         cancelSleepTimer()
+        _state.update { it.copy(playerError = null) }
         scope.launch {
-            val data = repo.resolve(bookId) ?: return@launch
+            val data = repo.resolve(bookId)
+            if (data == null) {
+                Log.e(TAG, "unable to resolve playback data for bookId=$bookId")
+                _state.update {
+                    it.copy(playerError = "Couldn't load this audiobook. Check your connection, " +
+                        "or that it finished downloading for offline use.")
+                }
+                return@launch
+            }
             val c = controller()
             val resume = audioProgress.resolveResume(bookId)
 
@@ -315,7 +335,25 @@ class PlayerManager @Inject constructor(
         audioProgress.report(book.id, files[loc.index].id, loc.offsetSec, pct)
     }
 
+    /** Friendly text for a Media3 playback failure - falls back to the exception's own message
+     * (still logged in full above) when the error code isn't one of the common, expected cases. */
+    private fun describePlayerError(error: PlaybackException): String = when (error.errorCode) {
+        PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+        PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
+        -> "Lost connection to the server while playing."
+        PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS,
+        PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
+        PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND,
+        -> "The server couldn't serve this audiobook's file."
+        PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
+        PlaybackException.ERROR_CODE_DECODING_FAILED,
+        PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED,
+        -> "This audio format isn't supported on this device."
+        else -> error.message ?: "Playback failed unexpectedly."
+    }
+
     private companion object {
+        const val TAG = "BookOrbitPlayer"
         /** Minimum drift (seconds) before [refreshIfStale] bothers seeking to a server-side position. */
         const val STALE_THRESHOLD_SEC = 5.0
     }

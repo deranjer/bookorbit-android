@@ -19,4 +19,8 @@ class DownloadsViewModel @Inject constructor(
     fun delete(bookId: Int) {
         viewModelScope.launch { repo.delete(bookId) }
     }
+
+    fun retry(bookId: Int) {
+        viewModelScope.launch { repo.retryDownload(bookId) }
+    }
 }

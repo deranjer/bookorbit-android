@@ -2,6 +2,7 @@ package com.bookorbit.feature.downloads
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
@@ -52,7 +53,7 @@ class DownloadWorker @AssistedInject constructor(
 
         val files = BookFiles.downloadableFiles(book)
         if (files.isEmpty()) {
-            dao.updateStatus(bookId, DownloadStatus.FAILED.name)
+            dao.updateFailure(bookId, DownloadStatus.FAILED.name, "This book has no files available to download.")
             return Result.failure()
         }
 
@@ -73,23 +74,50 @@ class DownloadWorker @AssistedInject constructor(
         val fellBack = configuredTreeUri != null && bookFolder == null
 
         val downloaded = mutableListOf<DownloadedFile>()
+        val knownSizes = files.map { it.sizeBytes?.takeIf { size -> size > 0 } }
+        val useByteWeights = knownSizes.all { it != null }
+        val weights = if (useByteWeights) knownSizes.map { it!!.toDouble() }
+            else files.map { 1.0 }
+        val totalWeight = weights.sum().coerceAtLeast(1.0)
+        var completedWeight = 0.0
+        var activeStage = "preparing"
+        var activeFileId: Int? = null
 
         try {
             files.forEachIndexed { index, ref ->
+                activeFileId = ref.id
                 val name = DownloadFileNaming.fileName(ref, index, book)
+                activeStage = "request_or_transfer"
                 val localPath = if (bookFolder != null) {
-                    downloadToSaf(bookFolder, name, ref)
+                    downloadToSaf(bookFolder, name, ref, completedWeight, weights[index], totalWeight)
                 } else {
-                    downloadToInternal(internalDir, name, ref)
+                    downloadToInternal(internalDir, name, ref, completedWeight, weights[index], totalWeight)
                 }
                 downloaded.add(DownloadedFile(ref.id, localPath, ref.filename, ref.format, ref.durationSeconds))
-                val progress = (index + 1).toFloat() / files.size
+                completedWeight += weights[index]
+                val progress = (completedWeight / totalWeight).toFloat().coerceIn(0f, 1f)
                 dao.updateProgress(bookId, progress)
                 setProgress(workDataOf(KEY_PROGRESS to progress))
             }
         } catch (e: Exception) {
-            dao.updateStatus(bookId, DownloadStatus.FAILED.name)
-            return Result.retry()
+            val failure = e as? DownloadStageException
+            val stage = failure?.stage ?: activeStage
+            val cause = failure?.cause ?: e
+            Log.e(TAG, "download failed bookId=$bookId fileId=$activeFileId attempt=$runAttemptCount " +
+                "stage=$stage " +
+                "destination=${if (bookFolder != null) "saf" else "internal"} " +
+                "exception=${cause.javaClass.simpleName} " +
+                "message=${cause.message}", e)
+            // WorkManager's Result.retry() alone would retry forever - cap it so a persistently
+            // failing download (e.g. a server that can't serve this file) surfaces as a real,
+            // explained failure instead of sitting at 0% and quietly vanishing from the UI.
+            if (runAttemptCount < MAX_ATTEMPTS - 1) {
+                return Result.retry()
+            }
+            val reason = "Failed while ${stage.replace('_', ' ')}: ${cause.javaClass.simpleName}" +
+                (cause.message?.let { " ($it)" } ?: "")
+            dao.updateFailure(bookId, DownloadStatus.FAILED.name, reason)
+            return Result.failure()
         }
 
         // Cover is best-effort, and always internal (see class doc).
@@ -106,6 +134,7 @@ class DownloadWorker @AssistedInject constructor(
             entity.copy(
                 status = finalStatus.name,
                 progress = 1f,
+                lastError = null,
                 coverLocalPath = coverPath,
                 sizeBytes = downloaded.sumOf { LocalRef.parse(it.localPath).length(applicationContext) },
                 filesJson = json.encodeToString(ListSerializer(DownloadedFile.serializer()), downloaded),
@@ -115,7 +144,10 @@ class DownloadWorker @AssistedInject constructor(
     }
 
     /** Resumability journal against DocumentFile: a same-named, size-matching document is skipped. */
-    private suspend fun downloadToSaf(folder: DocumentFile, name: String, ref: BookFileRef): String {
+    private suspend fun downloadToSaf(
+        folder: DocumentFile, name: String, ref: BookFileRef,
+        completedWeight: Double, fileWeight: Double, totalWeight: Double,
+    ): String {
         val existing = folder.findFile(name)
         val complete = existing != null &&
             (ref.sizeBytes == null || ref.sizeBytes <= 0 || existing.length() == ref.sizeBytes)
@@ -128,10 +160,13 @@ class DownloadWorker @AssistedInject constructor(
             else -> createSafFile(folder, name, ref)
         }
         if (!complete) {
-            api.serveFile(ref.id).byteStream().use { input ->
-                applicationContext.contentResolver.openOutputStream(doc.uri)!!.use { output ->
-                    input.copyTo(output)
-                }
+            activeNetworkCall(ref.id) { body ->
+                applicationContext.contentResolver.openOutputStream(doc.uri)?.use { output ->
+                    body.byteStream().use { input ->
+                        copyWithProgress(input, output, body.contentLength(), ref.sizeBytes,
+                            completedWeight, fileWeight, totalWeight)
+                    }
+                } ?: error("Unable to open the selected storage destination")
             }
         }
         return doc.uri.toString()
@@ -142,21 +177,81 @@ class DownloadWorker @AssistedInject constructor(
         return folder.createFile(mime, name) ?: error("Unable to create $name in the chosen folder")
     }
 
-    private suspend fun downloadToInternal(dir: File, name: String, ref: BookFileRef): String {
+    private suspend fun downloadToInternal(
+        dir: File, name: String, ref: BookFileRef,
+        completedWeight: Double, fileWeight: Double, totalWeight: Double,
+    ): String {
         val dest = File(dir, name)
         val complete = dest.exists() &&
             (ref.sizeBytes == null || ref.sizeBytes <= 0 || dest.length() == ref.sizeBytes)
         if (!complete) {
-            api.serveFile(ref.id).byteStream().use { input ->
-                dest.outputStream().use { output -> input.copyTo(output) }
+            activeNetworkCall(ref.id) { body ->
+                body.byteStream().use { input ->
+                    dest.outputStream().use { output ->
+                        copyWithProgress(input, output, body.contentLength(), ref.sizeBytes,
+                            completedWeight, fileWeight, totalWeight)
+                    }
+                }
             }
         }
         return Uri.fromFile(dest).toString()
     }
 
+    private suspend fun activeNetworkCall(fileId: Int, consume: suspend (okhttp3.ResponseBody) -> Unit) {
+        val body = try {
+            api.serveFile(fileId)
+        } catch (e: Exception) {
+            throw DownloadStageException("server_request", e)
+        }
+        try {
+            consume(body)
+        } catch (e: Exception) {
+            throw DownloadStageException("response_read_or_storage_write", e)
+        } finally {
+            body.close()
+        }
+    }
+
+    private suspend fun copyWithProgress(
+        input: java.io.InputStream,
+        output: java.io.OutputStream,
+        responseLength: Long,
+        declaredLength: Long?,
+        completedWeight: Double,
+        fileWeight: Double,
+        totalWeight: Double,
+    ) {
+        val length = declaredLength?.takeIf { it > 0 } ?: responseLength.takeIf { it > 0 }
+        val buffer = ByteArray(COPY_BUFFER_BYTES)
+        var copied = 0L
+        var lastReportedBytes = 0L
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            output.write(buffer, 0, count)
+            copied += count
+            if (copied - lastReportedBytes >= PROGRESS_REPORT_BYTES && length != null) {
+                val withinFile = (copied.toDouble() / length).coerceIn(0.0, 1.0)
+                val progress = ((completedWeight + fileWeight * withinFile) / totalWeight)
+                    .toFloat().coerceIn(0f, 0.999f)
+                dao.updateProgress(inputData.getInt(KEY_BOOK_ID, -1), progress)
+                setProgress(workDataOf(KEY_PROGRESS to progress))
+                lastReportedBytes = copied
+            }
+        }
+        output.flush()
+    }
+
     companion object {
+        private const val TAG = "BookOrbitDownload"
+        private const val COPY_BUFFER_BYTES = 64 * 1024
+        private const val PROGRESS_REPORT_BYTES = 512 * 1024L
+        /** Total attempts (initial + retries) before a failing download is reported as terminal. */
+        private const val MAX_ATTEMPTS = 5
         const val KEY_BOOK_ID = "bookId"
         const val KEY_PROGRESS = "progress"
         fun tag(bookId: Int) = "download-$bookId"
     }
+
+    private class DownloadStageException(val stage: String, cause: Exception) : Exception(cause)
 }

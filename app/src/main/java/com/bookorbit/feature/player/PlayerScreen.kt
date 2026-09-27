@@ -74,7 +74,12 @@ fun PlayerScreen(
     val book = state.currentBook
     if (book == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Nothing playing", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                state.playerError ?: "Nothing playing",
+                color = if (state.playerError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 32.dp),
+            )
         }
         return
     }
@@ -173,6 +178,15 @@ fun PlayerScreen(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+            state.playerError?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 8.dp, start = 16.dp, end = 16.dp),
                 )
             }
         }
