@@ -152,7 +152,7 @@ class PlayerManager @Inject constructor(
                 it.copy(
                     currentBook = data.book,
                     files = data.files,
-                    chapters = PlaybackQueue.resolveChapters(data.book),
+                    chapters = PlaybackQueue.resolveChapters(data.book, PlaybackQueue.totalDurationSec(data.files)),
                     totalDurationSec = PlaybackQueue.totalDurationSec(data.files),
                 )
             }
@@ -173,7 +173,7 @@ class PlayerManager @Inject constructor(
                 it.copy(
                     currentBook = book,
                     files = files,
-                    chapters = PlaybackQueue.resolveChapters(book),
+                    chapters = PlaybackQueue.resolveChapters(book, PlaybackQueue.totalDurationSec(files)),
                     totalDurationSec = PlaybackQueue.totalDurationSec(files),
                 )
             }

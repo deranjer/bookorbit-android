@@ -62,7 +62,7 @@ class PlayerRepository @Inject constructor(
             runCatching { audiobookAssets.resolve(bookId, files) }.getOrDefault(Sources.Legacy)
         } else Sources.Legacy
         val performer = PlaybackQueue.performerLabel(book)
-        val chapterStarts = PlaybackQueue.resolveChapters(book).map { it.startSec }.toDoubleArray()
+        val chapterStarts = PlaybackQueue.resolveChapters(book, PlaybackQueue.totalDurationSec(files)).map { it.startSec }.toDoubleArray()
 
         val items = files.map { file ->
             val localRef = localRefs[file.id]
