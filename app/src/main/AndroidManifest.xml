@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Book downloads run as a WorkManager foreground service so leaving the app doesn't stop them. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
@@ -69,6 +71,13 @@
         <!-- Cast SDK entry point (full flavor only, merged in from src/full/AndroidManifest.xml):
              points at the OptionsProvider that configures the stock Default Media Receiver as the
              cast target (no custom receiver app). -->
+
+        <!-- WorkManager's foreground service, typed for DownloadWorker's setForeground (required on
+             Android 14+). -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
 
         <!-- WorkManager is initialized on demand via Hilt (see BookOrbitApplication). -->
         <provider
