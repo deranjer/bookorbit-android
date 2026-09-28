@@ -9,8 +9,10 @@ import com.bookorbit.core.model.Library
 import com.bookorbit.core.model.SearchResult
 import com.bookorbit.core.model.SeriesBooksPage
 import com.bookorbit.core.model.SeriesPage
+import com.bookorbit.core.model.ScrollerBooks
 import com.bookorbit.core.model.SmartScope
 import com.bookorbit.core.network.ApiService
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,6 +23,7 @@ import javax.inject.Singleton
 @Singleton
 class BrowseRepository @Inject constructor(
     private val api: ApiService,
+    private val json: Json,
 ) {
     suspend fun libraries(): List<Library> = api.getLibraries()
 
@@ -50,7 +53,7 @@ class BrowseRepository @Inject constructor(
         api.getSeriesBooks(seriesId, page, size)
 
     suspend fun scroller(type: String, limit: Int = 20, smartScopeId: Int? = null): List<BookCard> =
-        api.getScroller(type, limit, smartScopeId)
+        ScrollerBooks.decode(json, api.getScroller(type, limit, smartScopeId))
 
     /** Catalog typeahead for the filter sheet (authors/genres/tags/languages). */
     suspend fun searchCatalog(kind: String, q: String): List<String> =

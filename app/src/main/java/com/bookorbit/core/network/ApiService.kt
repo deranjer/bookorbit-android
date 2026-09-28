@@ -41,6 +41,7 @@ import com.bookorbit.core.model.FinalizeRequest
 import com.bookorbit.core.model.SmartScope
 import com.bookorbit.core.model.UpdateBookDockFileRequest
 import com.bookorbit.core.model.UserBookStatus
+import kotlinx.serialization.json.JsonElement
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
 import retrofit2.http.Body
@@ -263,12 +264,13 @@ interface ApiService {
     ): List<NamedResult>
 
     // --- Dashboard ---
+    /** Raw because the shape changed in 3.0 - decode with [com.bookorbit.core.model.ScrollerBooks]. */
     @GET("dashboard/scrollers/{type}")
     suspend fun getScroller(
         @Path("type") type: String,
         @Query("limit") limit: Int = 20,
         @Query("smartScopeId") smartScopeId: Int? = null,
-    ): List<com.bookorbit.core.model.BookCard>
+    ): JsonElement
 
     // --- Book Dock (staging / ingest review) ---
     @GET("book-dock/files")
