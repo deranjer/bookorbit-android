@@ -26,8 +26,9 @@ class ResumeCandidatesTest {
     }
 
     @Test
-    fun `the same book from both sources is listed once`() {
-        assertEquals(listOf(7), ResumeCandidates.rank(listOf(c(7, 30.0, 2_000), c(7, 30.0, 2_000))))
+    fun `the same book from both sources is listed once, where its first entry ranks`() {
+        // Book 7's first entry is the oldest, so it ranks last even though its duplicate is newest.
+        assertEquals(listOf(8, 7), ResumeCandidates.rank(listOf(c(7, 30.0, 1_000), c(8, 30.0, 2_000), c(7, 30.0, 9_000))))
     }
 
     @Test

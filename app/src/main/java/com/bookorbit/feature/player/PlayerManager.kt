@@ -13,18 +13,14 @@ import androidx.media3.session.SessionToken
 import com.bookorbit.core.model.AudioProgress
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFileRef
-import com.bookorbit.core.model.ScrollerType
-import com.bookorbit.feature.browse.BrowseRepository
 import com.bookorbit.feature.cast.CastSessionController
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,9 +29,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
-import javax.inject.Inject
 import java.util.concurrent.atomic.AtomicInteger
+import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 
@@ -51,7 +49,7 @@ class PlayerManager @Inject constructor(
     private val audioProgress: AudioProgressRepository,
     private val settingsStore: AudioSettingsStore,
     private val castSessionController: CastSessionController,
-    private val browse: BrowseRepository,
+    private val restoreCandidates: RestoreCandidateFinder,
 ) {
     data class UiState(
         val currentBook: BookDetail? = null,
@@ -78,6 +76,8 @@ class PlayerManager @Inject constructor(
     val state = _state.asStateFlow()
 
     private var controller: MediaController? = null
+    /** Serializes [controller] so a launch restore and a user tap can't each build one. */
+    private val controllerLock = Mutex()
     private var pollJob: Job? = null
     private var settings = AudioSettings()
     private var lastReport = 0L
@@ -111,14 +111,18 @@ class PlayerManager @Inject constructor(
 
     init {
         scope.launch {
-            settings = settingsStore.load()
-            settingsLoaded.complete(Unit)
-            _state.update {
-                it.copy(
-                    speed = settings.speed,
-                    skipBackSeconds = settings.skipBackSeconds,
-                    skipForwardSeconds = settings.skipForwardSeconds,
-                )
+            try {
+                settings = settingsStore.load()
+                _state.update {
+                    it.copy(
+                        speed = settings.speed,
+                        skipBackSeconds = settings.skipBackSeconds,
+                        skipForwardSeconds = settings.skipForwardSeconds,
+                    )
+                }
+            } finally {
+                // Defaults stand in if loading failed; either way a waiting restore may proceed.
+                settingsLoaded.complete(Unit)
             }
         }
         scope.launch {
@@ -131,14 +135,18 @@ class PlayerManager @Inject constructor(
     @OptIn(UnstableApi::class)
     private suspend fun controller(): MediaController {
         controller?.let { return it }
-        val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
-        val created = suspendCancellableCoroutine { cont ->
-            val future = MediaController.Builder(context, token).buildAsync()
-            future.addListener({ cont.resume(future.get()) }, ContextCompat.getMainExecutor(context))
+        return controllerLock.withLock {
+            controller ?: run {
+                val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
+                val created = suspendCancellableCoroutine { cont ->
+                    val future = MediaController.Builder(context, token).buildAsync()
+                    future.addListener({ cont.resume(future.get()) }, ContextCompat.getMainExecutor(context))
+                }
+                created.addListener(listener)
+                controller = created
+                created
+            }
         }
-        created.addListener(listener)
-        controller = created
-        return created
     }
 
     fun loadAndPlay(bookId: Int) {
@@ -174,40 +182,25 @@ class PlayerManager @Inject constructor(
         if (_state.value.currentBook != null) return
         val generation = loadGeneration.get()
         scope.launch {
-            for ((bookId, resume) in restoreCandidates()) {
-                val data = repo.resolve(bookId) ?: continue
-                settingsLoaded.await()
-                if (generation != loadGeneration.get() || _state.value.currentBook != null) return@launch
-                val c = controller()
-                // Re-checked after the last suspension point: from here to applyQueue runs without yielding.
-                if (generation != loadGeneration.get() || _state.value.currentBook != null || c.mediaItemCount > 0) return@launch
-                applyQueue(c, data, resume, autoPlay = false)
-                return@launch
+            try {
+                for ((bookId, resume) in restoreCandidates.find()) {
+                    // Downloads resolve locally; a streamed book needs the server, so don't wait long on it.
+                    val data = withTimeoutOrNull(RESTORE_RESOLVE_TIMEOUT_MS) { repo.resolve(bookId) } ?: continue
+                    settingsLoaded.await()
+                    if (generation != loadGeneration.get() || _state.value.currentBook != null) return@launch
+                    val c = controller()
+                    // Re-checked after the last suspension point: from here to applyQueue runs without yielding.
+                    if (generation != loadGeneration.get() || _state.value.currentBook != null || c.mediaItemCount > 0) return@launch
+                    applyQueue(c, data, resume, autoPlay = false)
+                    return@launch
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Best effort: a failed restore just leaves the app as it was before this feature.
+                Log.w(TAG, "couldn't restore the last audiobook", e)
             }
         }
-    }
-
-    /** Unfinished books to try, most recently played first, each with its resume position. */
-    private suspend fun restoreCandidates(): List<Pair<Int, AudioProgress>> = coroutineScope {
-        val serverIds = async {
-            withTimeoutOrNull(RESTORE_LOOKUP_TIMEOUT_MS) {
-                runCatching { browse.scroller(ScrollerType.CONTINUE_LISTENING, limit = RESTORE_SERVER_CANDIDATES) }.getOrNull()
-            }.orEmpty().map { it.id }
-        }
-        val localId = audioProgress.recent()
-            .firstOrNull { it.percentage < ResumeCandidates.FINISHED_PERCENT }?.bookId
-        val ids = (listOfNotNull(localId) + serverIds.await()).distinct()
-        val points = ids.map { id ->
-            async {
-                id to (withTimeoutOrNull(RESTORE_LOOKUP_TIMEOUT_MS) { audioProgress.resumePoint(id) }
-                    ?: audioProgress.localResumePoint(id))
-            }
-        }.awaitAll()
-        val byId = points.toMap()
-        val ranked = ResumeCandidates.rank(
-            points.mapNotNull { (id, p) -> p?.let { ResumeCandidate(id, it.progress.percentage, it.lastActivityMillis) } },
-        )
-        ranked.mapNotNull { id -> byId[id]?.let { id to it.progress } }
     }
 
     /** Loads [data] into the session player at [resume]; plays only when [autoPlay]. */
@@ -430,9 +423,7 @@ class PlayerManager @Inject constructor(
         const val TAG = "BookOrbitPlayer"
         /** Minimum drift (seconds) before [refreshIfStale] bothers seeking to a server-side position. */
         const val STALE_THRESHOLD_SEC = 5.0
-        /** Upper bound for each launch-restore network lookup, so a slow network can't delay it much. */
-        const val RESTORE_LOOKUP_TIMEOUT_MS = 4_000L
-        /** How many of the server's Continue Listening books to compare (its order isn't a timestamp). */
-        const val RESTORE_SERVER_CANDIDATES = 3
+        /** How long a launch restore waits to load a book that has to come from the server. */
+        const val RESTORE_RESOLVE_TIMEOUT_MS = 8_000L
     }
 }

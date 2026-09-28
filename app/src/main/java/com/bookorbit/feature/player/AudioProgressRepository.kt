@@ -68,10 +68,11 @@ class AudioProgressRepository @Inject constructor(
 
     /**
      * [resolveResume]'s pick plus when it was captured (epoch millis; 0 when the server gave no
-     * timestamp), so callers can tell which of several books was listened to most recently.
+     * timestamp), so callers can tell which of several books was listened to most recently. Pass
+     * [flush] = false when looking up several books after one explicit [flushPending].
      */
-    suspend fun resumePoint(bookId: Int): ResumePoint? {
-        runCatching { flushPending() }
+    suspend fun resumePoint(bookId: Int, flush: Boolean = true): ResumePoint? {
+        if (flush) runCatching { flushPending() }
         val local = dao.get(bookId)
         val server = runCatching { serverProgress(bookId) }.getOrNull()
         val serverMillis = server?.updatedAt?.let(::epochMillis)

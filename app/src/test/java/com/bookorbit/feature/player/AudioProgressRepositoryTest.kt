@@ -272,4 +272,16 @@ class AudioProgressRepositoryTest {
         coVerify(exactly = 0) { api.getPlaybackState(any()) }
         coVerify(exactly = 0) { api.getAudioProgress(any()) }
     }
+
+    @Test
+    fun `resumePoint falls back to the local row and time when the server call fails`() = runTest {
+        coEvery { dao.dirtyEntries() } returns emptyList()
+        coEvery { dao.get(1) } returns AudioProgressEntity(1, 10, 30.0, 5.0, 555L, dirty = false)
+        coEvery { api.getAudioProgress(1) } throws RuntimeException("offline")
+
+        val point = repo.resumePoint(1)!!
+
+        assertEquals(555L, point.lastActivityMillis)
+        assertEquals(10, point.progress.currentFileId)
+    }
 }
