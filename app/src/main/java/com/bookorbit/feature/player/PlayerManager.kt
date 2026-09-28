@@ -44,6 +44,7 @@ class PlayerManager @Inject constructor(
     private val settingsStore: AudioSettingsStore,
     private val castSessionController: CastSessionController,
     private val activeBookPlayer: ActiveBookPlayer,
+    private val livePrefs: LivePlaybackPrefs,
 ) {
     data class UiState(
         val currentBook: BookDetail? = null,
@@ -63,6 +64,7 @@ class PlayerManager @Inject constructor(
         /** Set on a load or playback failure so the UI can explain why nothing is playing, instead
          * of silently doing nothing (see issue #38). Cleared on the next successful load/resume. */
         val playerError: String? = null,
+        val progressBarMode: ProgressBarMode = ProgressBarMode.CHAPTER,
     )
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
@@ -108,6 +110,11 @@ class PlayerManager @Inject constructor(
         scope.launch {
             castSessionController.state.collect { cast ->
                 _state.update { it.copy(isCasting = cast.isConnected, castDeviceName = cast.deviceName) }
+            }
+        }
+        scope.launch {
+            livePrefs.settings.collect { s ->
+                _state.update { it.copy(progressBarMode = s.progressBarMode) }
             }
         }
     }
