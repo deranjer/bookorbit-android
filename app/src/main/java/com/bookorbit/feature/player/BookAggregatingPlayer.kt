@@ -1,10 +1,14 @@
 package com.bookorbit.feature.player
 
+import android.os.Handler
 import androidx.media3.common.ForwardingPlayer
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.flow.StateFlow
+import java.util.concurrent.CopyOnWriteArraySet
 
 /**
  * Presents the whole-book position/duration to every observer of the [PlaybackService]'s
@@ -33,19 +37,110 @@ class BookAggregatingPlayer(
 
     private val window = Timeline.Window()
 
-    override fun getDuration(): Long = bookDurationMs()
+    private val handler = Handler(player.applicationLooper)
+    private val sessionListeners = CopyOnWriteArraySet<Player.Listener>()
+    private var lastRangeIndex = Int.MIN_VALUE
+    private var lastChapterMode: Boolean? = null
+    private var lastMode = prefs.value.progressBarMode
+    private var released = false
 
-    override fun getCurrentPosition(): Long = bookPositionMs()
+    private val tick = object : Runnable {
+        override fun run() {
+            if (released) return
+            if (prefs.value.progressBarMode != lastMode) {
+                lastMode = prefs.value.progressBarMode
+                refresh(force = true)
+            } else {
+                refresh(force = false)
+            }
+            handler.postDelayed(this, TICK_MS)
+        }
+    }
 
-    override fun getBufferedPosition(): Long = bookBufferedPositionMs()
+    private val realPlayerListener = object : Player.Listener {
+        // Post so the re-emit lands after the session has consumed the real event (it stores the
+        // callback argument, which lacks our chapter subtitle and chapter duration).
+        override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+            handler.post { refresh(force = true) }
+        }
 
-    override fun getContentDuration(): Long = duration
+        override fun onPositionDiscontinuity(
+            oldPosition: Player.PositionInfo,
+            newPosition: Player.PositionInfo,
+            reason: Int,
+        ) {
+            handler.post { refresh(force = false) }
+        }
+
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            handler.post { refresh(force = false) }
+        }
+
+        override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+            handler.post { refresh(force = false) }
+        }
+    }
+
+    init {
+        player.addListener(realPlayerListener)
+        handler.postDelayed(tick, TICK_MS)
+    }
+
+    override fun addListener(listener: Player.Listener) {
+        sessionListeners.add(listener)
+        super.addListener(listener)
+    }
+
+    override fun removeListener(listener: Player.Listener) {
+        sessionListeners.remove(listener)
+        super.removeListener(listener)
+    }
+
+    /** Re-announces metadata when the chapter (and so the reported duration/subtitle) changes. */
+    private fun refresh(force: Boolean) {
+        if (released) return
+        val c = liveClock()
+        val idx = c.rangeAt(bookPositionMs())?.index ?: -1
+        if (!force && idx == lastRangeIndex && c.isChapterMode == lastChapterMode) return
+        lastRangeIndex = idx
+        lastChapterMode = c.isChapterMode
+        val metadata = mediaMetadata
+        sessionListeners.forEach { it.onMediaMetadataChanged(metadata) }
+    }
+
+    private fun liveClock(): ChapterClock = clock(prefs.value.progressBarMode)
+
+    override fun getCurrentPosition(): Long = liveClock().displayPositionMs(bookPositionMs())
+
+    override fun getDuration(): Long = bookPositionMs().let { liveClock().displayDurationMs(it) }
+
+    override fun getBufferedPosition(): Long =
+        liveClock().displayBufferedMs(bookPositionMs(), bookBufferedPositionMs())
 
     override fun getContentPosition(): Long = currentPosition
 
+    override fun getContentDuration(): Long = duration
+
     override fun getContentBufferedPosition(): Long = bufferedPosition
 
-    override fun seekTo(positionMs: Long) = seekToBookMs(positionMs)
+    override fun seekTo(positionMs: Long) =
+        seekToBookMs(liveClock().bookTargetForDisplaySeek(bookPositionMs(), positionMs))
+
+    override fun getSeekBackIncrement(): Long = prefs.value.skipBackSeconds * 1000L
+
+    override fun getSeekForwardIncrement(): Long = prefs.value.skipForwardSeconds * 1000L
+
+    override fun seekBack() = seekToBookMs(liveClock().bookTargetForOffset(bookPositionMs(), -seekBackIncrement))
+
+    override fun seekForward() = seekToBookMs(liveClock().bookTargetForOffset(bookPositionMs(), seekForwardIncrement))
+
+    override fun getMediaMetadata(): MediaMetadata {
+        val base = super.getMediaMetadata()
+        val c = liveClock()
+        if (!c.isChapterMode) return base
+        val range = c.rangeAt(bookPositionMs()) ?: return base
+        return base.buildUpon().setSubtitle(range.title).build()
+    }
 
     private fun clock(mode: ProgressBarMode = ProgressBarMode.BOOK): ChapterClock =
         ChapterClock(fileDurationsSec(), chaptersFromExtras(), mode)
@@ -67,9 +162,13 @@ class BookAggregatingPlayer(
         super.seekTo(loc.index, (loc.offsetSec * 1000).toLong())
     }
 
-    /** Stops wrapper-owned work (a later task adds a poller); call when the session drops this wrapper.
-     * Does not release the wrapped player. */
-    fun detach() {}
+    /** Stops the tick, posted refreshes and the real-player listener; call when the session drops this
+     * wrapper. Does not release the wrapped player. */
+    fun detach() {
+        released = true
+        handler.removeCallbacksAndMessages(null)
+        wrappedPlayer.removeListener(realPlayerListener)
+    }
 
     override fun seekToNext() = jumpToNavPoint(forward = true)
     override fun seekToNextMediaItem() = jumpToNavPoint(forward = true)
@@ -129,6 +228,7 @@ class BookAggregatingPlayer(
     }
 
     companion object {
+        private const val TICK_MS = 1_000L
         const val EXTRA_DURATION_SEC = "com.bookorbit.duration_sec"
         const val EXTRA_CHAPTER_STARTS_SEC = "com.bookorbit.chapter_starts_sec"
         const val EXTRA_CHAPTER_TITLES = "com.bookorbit.chapter_titles"
