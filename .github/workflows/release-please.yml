@@ -4,7 +4,7 @@ name: Release Please
 # (feat:/fix:/etc.); release-please keeps an always-up-to-date "release PR" open with the
 # resulting version bump and changelog. Merging that PR is the only manual step left -- it
 # creates the tag and GitHub Release, which this same workflow run then uses to trigger the
-# signed APK build and (if configured) the Play Store internal-track upload.
+# signed APK/AAB build (the Play Store upload is currently manual - see below).
 #
 # release-please's own generic-file updater (the `x-release-please-version` comment marker) is
 # unreliable in practice -- see https://github.com/googleapis/release-please-action/issues/1130
@@ -67,11 +67,14 @@ jobs:
       tag: ${{ needs.release-please.outputs.tag_name }}
     secrets: inherit
 
-  publish-play:
-    name: Publish to Play Store
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
-    uses: ./.github/workflows/play-publish.yml
-    with:
-      tag: ${{ needs.release-please.outputs.tag_name }}
-    secrets: inherit
+  # Automatic Play Store upload is paused: build-release attaches the signed AAB to the GitHub
+  # Release and it's uploaded to Play Console by hand. To re-enable, restore this job:
+  #
+  # publish-play:
+  #   name: Publish to Play Store
+  #   needs: release-please
+  #   if: ${{ needs.release-please.outputs.release_created == 'true' }}
+  #   uses: ./.github/workflows/play-publish.yml
+  #   with:
+  #     tag: ${{ needs.release-please.outputs.tag_name }}
+  #   secrets: inherit
