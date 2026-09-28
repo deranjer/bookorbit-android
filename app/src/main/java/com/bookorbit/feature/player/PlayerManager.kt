@@ -10,14 +10,21 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.bookorbit.core.model.AudioProgress
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFileRef
+import com.bookorbit.core.model.ScrollerType
+import com.bookorbit.feature.browse.BrowseRepository
 import com.bookorbit.feature.cast.CastSessionController
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,7 +33,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
+import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 
@@ -42,6 +51,7 @@ class PlayerManager @Inject constructor(
     private val audioProgress: AudioProgressRepository,
     private val settingsStore: AudioSettingsStore,
     private val castSessionController: CastSessionController,
+    private val browse: BrowseRepository,
 ) {
     data class UiState(
         val currentBook: BookDetail? = null,
@@ -71,6 +81,13 @@ class PlayerManager @Inject constructor(
     private var pollJob: Job? = null
     private var settings = AudioSettings()
     private var lastReport = 0L
+    private val settingsLoaded = CompletableDeferred<Unit>()
+
+    /** Bumped whenever the user, the car, or [stop] changes the queue; an in-flight launch restore
+     * that sees it move gives way instead of replacing what was just started. Atomic because Android
+     * Auto calls [adoptExternalQueue] off the main thread. */
+    private val loadGeneration = AtomicInteger()
+    private var restoreAttempted = false
 
     /** Wall-clock deadline for a duration-based sleep timer; null when off or in end-of-chapter mode. */
     private var sleepTimerEndAtMs: Long? = null
@@ -95,6 +112,7 @@ class PlayerManager @Inject constructor(
     init {
         scope.launch {
             settings = settingsStore.load()
+            settingsLoaded.complete(Unit)
             _state.update {
                 it.copy(
                     speed = settings.speed,
@@ -124,6 +142,7 @@ class PlayerManager @Inject constructor(
     }
 
     fun loadAndPlay(bookId: Int) {
+        loadGeneration.incrementAndGet()
         cancelSleepTimer()
         _state.update { it.copy(playerError = null) }
         scope.launch {
@@ -138,26 +157,79 @@ class PlayerManager @Inject constructor(
             }
             val c = controller()
             val resume = audioProgress.resolveResume(bookId)
-
-            c.setMediaItems(data.mediaItems)
-            c.prepare()
-            c.setPlaybackSpeed(settings.speed)
-            if (resume != null) {
-                val idx = data.files.indexOfFirst { it.id == resume.currentFileId }.coerceAtLeast(0)
-                c.seekTo(idx, (resume.positionSeconds * 1000).toLong())
-            }
-            c.play()
-
-            _state.update {
-                it.copy(
-                    currentBook = data.book,
-                    files = data.files,
-                    chapters = PlaybackQueue.resolveChapters(data.book),
-                    totalDurationSec = PlaybackQueue.totalDurationSec(data.files),
-                )
-            }
-            startPoller()
+            applyQueue(c, data, resume, autoPlay = true)
         }
+    }
+
+    /**
+     * Brings the mini-player back after the app was closed: when the app starts with nothing loaded,
+     * loads the most recently played unfinished audiobook (this device's history and the server's
+     * Continue Listening, whichever was played last) paused at its saved position. Runs at most once
+     * per process, stays silent if nothing can be loaded (e.g. offline and not downloaded), and gives
+     * way if the user or Android Auto loads something while it's still looking.
+     */
+    fun restoreLastBook() {
+        if (restoreAttempted) return
+        restoreAttempted = true
+        if (_state.value.currentBook != null) return
+        val generation = loadGeneration.get()
+        scope.launch {
+            for ((bookId, resume) in restoreCandidates()) {
+                val data = repo.resolve(bookId) ?: continue
+                settingsLoaded.await()
+                if (generation != loadGeneration.get() || _state.value.currentBook != null) return@launch
+                val c = controller()
+                // Re-checked after the last suspension point: from here to applyQueue runs without yielding.
+                if (generation != loadGeneration.get() || _state.value.currentBook != null || c.mediaItemCount > 0) return@launch
+                applyQueue(c, data, resume, autoPlay = false)
+                return@launch
+            }
+        }
+    }
+
+    /** Unfinished books to try, most recently played first, each with its resume position. */
+    private suspend fun restoreCandidates(): List<Pair<Int, AudioProgress>> = coroutineScope {
+        val serverIds = async {
+            withTimeoutOrNull(RESTORE_LOOKUP_TIMEOUT_MS) {
+                runCatching { browse.scroller(ScrollerType.CONTINUE_LISTENING, limit = RESTORE_SERVER_CANDIDATES) }.getOrNull()
+            }.orEmpty().map { it.id }
+        }
+        val localId = audioProgress.recent()
+            .firstOrNull { it.percentage < ResumeCandidates.FINISHED_PERCENT }?.bookId
+        val ids = (listOfNotNull(localId) + serverIds.await()).distinct()
+        val points = ids.map { id ->
+            async {
+                id to (withTimeoutOrNull(RESTORE_LOOKUP_TIMEOUT_MS) { audioProgress.resumePoint(id) }
+                    ?: audioProgress.localResumePoint(id))
+            }
+        }.awaitAll()
+        val byId = points.toMap()
+        val ranked = ResumeCandidates.rank(
+            points.mapNotNull { (id, p) -> p?.let { ResumeCandidate(id, it.progress.percentage, it.lastActivityMillis) } },
+        )
+        ranked.mapNotNull { id -> byId[id]?.let { id to it.progress } }
+    }
+
+    /** Loads [data] into the session player at [resume]; plays only when [autoPlay]. */
+    private fun applyQueue(c: MediaController, data: PlayerRepository.PlayerData, resume: AudioProgress?, autoPlay: Boolean) {
+        c.setMediaItems(data.mediaItems)
+        c.prepare()
+        c.setPlaybackSpeed(settings.speed)
+        if (resume != null) {
+            val idx = data.files.indexOfFirst { it.id == resume.currentFileId }.coerceAtLeast(0)
+            c.seekTo(idx, (resume.positionSeconds * 1000).toLong())
+        }
+        if (autoPlay) c.play()
+
+        _state.update {
+            it.copy(
+                currentBook = data.book,
+                files = data.files,
+                chapters = PlaybackQueue.resolveChapters(data.book),
+                totalDurationSec = PlaybackQueue.totalDurationSec(data.files),
+            )
+        }
+        startPoller()
     }
 
     /**
@@ -167,6 +239,7 @@ class PlayerManager @Inject constructor(
      * items, so this only observes — it does not touch the controller's queue.
      */
     fun adoptExternalQueue(book: BookDetail, files: List<BookFileRef>) {
+        loadGeneration.incrementAndGet()
         scope.launch {
             controller() // ensure the listener is attached so play/pause state tracks
             _state.update {
@@ -293,6 +366,7 @@ class PlayerManager @Inject constructor(
     }
 
     fun stop() = scope.launch {
+        loadGeneration.incrementAndGet()
         report(force = true)
         controller?.run {
             stop()
@@ -356,5 +430,9 @@ class PlayerManager @Inject constructor(
         const val TAG = "BookOrbitPlayer"
         /** Minimum drift (seconds) before [refreshIfStale] bothers seeking to a server-side position. */
         const val STALE_THRESHOLD_SEC = 5.0
+        /** Upper bound for each launch-restore network lookup, so a slow network can't delay it much. */
+        const val RESTORE_LOOKUP_TIMEOUT_MS = 4_000L
+        /** How many of the server's Continue Listening books to compare (its order isn't a timestamp). */
+        const val RESTORE_SERVER_CANDIDATES = 3
     }
 }

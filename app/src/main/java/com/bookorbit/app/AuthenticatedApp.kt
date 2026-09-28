@@ -1,6 +1,7 @@
 package com.bookorbit.app
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -24,6 +25,9 @@ fun AuthenticatedApp(user: AuthUser, onSignOut: () -> Unit) {
     val navController = rememberNavController()
     // Shared player VM at the app-nav scope so "Listen" can start playback before navigating.
     val playerVm: PlayerViewModel = hiltViewModel()
+    // Reopen the last audiobook (paused) so the mini-player survives the app being closed. The
+    // manager makes this a once-per-process no-op, so recompositions and recreations are harmless.
+    LaunchedEffect(Unit) { playerVm.restoreLastBook() }
 
     NavHost(navController = navController, startDestination = AppRoutes.MAIN) {
         composable(AppRoutes.MAIN) {
