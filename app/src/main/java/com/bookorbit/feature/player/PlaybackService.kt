@@ -70,8 +70,8 @@ class PlaybackService : MediaLibraryService() {
         val session = mediaSession ?: return
         val current = session.player
 
-        val outgoing = activeBookPlayer.current
-        val absoluteMs = outgoing?.bookPositionMs() ?: current.currentPosition
+        val outgoing = activeBookPlayer.current ?: return
+        val absoluteMs = outgoing.bookPositionMs()
         val wasPlaying = current.playWhenReady
         val items = current.currentTimeline.mediaItems()
         if (items.isEmpty()) return
@@ -82,7 +82,7 @@ class PlaybackService : MediaLibraryService() {
         cast.setMediaItems(rewritten)
         cast.prepare()
 
-        outgoing?.detach()
+        outgoing.detach()
         val incoming = wrap(cast)
         session.setPlayer(incoming)
         incoming.seekToBookMs(absoluteMs)
@@ -94,11 +94,11 @@ class PlaybackService : MediaLibraryService() {
         val session = mediaSession ?: return
         val current = session.player
 
-        val outgoing = activeBookPlayer.current
-        val absoluteMs = outgoing?.bookPositionMs() ?: current.currentPosition
+        val outgoing = activeBookPlayer.current ?: return
+        val absoluteMs = outgoing.bookPositionMs()
         val wasPlaying = current.playWhenReady
 
-        outgoing?.detach()
+        outgoing.detach()
         val incoming = wrap(player)
         session.setPlayer(incoming)
         incoming.seekToBookMs(absoluteMs)

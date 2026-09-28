@@ -35,6 +35,7 @@ import kotlin.coroutines.resume
  * state, the transport controls, and the offline-first progress reporting. A single instance is
  * shared by the player screen, mini-player, and book detail.
  */
+@OptIn(UnstableApi::class)
 @Singleton
 class PlayerManager @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -112,10 +113,8 @@ class PlayerManager @Inject constructor(
     }
 
     /** Whole-book position; the controller's own position may be chapter-relative (see BookAggregatingPlayer). */
-    @OptIn(UnstableApi::class)
     private fun bookPositionMs(): Long? = activeBookPlayer.current?.bookPositionMs()
 
-    @OptIn(UnstableApi::class)
     private suspend fun controller(): MediaController {
         controller?.let { return it }
         val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
@@ -199,7 +198,8 @@ class PlayerManager @Inject constructor(
     fun skipForward() = scope.launch {
         val now = bookPositionMs() ?: return@launch
         val total = (_state.value.totalDurationSec * 1000).toLong()
-        seekToAbsoluteNow(minOf(total, now + settings.skipForwardSeconds * 1000L) / 1000.0)
+        val target = now + settings.skipForwardSeconds * 1000L
+        seekToAbsoluteNow((if (total > 0) minOf(total, target) else target) / 1000.0)
     }
 
     fun seekToAbsolute(absoluteSec: Double) = scope.launch { seekToAbsoluteNow(absoluteSec) }
