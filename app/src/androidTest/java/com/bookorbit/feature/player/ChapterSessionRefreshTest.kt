@@ -49,19 +49,21 @@ class ChapterSessionRefreshTest {
     @After fun tearDown() = instr.runOnMainSync { wrapper.detach(); session.release(); exo.release() }
 
     @Test fun durationFollowsChapterOnSeekAndPlayback() {
-        seekBook(3_000);  awaitDuration(5_000)
-        seekBook(6_000);  awaitDuration(10_000)      // paused seek into chapter 2
+        seekBook(3_000);  awaitDuration("chapter 1 seek", 5_000)
+        seekBook(6_000);  awaitDuration("chapter 2 paused seek", 10_000)
         assertEquals("Two", platform.metadata?.getString(PlatformMetadata.METADATA_KEY_DISPLAY_SUBTITLE))
+        awaitPositionNear("chapter 2 paused seek", 1_000, 300)
         seekBook(14_000)
         instr.runOnMainSync { exo.play() }
-        awaitDuration(5_000, timeoutMs = 8_000)       // natural playback across 15 s
-        prefs.value = prefs.value.copy(progressBarMode = ProgressBarMode.BOOK)
-        awaitDuration(20_000, timeoutMs = 4_000)      // mode toggle
+        awaitDuration("natural playback into chapter 3", 5_000, timeoutMs = 8_000)
+        awaitSubtitle("natural playback into chapter 3", "Three")
+        instr.runOnMainSync { prefs.value = prefs.value.copy(progressBarMode = ProgressBarMode.BOOK) }
+        awaitDuration("mode toggle to BOOK", 20_000, timeoutMs = 4_000)
     }
 
     private fun seekBook(ms: Long) = instr.runOnMainSync { wrapper.seekToBookMs(ms) }
 
-    private fun awaitDuration(expected: Long, timeoutMs: Long = 4_000) {
+    private fun awaitDuration(phase: String, expected: Long, timeoutMs: Long = 4_000) {
         val deadline = System.currentTimeMillis() + timeoutMs
         var last: Long? = null
         while (System.currentTimeMillis() < deadline) {
@@ -69,7 +71,29 @@ class ChapterSessionRefreshTest {
             if (last == expected) return
             Thread.sleep(100)
         }
-        assertEquals(expected, last)
+        assertEquals("$phase: duration", expected, last)
+    }
+
+    private fun awaitSubtitle(phase: String, expected: String, timeoutMs: Long = 4_000) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        var last: String? = null
+        while (System.currentTimeMillis() < deadline) {
+            last = platform.metadata?.getString(PlatformMetadata.METADATA_KEY_DISPLAY_SUBTITLE)
+            if (last == expected) return
+            Thread.sleep(100)
+        }
+        assertEquals("$phase: subtitle", expected, last)
+    }
+
+    private fun awaitPositionNear(phase: String, expected: Long, tolMs: Long, timeoutMs: Long = 4_000) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        var last: Long? = null
+        while (System.currentTimeMillis() < deadline) {
+            last = platform.playbackState?.position
+            if (last != null && kotlin.math.abs(last - expected) <= tolMs) return
+            Thread.sleep(100)
+        }
+        org.junit.Assert.fail("$phase: position expected $expected +/- $tolMs but was $last")
     }
 
     private fun item(i: Int, f: File): MediaItem {
