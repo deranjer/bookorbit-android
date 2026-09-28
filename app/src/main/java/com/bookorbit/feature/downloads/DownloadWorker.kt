@@ -267,22 +267,32 @@ class DownloadWorker @AssistedInject constructor(
             return if (assetId != null) api.serveAudiobookAssetRange(bookId, assetId, range)
             else api.serveFileRange(fileId, range)
         }
-        val response = try {
+        val (response, mode) = try {
             var r = request(offset)
-            // 416: the partial file no longer fits the server's copy - start the file over.
-            if (r.code() == HTTP_RANGE_NOT_SATISFIABLE && offset > 0) {
+            if (!r.isSuccessful && !(offset > 0 && r.code() == HTTP_RANGE_NOT_SATISFIABLE)) {
+                throw HttpException(r)
+            }
+            var writeMode = DownloadResume.writeMode(offset, r.code(), r.headers()["Content-Range"])
+            // A mismatched 206 contains only part of the file. A 416 means the partial file no
+            // longer fits. In either case request the whole file before opening it for overwrite.
+            if (writeMode == DownloadResume.WriteMode.RESTART && offset > 0) {
+                r.body()?.close()
                 r.errorBody()?.close()
                 r = request(0)
+                if (!r.isSuccessful) throw HttpException(r)
+                writeMode = DownloadResume.writeMode(0, r.code(), r.headers()["Content-Range"])
             }
-            if (!r.isSuccessful) throw HttpException(r)
-            r
+            if (writeMode == DownloadResume.WriteMode.RESTART) {
+                r.body()?.close()
+                throw IllegalStateException("server returned a partial body for a full-file request")
+            }
+            r to writeMode
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             throw DownloadStageException("server_request", e)
         }
         val body = response.body() ?: throw DownloadStageException("server_request", IllegalStateException("empty response body"))
-        val mode = DownloadResume.writeMode(offset, response.code(), response.headers()["Content-Range"])
         val written = if (mode == DownloadResume.WriteMode.APPEND) offset else 0L
         try {
             consume(body, mode, written)
@@ -327,6 +337,13 @@ class DownloadWorker @AssistedInject constructor(
             }
         }
         output.flush()
+        val received = copied - alreadyWritten
+        if (responseLength >= 0 && received != responseLength) {
+            error("Incomplete download response: received $received of $responseLength bytes")
+        }
+        if (declaredLength != null && declaredLength > 0 && copied != declaredLength) {
+            error("Downloaded file size $copied does not match expected $declaredLength bytes")
+        }
     }
 
     companion object {

@@ -16,15 +16,15 @@ object DownloadResume {
         data class Resume(val offset: Long) : FileStart
     }
 
-    enum class WriteMode { APPEND, OVERWRITE }
+    enum class WriteMode { APPEND, OVERWRITE, RESTART }
 
     /**
-     * Where to start a file given what's already on disk. With no known expected size an existing
-     * file counts as complete (the previous behavior - there's nothing to verify it against).
+     * Where to start a file given what's already on disk. Without an expected size we cannot tell
+     * a completed file from an interrupted one, so download it again rather than keeping a partial.
      */
     fun plan(existingBytes: Long?, expectedBytes: Long?): FileStart {
         if (existingBytes == null || existingBytes <= 0) return FileStart.Fresh
-        if (expectedBytes == null || expectedBytes <= 0) return FileStart.Complete
+        if (expectedBytes == null || expectedBytes <= 0) return FileStart.Fresh
         return when {
             existingBytes == expectedBytes -> FileStart.Complete
             existingBytes < expectedBytes -> FileStart.Resume(existingBytes)
@@ -35,14 +35,24 @@ object DownloadResume {
     fun rangeHeader(offset: Long): String = "bytes=$offset-"
 
     /**
-     * Whether a response continues the partial file. Only a 206 whose Content-Range starts at the
-     * requested offset is appended; anything else (a server that ignored the range and sent the whole
-     * file, or a mismatched range) overwrites from the start rather than corrupting the file.
+     * Only a matching 206 may be appended. A 200 contains the whole file and may overwrite it.
+     * A mismatched 206 contains only part of a file, so it must trigger a fresh request; writing it
+     * from byte zero would leave a truncated file that the worker could mark complete.
      */
-    fun writeMode(requestedOffset: Long, responseCode: Int, contentRange: String?): WriteMode =
-        if (requestedOffset > 0 && responseCode == 206 && contentRange?.startsWith("bytes $requestedOffset-") == true) {
-            WriteMode.APPEND
-        } else {
-            WriteMode.OVERWRITE
-        }
+    fun writeMode(requestedOffset: Long, responseCode: Int, contentRange: String?): WriteMode = when {
+        responseCode == 200 -> WriteMode.OVERWRITE
+        requestedOffset > 0 && responseCode == 206 && isCompleteRemainder(requestedOffset, contentRange) -> WriteMode.APPEND
+        responseCode == 206 || responseCode == 416 -> WriteMode.RESTART
+        else -> throw IllegalArgumentException("Unexpected HTTP status $responseCode")
+    }
+
+    private fun isCompleteRemainder(offset: Long, contentRange: String?): Boolean {
+        val match = contentRange?.let { CONTENT_RANGE.matchEntire(it) } ?: return false
+        val start = match.groupValues[1].toLongOrNull() ?: return false
+        val end = match.groupValues[2].toLongOrNull() ?: return false
+        val total = match.groupValues[3].toLongOrNull() ?: return false
+        return start == offset && total > offset && end == total - 1
+    }
+
+    private val CONTENT_RANGE = Regex("""bytes (\d+)-(\d+)/(\d+)""")
 }

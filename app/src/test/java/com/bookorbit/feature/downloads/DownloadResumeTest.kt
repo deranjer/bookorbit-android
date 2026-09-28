@@ -30,9 +30,9 @@ class DownloadResumeTest {
     }
 
     @Test
-    fun `with no known size an existing file counts as complete, as before`() {
-        assertEquals(FileStart.Complete, DownloadResume.plan(existingBytes = 400, expectedBytes = null))
-        assertEquals(FileStart.Complete, DownloadResume.plan(existingBytes = 400, expectedBytes = 0))
+    fun `with no known size an existing file is downloaded again rather than trusted`() {
+        assertEquals(FileStart.Fresh, DownloadResume.plan(existingBytes = 400, expectedBytes = null))
+        assertEquals(FileStart.Fresh, DownloadResume.plan(existingBytes = 400, expectedBytes = 0))
     }
 
     @Test
@@ -51,9 +51,16 @@ class DownloadResumeTest {
     }
 
     @Test
-    fun `a partial response for the wrong offset overwrites rather than corrupting the file`() {
-        assertEquals(WriteMode.OVERWRITE, DownloadResume.writeMode(requestedOffset = 400, responseCode = 206, contentRange = "bytes 0-999/1000"))
-        assertEquals(WriteMode.OVERWRITE, DownloadResume.writeMode(requestedOffset = 400, responseCode = 206, contentRange = null))
+    fun `a partial response for the wrong offset requires a fresh request`() {
+        assertEquals(WriteMode.RESTART, DownloadResume.writeMode(requestedOffset = 400, responseCode = 206, contentRange = "bytes 0-999/1000"))
+        assertEquals(WriteMode.RESTART, DownloadResume.writeMode(requestedOffset = 400, responseCode = 206, contentRange = null))
+        assertEquals(WriteMode.RESTART, DownloadResume.writeMode(requestedOffset = 400, responseCode = 416, contentRange = null))
+        assertEquals(WriteMode.RESTART, DownloadResume.writeMode(requestedOffset = 400, responseCode = 206, contentRange = "bytes 400-599/1000"))
+    }
+
+    @Test
+    fun `a partial response to a full-file request must not be written`() {
+        assertEquals(WriteMode.RESTART, DownloadResume.writeMode(requestedOffset = 0, responseCode = 206, contentRange = "bytes 0-399/1000"))
     }
 
     @Test
