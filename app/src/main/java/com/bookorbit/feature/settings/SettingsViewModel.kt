@@ -14,6 +14,7 @@ import com.bookorbit.core.settings.ThemeMode
 import com.bookorbit.feature.downloads.DownloadsRepository
 import com.bookorbit.feature.player.AudioSettingsStore
 import com.bookorbit.feature.player.DEFAULT_SPEED
+import com.bookorbit.feature.player.ProgressBarMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,6 +53,10 @@ class SettingsViewModel @Inject constructor(
     private val _defaultSpeed = MutableStateFlow(DEFAULT_SPEED)
     val defaultSpeed: StateFlow<Float> = _defaultSpeed.asStateFlow()
 
+    val progressBarMode: StateFlow<ProgressBarMode> = audioSettingsStore.settings
+        .map { it.progressBarMode }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProgressBarMode.BOOK)
+
     val downloadTreeUri: StateFlow<Uri?> = locationStore.treeUri
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -81,6 +86,10 @@ class SettingsViewModel @Inject constructor(
     fun setDefaultSpeed(value: Float) {
         _defaultSpeed.value = value
         viewModelScope.launch { audioSettingsStore.saveSpeed(value) }
+    }
+
+    fun setProgressBarMode(mode: ProgressBarMode) {
+        viewModelScope.launch { audioSettingsStore.saveProgressBarMode(mode) }
     }
 
     fun clearImageCache() {
