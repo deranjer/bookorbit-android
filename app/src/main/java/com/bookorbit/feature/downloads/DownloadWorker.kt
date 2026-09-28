@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
+import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.bookorbit.core.db.DownloadDao
@@ -22,10 +23,15 @@ import com.bookorbit.core.storage.LocalRef
 import com.bookorbit.core.storage.length
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import okhttp3.ResponseBody
+import retrofit2.HttpException
+import retrofit2.Response
 import java.io.File
+import java.io.FileOutputStream
 
 /**
  * Downloads a book's files (and cover) for offline use, writing the final record into Room. Uses a
@@ -35,6 +41,10 @@ import java.io.File
  * and the resulting record is marked [DownloadStatus.COMPLETE_FALLBACK] instead of
  * [DownloadStatus.COMPLETE] so the UI can surface that it didn't land where configured. The cover
  * always writes to app-private storage regardless of the configured folder.
+ *
+ * Runs as a foreground service (with a progress notification) so leaving the app doesn't stop it,
+ * and resumes a partially downloaded file with an HTTP Range request ([DownloadResume]) when it is
+ * interrupted anyway.
  */
 @HiltWorker
 class DownloadWorker @AssistedInject constructor(
@@ -47,12 +57,45 @@ class DownloadWorker @AssistedInject constructor(
     private val locationStore: DownloadLocationStore,
 ) : CoroutineWorker(appContext, params) {
 
+    private var notificationTitle = "Downloading book"
+    private var lastNotifiedPercent = -1
+    private var lastNotifiedAtMs = 0L
+
+    override suspend fun getForegroundInfo(): ForegroundInfo =
+        DownloadNotifications.foregroundInfo(applicationContext, inputData.getInt(KEY_BOOK_ID, -1), notificationTitle, null)
+
+    /** Promotes this job to a foreground service. Android 12+ refuses when the app is in the
+     * background (e.g. a retry that starts after the user left); the download then continues as a
+     * plain job and relies on resuming if it gets stopped. */
+    private suspend fun goForeground(progress: Float?) {
+        try {
+            setForeground(DownloadNotifications.foregroundInfo(applicationContext, inputData.getInt(KEY_BOOK_ID, -1), notificationTitle, progress))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "couldn't run the download in the foreground; continuing in the background", e)
+        }
+    }
+
+    /** Refreshes the notification's progress at most once per percent and per second. */
+    private suspend fun notifyProgress(progress: Float) {
+        val percent = (progress * 100).toInt()
+        val now = System.currentTimeMillis()
+        if (percent == lastNotifiedPercent || now - lastNotifiedAtMs < NOTIFY_INTERVAL_MS) return
+        lastNotifiedPercent = percent
+        lastNotifiedAtMs = now
+        goForeground(progress)
+    }
+
     override suspend fun doWork(): Result {
         val bookId = inputData.getInt(KEY_BOOK_ID, -1)
         if (bookId < 0) return Result.failure()
         val entity = dao.get(bookId) ?: return Result.failure()
         val book = runCatching { json.decodeFromString<BookDetail>(entity.bookJson) }.getOrNull()
             ?: return Result.failure()
+
+        notificationTitle = book.title ?: notificationTitle
+        goForeground(entity.progress.takeIf { it > 0f })
 
         val files = BookFiles.downloadableFiles(book)
         if (files.isEmpty()) {
@@ -106,6 +149,10 @@ class DownloadWorker @AssistedInject constructor(
                 dao.updateProgress(bookId, progress)
                 setProgress(workDataOf(KEY_PROGRESS to progress))
             }
+        } catch (e: CancellationException) {
+            // Stopped by the system (or cancelled): not a failed attempt. WorkManager reschedules a
+            // stopped job itself, and the partial file is resumed next time.
+            throw e
         } catch (e: Exception) {
             val failure = e as? DownloadStageException
             val stage = failure?.stage ?: activeStage
@@ -156,21 +203,23 @@ class DownloadWorker @AssistedInject constructor(
         completedWeight: Double, fileWeight: Double, totalWeight: Double,
     ): String {
         val existing = folder.findFile(name)
-        val complete = existing != null &&
-            (ref.sizeBytes == null || ref.sizeBytes <= 0 || existing.length() == ref.sizeBytes)
+        val start = DownloadResume.plan(existing?.length(), ref.sizeBytes)
         val doc = when {
-            complete -> existing!!
+            start != DownloadResume.FileStart.Fresh -> existing!!
             existing != null -> {
-                existing.delete() // stale/partial from an interrupted run - recreate
+                existing.delete() // unusable leftover (e.g. larger than expected) - recreate
                 createSafFile(folder, name, ref)
             }
             else -> createSafFile(folder, name, ref)
         }
-        if (!complete) {
-            activeNetworkCall(bookId, ref.id, sources) { body ->
-                applicationContext.contentResolver.openOutputStream(doc.uri)?.use { output ->
+        if (start != DownloadResume.FileStart.Complete) {
+            val offset = (start as? DownloadResume.FileStart.Resume)?.offset ?: 0L
+            activeNetworkCall(bookId, ref.id, sources, offset) { body, mode, written ->
+                // "wa" appends to the partial document; "wt" truncates it for a fresh copy.
+                val openMode = if (mode == DownloadResume.WriteMode.APPEND) "wa" else "wt"
+                applicationContext.contentResolver.openOutputStream(doc.uri, openMode)?.use { output ->
                     body.byteStream().use { input ->
-                        copyWithProgress(input, output, body.contentLength(), ref.sizeBytes,
+                        copyWithProgress(input, output, written, body.contentLength(), ref.sizeBytes,
                             completedWeight, fileWeight, totalWeight)
                     }
                 } ?: error("Unable to open the selected storage destination")
@@ -189,13 +238,13 @@ class DownloadWorker @AssistedInject constructor(
         completedWeight: Double, fileWeight: Double, totalWeight: Double,
     ): String {
         val dest = File(dir, name)
-        val complete = dest.exists() &&
-            (ref.sizeBytes == null || ref.sizeBytes <= 0 || dest.length() == ref.sizeBytes)
-        if (!complete) {
-            activeNetworkCall(bookId, ref.id, sources) { body ->
+        val start = DownloadResume.plan(dest.takeIf { it.exists() }?.length(), ref.sizeBytes)
+        if (start != DownloadResume.FileStart.Complete) {
+            val offset = (start as? DownloadResume.FileStart.Resume)?.offset ?: 0L
+            activeNetworkCall(bookId, ref.id, sources, offset) { body, mode, written ->
                 body.byteStream().use { input ->
-                    dest.outputStream().use { output ->
-                        copyWithProgress(input, output, body.contentLength(), ref.sizeBytes,
+                    FileOutputStream(dest, mode == DownloadResume.WriteMode.APPEND).use { output ->
+                        copyWithProgress(input, output, written, body.contentLength(), ref.sizeBytes,
                             completedWeight, fileWeight, totalWeight)
                     }
                 }
@@ -204,18 +253,41 @@ class DownloadWorker @AssistedInject constructor(
         return Uri.fromFile(dest).toString()
     }
 
+    /**
+     * Requests [fileId] from [offset] (0 = whole file) and hands [consume] the body, whether to
+     * append or overwrite, and how many bytes of the file that leaves already written.
+     */
     private suspend fun activeNetworkCall(
-        bookId: Int, fileId: Int, sources: Sources,
-        consume: suspend (okhttp3.ResponseBody) -> Unit,
+        bookId: Int, fileId: Int, sources: Sources, offset: Long,
+        consume: suspend (ResponseBody, DownloadResume.WriteMode, Long) -> Unit,
     ) {
         val assetId = (sources as? Sources.Assets)?.assetIds?.get(fileId)
-        val body = try {
-            if (assetId != null) api.serveAudiobookAsset(bookId, assetId) else api.serveFile(fileId)
+        suspend fun request(from: Long): Response<ResponseBody> {
+            val range = if (from > 0) DownloadResume.rangeHeader(from) else null
+            return if (assetId != null) api.serveAudiobookAssetRange(bookId, assetId, range)
+            else api.serveFileRange(fileId, range)
+        }
+        val response = try {
+            var r = request(offset)
+            // 416: the partial file no longer fits the server's copy - start the file over.
+            if (r.code() == HTTP_RANGE_NOT_SATISFIABLE && offset > 0) {
+                r.errorBody()?.close()
+                r = request(0)
+            }
+            if (!r.isSuccessful) throw HttpException(r)
+            r
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw DownloadStageException("server_request", e)
         }
+        val body = response.body() ?: throw DownloadStageException("server_request", IllegalStateException("empty response body"))
+        val mode = DownloadResume.writeMode(offset, response.code(), response.headers()["Content-Range"])
+        val written = if (mode == DownloadResume.WriteMode.APPEND) offset else 0L
         try {
-            consume(body)
+            consume(body, mode, written)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw DownloadStageException("response_read_or_storage_write", e)
         } finally {
@@ -223,19 +295,22 @@ class DownloadWorker @AssistedInject constructor(
         }
     }
 
+    /** Copies [input] to [output], reporting progress for a file that already has [alreadyWritten] bytes. */
     private suspend fun copyWithProgress(
         input: java.io.InputStream,
         output: java.io.OutputStream,
+        alreadyWritten: Long,
         responseLength: Long,
         declaredLength: Long?,
         completedWeight: Double,
         fileWeight: Double,
         totalWeight: Double,
     ) {
-        val length = declaredLength?.takeIf { it > 0 } ?: responseLength.takeIf { it > 0 }
+        val length = declaredLength?.takeIf { it > 0 }
+            ?: (alreadyWritten + responseLength).takeIf { responseLength > 0 }
         val buffer = ByteArray(COPY_BUFFER_BYTES)
-        var copied = 0L
-        var lastReportedBytes = 0L
+        var copied = alreadyWritten
+        var lastReportedBytes = alreadyWritten
         while (true) {
             val count = input.read(buffer)
             if (count < 0) break
@@ -247,6 +322,7 @@ class DownloadWorker @AssistedInject constructor(
                     .toFloat().coerceIn(0f, 0.999f)
                 dao.updateProgress(inputData.getInt(KEY_BOOK_ID, -1), progress)
                 setProgress(workDataOf(KEY_PROGRESS to progress))
+                notifyProgress(progress)
                 lastReportedBytes = copied
             }
         }
@@ -259,6 +335,8 @@ class DownloadWorker @AssistedInject constructor(
         private const val PROGRESS_REPORT_BYTES = 512 * 1024L
         /** Total attempts (initial + retries) before a failing download is reported as terminal. */
         private const val MAX_ATTEMPTS = 5
+        private const val HTTP_RANGE_NOT_SATISFIABLE = 416
+        private const val NOTIFY_INTERVAL_MS = 1_000L
         const val KEY_BOOK_ID = "bookId"
         const val KEY_PROGRESS = "progress"
         fun tag(bookId: Int) = "download-$bookId"

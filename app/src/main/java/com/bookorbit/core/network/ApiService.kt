@@ -43,10 +43,12 @@ import com.bookorbit.core.model.UpdateBookDockFileRequest
 import com.bookorbit.core.model.UserBookStatus
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.HTTP
+import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
@@ -134,6 +136,14 @@ interface ApiService {
     @GET("books/files/{fileId}/serve")
     suspend fun serveFile(@Path("fileId") fileId: Int): ResponseBody
 
+    /** [serveFile] with an optional `Range` (resumable downloads); the full response exposes 206/Content-Range. */
+    @Streaming
+    @GET("books/files/{fileId}/serve")
+    suspend fun serveFileRange(
+        @Path("fileId") fileId: Int,
+        @Header("Range") range: String?,
+    ): Response<ResponseBody>
+
     // --- Audiobooks (server 3.0+) ---
     @GET("audiobooks/{bookId}/manifest")
     suspend fun getAudiobookManifest(@Path("bookId") bookId: Int): AudiobookManifest
@@ -144,6 +154,15 @@ interface ApiService {
         @Path("bookId") bookId: Int,
         @Path("assetId") assetId: String,
     ): ResponseBody
+
+    /** [serveAudiobookAsset] with an optional `Range` (resumable downloads). */
+    @Streaming
+    @GET("audiobooks/{bookId}/assets/{assetId}/content")
+    suspend fun serveAudiobookAssetRange(
+        @Path("bookId") bookId: Int,
+        @Path("assetId") assetId: String,
+        @Header("Range") range: String?,
+    ): Response<ResponseBody>
 
     /**
      * An [AudiobookPlaybackState], or an empty/`null` body when the user has no saved position -
