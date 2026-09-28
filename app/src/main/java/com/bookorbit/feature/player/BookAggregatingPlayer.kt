@@ -67,12 +67,9 @@ class BookAggregatingPlayer(
         super.seekTo(loc.index, (loc.offsetSec * 1000).toLong())
     }
 
-    /**
-     * Stops wrapper-owned work (Task 5 adds a poller); call when the session drops this wrapper.
-     * Deliberately does NOT call super: the wrapped player outlives the wrapper across Cast swaps and
-     * is released explicitly by [PlaybackService].
-     */
-    override fun release() {}
+    /** Stops wrapper-owned work (a later task adds a poller); call when the session drops this wrapper.
+     * Does not release the wrapped player. */
+    fun detach() {}
 
     override fun seekToNext() = jumpToNavPoint(forward = true)
     override fun seekToNextMediaItem() = jumpToNavPoint(forward = true)

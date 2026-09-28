@@ -82,7 +82,7 @@ class PlaybackService : MediaLibraryService() {
         cast.setMediaItems(rewritten)
         cast.prepare()
 
-        outgoing?.release()
+        outgoing?.detach()
         val incoming = wrap(cast)
         session.setPlayer(incoming)
         incoming.seekToBookMs(absoluteMs)
@@ -98,7 +98,7 @@ class PlaybackService : MediaLibraryService() {
         val absoluteMs = outgoing?.bookPositionMs() ?: current.currentPosition
         val wasPlaying = current.playWhenReady
 
-        outgoing?.release()
+        outgoing?.detach()
         val incoming = wrap(player)
         session.setPlayer(incoming)
         incoming.seekToBookMs(absoluteMs)
@@ -126,7 +126,7 @@ class PlaybackService : MediaLibraryService() {
         // - if the service is destroyed while casting, the session's active player is the cast one,
         // and that call alone would leak the local `player` (ExoPlayer) instance.
         castHandoff.release()
-        activeBookPlayer.current?.release()
+        activeBookPlayer.current?.detach()
         activeBookPlayer.current = null
         mediaSession?.release()
         mediaSession = null
