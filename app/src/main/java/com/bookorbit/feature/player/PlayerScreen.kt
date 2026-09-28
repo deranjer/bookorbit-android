@@ -1,6 +1,7 @@
 package com.bookorbit.feature.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -85,10 +87,14 @@ fun PlayerScreen(
     }
 
     val total = state.totalDurationSec
-    val displayPos = scrubbing?.toDouble() ?: state.positionSec
-    val remaining = (total - displayPos).coerceAtLeast(0.0)
-    val chapterIdx = PlaybackQueue.currentChapterIndex(state.chapters, displayPos)
-    val currentChapter = state.chapters.getOrNull(chapterIdx)?.title
+    val ranges = remember(state.chapters, total) { PlaybackQueue.chapterRanges(state.chapters, total) }
+    val chapterMode = state.progressBarMode == ProgressBarMode.CHAPTER && ranges.size >= 2
+    var scrubRange by remember { mutableStateOf<ChapterRange?>(null) }
+    val liveRange = PlaybackQueue.chapterRange(state.chapters, total, state.positionSec)
+    val sliderRange = if (chapterMode) (scrubRange ?: liveRange) else null
+    val displayBookPos = scrubbing?.let { s -> sliderRange?.let { PlaybackQueue.toBookTime(it, s.toDouble()) } ?: s.toDouble() } ?: state.positionSec
+    val currentChapter = PlaybackQueue.chapterRange(state.chapters, total, displayBookPos)
+    var showChapters by remember { mutableStateOf(false) }
 
     fun prevChapter() {
         if (state.chapters.isEmpty()) return
@@ -121,6 +127,11 @@ fun PlayerScreen(
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
             )
+            if (ranges.isNotEmpty()) {
+                IconButton(onClick = { showChapters = true }) {
+                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Chapters")
+                }
+            }
             CastButton()
             val timerActive = state.sleepTimerRemainingSec != null
             IconButton(onClick = { showSleepTimerSheet = true }) {
@@ -172,12 +183,12 @@ fun PlayerScreen(
             }
             currentChapter?.let {
                 Text(
-                    it,
+                    "${it.title} ▾",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.clickable { showChapters = true }.padding(top = 8.dp),
                 )
             }
             state.playerError?.let {
@@ -191,18 +202,34 @@ fun PlayerScreen(
             }
         }
 
+        val sliderValue = sliderRange?.let { PlaybackQueue.toChapterTime(it, displayBookPos) } ?: displayBookPos
+        val sliderMax = sliderRange?.lengthSec ?: total
         Slider(
-            value = displayPos.toFloat(),
-            onValueChange = { scrubbing = it },
+            value = sliderValue.toFloat(),
+            onValueChange = { if (scrubbing == null) scrubRange = liveRange; scrubbing = it },
             onValueChangeFinished = {
-                scrubbing?.let { vm.seekToAbsolute(it.toDouble()) }
+                scrubbing?.let { s ->
+                    val target = (if (chapterMode) scrubRange ?: liveRange else null)
+                        ?.let { PlaybackQueue.toBookTime(it, s.toDouble()) } ?: s.toDouble()
+                    vm.seekToAbsolute(target)
+                }
                 scrubbing = null
+                scrubRange = null
             },
-            valueRange = 0f..(total.toFloat().coerceAtLeast(1f)),
+            valueRange = 0f..(sliderMax.toFloat().coerceAtLeast(1f)),
         )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(formatTime(displayPos), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("-${formatTime(remaining)}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(formatTime(sliderValue), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("-${formatTime((sliderMax - sliderValue).coerceAtLeast(0.0))}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (chapterMode && currentChapter != null) {
+            Text(
+                "Ch ${currentChapter.index + 1} of ${ranges.size} · ${PlaybackQueue.formatDurationShort(total - displayBookPos)} left in book",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                textAlign = TextAlign.Center,
+            )
         }
 
         Row(
@@ -259,6 +286,16 @@ fun PlayerScreen(
                 )
             }
         }
+    }
+
+    if (showChapters && ranges.isNotEmpty()) {
+        ChapterListSheet(
+            ranges = ranges,
+            currentIndex = liveRange?.index ?: 0,
+            positionSec = state.positionSec,
+            onSelect = { vm.seekToAbsolute(it.startSec); showChapters = false },
+            onDismiss = { showChapters = false },
+        )
     }
 
     if (showSleepTimerSheet) {

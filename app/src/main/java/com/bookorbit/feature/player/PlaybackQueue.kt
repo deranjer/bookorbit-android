@@ -126,4 +126,15 @@ object PlaybackQueue {
     }
 
     private const val INTRO_SNAP_SEC = 1.0
+
+    fun formatDurationShort(sec: Double): String {
+        val s = sec.toLong().coerceAtLeast(0)
+        val h = s / 3600
+        val m = (s % 3600) / 60
+        return when {
+            h > 0 -> "${h}h ${m}m"
+            m > 0 -> "${m}m"
+            else -> "${s}s"
+        }
+    }
 }

@@ -123,4 +123,11 @@ class PlaybackQueueTest {
         assertEquals(119.999, PlaybackQueue.toBookTime(r, 60.0), 1e-9)
         assertEquals(60.0, PlaybackQueue.toBookTime(r, -3.0), 1e-9)
     }
+
+    @Test
+    fun `formatDurationShort renders hours-minutes, minutes, or seconds`() {
+        assertEquals("5h 12m", PlaybackQueue.formatDurationShort(5 * 3600 + 12 * 60 + 30.0))
+        assertEquals("12m", PlaybackQueue.formatDurationShort(12 * 60 + 5.0))
+        assertEquals("45s", PlaybackQueue.formatDurationShort(45.0))
+    }
 }
