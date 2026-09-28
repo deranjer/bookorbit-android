@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.5.0](https://github.com/deranjer/bookorbit-android/compare/v0.4.2...v0.5.0) (2026-09-28)
+
+
+### Features
+
+* **auto:** browse and jump to chapters of the playing book ([e03232c](https://github.com/deranjer/bookorbit-android/commit/e03232caee7705c9a1e1c6ca0654a1b25f3d2cb7))
+* combine dashboard, player, and download fixes ([07b34e6](https://github.com/deranjer/bookorbit-android/commit/07b34e635fdf3c3b24560a05568ce623b8de09c5))
+* **player:** add ChapterClock for book/chapter time math ([8aba55f](https://github.com/deranjer/bookorbit-android/commit/8aba55f9f6cec2cdacde67be5eaa8b3a46e7ce71))
+* **player:** add progress bar mode setting ([0777d76](https://github.com/deranjer/bookorbit-android/commit/0777d76b27116cef609adcafeaeacb08fee22a41))
+* **player:** chapter progress bar and chapter list sheet ([30fa586](https://github.com/deranjer/bookorbit-android/commit/30fa5861173f66a5e2fc85b3850cbfbac5f64b9b))
+* **player:** normalize chapters into book-time ranges ([efb9244](https://github.com/deranjer/bookorbit-android/commit/efb92442e67f2773884ed66fcaf62ca8b79b96f2))
+* **player:** reopen the last audiobook, paused, when the app starts ([861d05f](https://github.com/deranjer/bookorbit-android/commit/861d05f47e1197ce9a05e72dd2a862cfd1809304))
+* **player:** report chapter-relative progress on the media session ([1ab945f](https://github.com/deranjer/bookorbit-android/commit/1ab945f476a1059502f1c4a387caef14e4a00bfe))
+* **settings:** progress bar mode picker ([574ecb7](https://github.com/deranjer/bookorbit-android/commit/574ecb7de2f2c2e744fd7cf414d13fe8801aa56e))
+
+
+### Bug Fixes
+
+* address final review (lint opt-in, spec accuracy, Auto chapter start) ([52ca023](https://github.com/deranjer/bookorbit-android/commit/52ca0238f40697ea6237d716774fd261ed9966d3))
+* **dashboard:** decode the 3.x { books, total } scroller response ([f9e857e](https://github.com/deranjer/bookorbit-android/commit/f9e857efd179775761283be3a8c8a0f7c6b292b3))
+* **downloads:** keep downloads running in the background and resume them ([f8c9585](https://github.com/deranjer/bookorbit-android/commit/f8c958567f5807fa377b4cf1fe47a2ddc76e3131))
+* **downloads:** validate resumed range and file length ([8710e47](https://github.com/deranjer/bookorbit-android/commit/8710e47f645c64fc7661597d0bf3429945fd6480))
+* **nav:** ignore back taps from screens that are already leaving ([6720f84](https://github.com/deranjer/bookorbit-android/commit/6720f849a852ebaab15e212747482d1700a7ac71))
+* **player:** harden the launch restore ([7263fc7](https://github.com/deranjer/bookorbit-android/commit/7263fc71a3158ee82a60462a5d87b7775e54913a))
+* **player:** keep skip/cast book-time behavior neutral ([cb41080](https://github.com/deranjer/bookorbit-android/commit/cb41080472b12b0e8abdbdfc8618ecf330564b8a))
+* **settings:** keep whole-book progress as the default ([33b9ddb](https://github.com/deranjer/bookorbit-android/commit/33b9ddb15c60387852dfcfe56fda1df874e96daf))
+
 ## [0.4.2](https://github.com/deranjer/bookorbit-android/compare/v0.4.1...v0.4.2) (2026-09-28)
 
 
