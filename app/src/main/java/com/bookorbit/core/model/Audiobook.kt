@@ -3,12 +3,14 @@ package com.bookorbit.core.model
 import kotlinx.serialization.Serializable
 
 /**
- * `GET /audiobooks/{bookId}/manifest` (server 3.0+). Only the asset list is read: since 3.0 audio
- * bytes are served per asset (`/audiobooks/{bookId}/assets/{assetId}/content`) and
- * `/books/files/{fileId}/serve` 404s for audio formats.
+ * `GET /audiobooks/{bookId}/manifest` (server 3.0+). Only the asset list and revision are read:
+ * since 3.0 audio bytes are served per asset (`/audiobooks/{bookId}/assets/{assetId}/content`) and
+ * `/books/files/{fileId}/serve` 404s for audio formats. [revision] must accompany playback-state
+ * writes.
  */
 @Serializable
 data class AudiobookManifest(
+    val revision: String = "",
     val assets: List<AudiobookManifestAsset> = emptyList(),
 )
 
@@ -19,6 +21,30 @@ data class AudiobookManifestAsset(
     val format: String,
     val durationMs: Long? = null,
     val sizeBytes: Long? = null,
+)
+
+/** `GET/PUT /audiobooks/{bookId}/playback-state` response. [capturedAt] is the writer's clock. */
+@Serializable
+data class AudiobookPlaybackState(
+    val assetId: String,
+    val positionMs: Long,
+    val percentage: Double = 0.0,
+    val capturedAt: String? = null,
+    val revision: Int = 0,
+)
+
+/**
+ * `PUT /audiobooks/{bookId}/playback-state`: optimistic concurrency on [baseRevision] (0 creates;
+ * a stale value gets 409) and [manifestRevision] (a changed manifest gets 412).
+ */
+@Serializable
+data class PutAudiobookPlaybackState(
+    val assetId: String,
+    val positionMs: Long,
+    val capturedAt: String,
+    val operationId: String,
+    val baseRevision: Int,
+    val manifestRevision: String,
 )
 
 object AudiobookAssets {

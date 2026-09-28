@@ -2,6 +2,7 @@ package com.bookorbit.core.network
 
 import com.bookorbit.core.model.AppInfo
 import com.bookorbit.core.model.AudiobookManifest
+import com.bookorbit.core.model.AudiobookPlaybackState
 import com.bookorbit.core.model.AudioProgress
 import com.bookorbit.core.model.AuthUser
 import com.bookorbit.core.model.AuthorsPage
@@ -27,6 +28,7 @@ import com.bookorbit.core.model.OidcCallbackRequest
 import com.bookorbit.core.model.OidcCallbackResponse
 import com.bookorbit.core.model.OidcProviderPublic
 import com.bookorbit.core.model.OidcStateResponse
+import com.bookorbit.core.model.PutAudiobookPlaybackState
 import com.bookorbit.core.model.SaveAudioProgress
 import com.bookorbit.core.model.SaveFileProgress
 import com.bookorbit.core.model.SearchResult
@@ -48,6 +50,7 @@ import retrofit2.http.HTTP
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -141,6 +144,19 @@ interface ApiService {
         @Path("bookId") bookId: Int,
         @Path("assetId") assetId: String,
     ): ResponseBody
+
+    /**
+     * An [AudiobookPlaybackState], or an empty/`null` body when the user has no saved position -
+     * returned raw because the JSON converter can't decode an empty 200 body.
+     */
+    @GET("audiobooks/{bookId}/playback-state")
+    suspend fun getPlaybackState(@Path("bookId") bookId: Int): ResponseBody
+
+    @PUT("audiobooks/{bookId}/playback-state")
+    suspend fun putPlaybackState(
+        @Path("bookId") bookId: Int,
+        @Body body: PutAudiobookPlaybackState,
+    ): AudiobookPlaybackState
 
     /** Cover image bytes, for caching a downloaded book's cover offline. */
     @Streaming
