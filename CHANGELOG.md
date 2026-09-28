@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.2](https://github.com/deranjer/bookorbit-android/compare/v0.4.1...v0.4.2) (2026-09-28)
+
+
+### Bug Fixes
+
+* **player,downloads:** fetch audio via the audiobook asset API on server 3.0+ ([214b647](https://github.com/deranjer/bookorbit-android/commit/214b647118217734655bc748738846b8ca5be92e)), closes [#41](https://github.com/deranjer/bookorbit-android/issues/41)
+* **player:** sync audiobook position via playback-state on server 3.0+ ([c0e48e8](https://github.com/deranjer/bookorbit-android/commit/c0e48e861205a1298fec8c9ccf96d0bc3d8976de))
+* support BookOrbit 3.x audiobook API (downloads, streaming, progress sync) ([fa644e5](https://github.com/deranjer/bookorbit-android/commit/fa644e5f8f2818570e1b5b2df60a5ae27383dbf2))
+
 ## [0.4.1](https://github.com/deranjer/bookorbit-android/compare/v0.4.0...v0.4.1) (2026-09-27)
 
 
