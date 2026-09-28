@@ -18,6 +18,7 @@ import javax.inject.Singleton
 class LivePlaybackPrefs @Inject constructor(store: AudioSettingsStore) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val settings: StateFlow<AudioSettings> = store.settings
+        // On a DataStore read error, fall back to defaults; later changes are not observed until restart.
         .catch { emit(AudioSettings()) }
         .stateIn(scope, SharingStarted.Eagerly, AudioSettings())
 }

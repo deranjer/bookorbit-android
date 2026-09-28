@@ -1,8 +1,10 @@
 package com.bookorbit.feature.player
 
 import android.os.Bundle
+import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaConstants
 import com.bookorbit.core.db.AudioProgressEntity
 import com.bookorbit.core.db.DownloadEntity
@@ -106,6 +108,7 @@ object AutoBrowseTree {
     /** Builds the browsable root node. */
     fun rootMediaItem(): MediaItem = browsableItem(ROOT_ID, "BookOrbit", null)
 
+    @OptIn(UnstableApi::class)
     fun toMediaItem(entry: BrowseEntry): MediaItem =
         if (entry.isPlayable) {
             val metadata = MediaMetadata.Builder()

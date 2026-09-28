@@ -102,8 +102,7 @@ class MediaLibraryCallback @Inject constructor(
         val chapterRef = mediaItems.firstNotNullOfOrNull { AutoBrowseTree.parseChapterId(it.mediaId) }
         if (chapterRef != null) {
             val (chapterBookId, index) = chapterRef
-            val start = current()?.takeIf { it.bookId == chapterBookId }?.ranges?.getOrNull(index)?.startSec
-            return@future resolveQueue(chapterBookId, startAtBookSec = start)
+            return@future resolveQueue(chapterBookId, startAtChapterIndex = index)
                 ?: MediaItemsWithStartPosition(mediaItems, startIndex, startPositionMs)
         }
         val bookId = mediaItems.firstNotNullOfOrNull { AutoBrowseTree.parseBookId(it.mediaId) }
@@ -122,8 +121,13 @@ class MediaLibraryCallback @Inject constructor(
 
     private fun current() = AutoBrowseTree.currentBookInfo(playerManager.state.value)
 
-    private suspend fun resolveQueue(bookId: Int, startAtBookSec: Double? = null): MediaItemsWithStartPosition? {
+    private suspend fun resolveQueue(bookId: Int, startAtChapterIndex: Int? = null): MediaItemsWithStartPosition? {
         val data = playerRepo.resolve(bookId) ?: return null
+        // Chapter start comes from the resolved book, not PlayerManager state (which may be cleared or stale).
+        val startAtBookSec = startAtChapterIndex?.let { i ->
+            val total = PlaybackQueue.totalDurationSec(data.files)
+            PlaybackQueue.chapterRanges(PlaybackQueue.resolveChapters(data.book, total), total).getOrNull(i)?.startSec
+        }
         val index: Int
         val positionMs: Long
         if (startAtBookSec != null) {
