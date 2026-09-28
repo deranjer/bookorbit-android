@@ -19,6 +19,9 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** A resume position and when it was captured (epoch millis). */
+data class ResumePoint(val progress: AudioProgress, val lastActivityMillis: Long)
+
 /**
  * Offline-first audiobook position store keyed by book id, backed by Room (local-first write +
  * dirty flag + flush). Syncs through `/audiobooks/{id}/playback-state` on server 3.0+ (shared with
@@ -57,14 +60,28 @@ class AudioProgressRepository @Inject constructor(
      * is actually newer by timestamp (true last-write-wins, matching the server's own merge logic),
      * falling back to local if the server is unreachable and to server if there's no local row.
      */
-    suspend fun resolveResume(bookId: Int): AudioProgress? {
-        runCatching { flushPending() }
+    suspend fun resolveResume(bookId: Int): AudioProgress? = resumePoint(bookId)?.progress
+
+    /** This device's saved position only - no network. Fallback when the server is slow or offline. */
+    suspend fun localResumePoint(bookId: Int): ResumePoint? =
+        dao.get(bookId)?.let { ResumePoint(it.toAudioProgress(), it.updatedAt) }
+
+    /**
+     * [resolveResume]'s pick plus when it was captured (epoch millis; 0 when the server gave no
+     * timestamp), so callers can tell which of several books was listened to most recently. Pass
+     * [flush] = false when looking up several books after one explicit [flushPending].
+     */
+    suspend fun resumePoint(bookId: Int, flush: Boolean = true): ResumePoint? {
+        if (flush) runCatching { flushPending() }
         val local = dao.get(bookId)
         val server = runCatching { serverProgress(bookId) }.getOrNull()
-        if (local == null) return server
-        if (server == null) return local.toAudioProgress()
-        val serverMillis = server.updatedAt?.let(::epochMillis)
-        return if (serverMillis != null && serverMillis > local.updatedAt) server else local.toAudioProgress()
+        val serverMillis = server?.updatedAt?.let(::epochMillis)
+        return when {
+            local == null -> server?.let { ResumePoint(it, serverMillis ?: 0L) }
+            server == null -> ResumePoint(local.toAudioProgress(), local.updatedAt)
+            serverMillis != null && serverMillis > local.updatedAt -> ResumePoint(server, serverMillis)
+            else -> ResumePoint(local.toAudioProgress(), local.updatedAt)
+        }
     }
 
     /**

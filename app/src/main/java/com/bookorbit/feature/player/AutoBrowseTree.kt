@@ -1,7 +1,11 @@
 package com.bookorbit.feature.player
 
+import android.os.Bundle
+import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.session.MediaConstants
 import com.bookorbit.core.db.AudioProgressEntity
 import com.bookorbit.core.db.DownloadEntity
 import com.bookorbit.core.storage.LocalRef
@@ -21,7 +25,10 @@ object AutoBrowseTree {
     const val CONTINUE_ID = "continue"
     const val DOWNLOADS_ID = "downloads"
 
+    const val NOW_PLAYING_CHAPTERS_ID = "now_playing_chapters"
+
     private const val BOOK_PREFIX = "book/"
+    private const val CHAPTER_PREFIX = "chapter/"
 
     fun bookMediaId(bookId: Int): String = "$BOOK_PREFIX$bookId"
 
@@ -36,13 +43,47 @@ object AutoBrowseTree {
         val subtitle: String?,
         val coverPath: String?,
         val isPlayable: Boolean,
+        val completion: CompletionStatus? = null,
     )
 
+    enum class CompletionStatus { NOT_PLAYED, PARTIALLY_PLAYED, FULLY_PLAYED }
+
+    data class CurrentBookInfo(val bookId: Int, val title: String, val ranges: List<ChapterRange>, val positionSec: Double)
+
+    fun currentBookInfo(state: PlayerManager.UiState): CurrentBookInfo? {
+        val book = state.currentBook ?: return null
+        val ranges = PlaybackQueue.chapterRanges(state.chapters, state.totalDurationSec)
+        return CurrentBookInfo(book.id, book.title ?: "Audiobook", ranges, state.positionSec)
+    }
+
     /** Top-level shelves shown under the root. */
-    fun rootChildren(): List<BrowseEntry> = listOf(
-        BrowseEntry(CONTINUE_ID, "Continue listening", null, null, isPlayable = false),
-        BrowseEntry(DOWNLOADS_ID, "Downloaded", null, null, isPlayable = false),
-    )
+    fun rootChildren(current: CurrentBookInfo?): List<BrowseEntry> = buildList {
+        if (current != null && current.ranges.size >= 2) {
+            add(BrowseEntry(NOW_PLAYING_CHAPTERS_ID, "Chapters · ${current.title}", null, null, isPlayable = false))
+        }
+        add(BrowseEntry(CONTINUE_ID, "Continue listening", null, null, isPlayable = false))
+        add(BrowseEntry(DOWNLOADS_ID, "Downloaded", null, null, isPlayable = false))
+    }
+
+    fun chapterMediaId(bookId: Int, index: Int) = "$CHAPTER_PREFIX$bookId/$index"
+
+    fun parseChapterId(mediaId: String): Pair<Int, Int>? {
+        if (!mediaId.startsWith(CHAPTER_PREFIX)) return null
+        val parts = mediaId.removePrefix(CHAPTER_PREFIX).split("/")
+        if (parts.size != 2) return null
+        val book = parts[0].toIntOrNull() ?: return null
+        val idx = parts[1].toIntOrNull() ?: return null
+        return book to idx
+    }
+
+    fun chapterEntries(current: CurrentBookInfo): List<BrowseEntry> = current.ranges.map { r ->
+        val completion = when {
+            r.endSec <= current.positionSec -> CompletionStatus.FULLY_PLAYED
+            r.startSec <= current.positionSec -> CompletionStatus.PARTIALLY_PLAYED
+            else -> CompletionStatus.NOT_PLAYED
+        }
+        BrowseEntry(chapterMediaId(current.bookId, r.index), r.title, PlaybackQueue.formatDurationShort(r.lengthSec), null, isPlayable = true, completion = completion)
+    }
 
     /** Completed audiobook downloads as playable items (most recently downloaded first). */
     fun downloadedAudiobooks(downloads: List<DownloadEntity>): List<BrowseEntry> =
@@ -67,6 +108,7 @@ object AutoBrowseTree {
     /** Builds the browsable root node. */
     fun rootMediaItem(): MediaItem = browsableItem(ROOT_ID, "BookOrbit", null)
 
+    @OptIn(UnstableApi::class)
     fun toMediaItem(entry: BrowseEntry): MediaItem =
         if (entry.isPlayable) {
             val metadata = MediaMetadata.Builder()
@@ -74,7 +116,26 @@ object AutoBrowseTree {
                 .setArtist(entry.subtitle)
                 .setIsBrowsable(false)
                 .setIsPlayable(true)
-                .setMediaType(MediaMetadata.MEDIA_TYPE_AUDIO_BOOK)
+                .setMediaType(
+                    if (entry.mediaId.startsWith(CHAPTER_PREFIX)) MediaMetadata.MEDIA_TYPE_AUDIO_BOOK_CHAPTER
+                    else MediaMetadata.MEDIA_TYPE_AUDIO_BOOK,
+                )
+                .apply {
+                    entry.completion?.let { c ->
+                        setExtras(
+                            Bundle().apply {
+                                putInt(
+                                    MediaConstants.EXTRAS_KEY_COMPLETION_STATUS,
+                                    when (c) {
+                                        CompletionStatus.NOT_PLAYED -> MediaConstants.EXTRAS_VALUE_COMPLETION_STATUS_NOT_PLAYED
+                                        CompletionStatus.PARTIALLY_PLAYED -> MediaConstants.EXTRAS_VALUE_COMPLETION_STATUS_PARTIALLY_PLAYED
+                                        CompletionStatus.FULLY_PLAYED -> MediaConstants.EXTRAS_VALUE_COMPLETION_STATUS_FULLY_PLAYED
+                                    },
+                                )
+                            },
+                        )
+                    }
+                }
                 .apply { entry.coverPath?.let { setArtworkUri(LocalRef.parse(it).toUri()) } }
                 .build()
             MediaItem.Builder().setMediaId(entry.mediaId).setMediaMetadata(metadata).build()

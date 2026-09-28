@@ -4,8 +4,16 @@ import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFileRef
 import com.bookorbit.core.model.BookFiles
 
+/** Title used for the synthetic range covering audio before the first real chapter. */
+const val INTRO_TITLE = "Intro"
+
 /** Chapter resolved to absolute seconds across the whole book. */
 data class ResolvedChapter(val title: String, val startSec: Double)
+
+/** A chapter's `[startSec, endSec)` span in book time. */
+data class ChapterRange(val index: Int, val title: String, val startSec: Double, val endSec: Double) {
+    val lengthSec: Double get() = endSec - startSec
+}
 
 /** Whole-book offset located within a specific file: (file index, in-file offset). */
 data class FileLocation(val index: Int, val offsetSec: Double)
@@ -62,10 +70,52 @@ object PlaybackQueue {
         return (toAbsoluteSec(files, index, offsetSec) / total * 100).coerceIn(0.0, 100.0)
     }
 
-    fun resolveChapters(book: BookDetail): List<ResolvedChapter> {
+    /** The book's chapters, normalized (see [normalizeChapters]) against [totalSec]. */
+    fun resolveChapters(book: BookDetail, totalSec: Double): List<ResolvedChapter> {
         val chapters = book.audioMetadata?.chapters ?: return emptyList()
-        return chapters.map { ResolvedChapter(it.title, it.startMs / 1000.0) }.sortedBy { it.startSec }
+        return normalizeChapters(chapters.map { ResolvedChapter(it.title, it.startMs / 1000.0) }, totalSec)
     }
+
+    /**
+     * Sorts, drops duplicate starts and starts at/after the end, and guarantees the first chapter
+     * starts at 0 (snapping a near-zero start, else prepending an [INTRO_TITLE] chapter) so every
+     * book position maps to exactly one range. Fewer than two chapters means "chapterless": empty.
+     */
+    fun normalizeChapters(raw: List<ResolvedChapter>, totalSec: Double): List<ResolvedChapter> {
+        val sorted = raw.sortedBy { it.startSec }
+            .distinctBy { it.startSec }
+            .filter { totalSec <= 0 || it.startSec < totalSec }
+        if (sorted.isEmpty()) return emptyList()
+        val first = sorted.first()
+        val anchored = if (first.startSec < INTRO_SNAP_SEC) {
+            listOf(first.copy(startSec = 0.0)) + sorted.drop(1)
+        } else {
+            listOf(ResolvedChapter(INTRO_TITLE, 0.0)) + sorted
+        }
+        return if (anchored.size < 2) emptyList() else anchored
+    }
+
+    fun chapterRanges(chapters: List<ResolvedChapter>, totalSec: Double): List<ChapterRange> {
+        if (chapters.isEmpty() || totalSec <= 0) return emptyList()
+        return chapters.mapIndexed { i, c ->
+            val end = chapters.getOrNull(i + 1)?.startSec ?: totalSec
+            ChapterRange(i, c.title, c.startSec, end)
+        }
+    }
+
+    fun chapterRange(chapters: List<ResolvedChapter>, totalSec: Double, posSec: Double): ChapterRange? {
+        val ranges = chapterRanges(chapters, totalSec)
+        if (ranges.isEmpty()) return null
+        val pos = posSec.coerceIn(0.0, totalSec)
+        return ranges.lastOrNull { it.startSec <= pos + 0.001 } ?: ranges.first()
+    }
+
+    fun toChapterTime(range: ChapterRange, bookSec: Double): Double =
+        (bookSec - range.startSec).coerceIn(0.0, range.lengthSec)
+
+    /** Clamped to `[start, end - 1 ms]` so seeking to a chapter's end stays in that chapter. */
+    fun toBookTime(range: ChapterRange, chapterSec: Double): Double =
+        (range.startSec + chapterSec).coerceIn(range.startSec, maxOf(range.startSec, range.endSec - 0.001))
 
     fun currentChapterIndex(chapters: List<ResolvedChapter>, absoluteSec: Double): Int {
         var found = -1
@@ -73,5 +123,18 @@ object PlaybackQueue {
             if (chapters[i].startSec <= absoluteSec + 0.001) found = i else break
         }
         return found
+    }
+
+    private const val INTRO_SNAP_SEC = 1.0
+
+    fun formatDurationShort(sec: Double): String {
+        val s = sec.toLong().coerceAtLeast(0)
+        val h = s / 3600
+        val m = (s % 3600) / 60
+        return when {
+            h > 0 -> "${h}h ${m}m"
+            m > 0 -> "${m}m"
+            else -> "${s}s"
+        }
     }
 }

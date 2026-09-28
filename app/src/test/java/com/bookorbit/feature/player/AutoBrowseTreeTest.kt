@@ -3,6 +3,8 @@ package com.bookorbit.feature.player
 import com.bookorbit.core.db.AudioProgressEntity
 import com.bookorbit.core.db.DownloadEntity
 import com.bookorbit.feature.downloads.DownloadStatus
+import com.bookorbit.feature.player.AutoBrowseTree.CompletionStatus
+import com.bookorbit.feature.player.AutoBrowseTree.CurrentBookInfo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -89,7 +91,37 @@ class AutoBrowseTreeTest {
     fun `root has continue and downloads shelves`() {
         assertEquals(
             listOf(AutoBrowseTree.CONTINUE_ID, AutoBrowseTree.DOWNLOADS_ID),
-            AutoBrowseTree.rootChildren().map { it.mediaId },
+            AutoBrowseTree.rootChildren(null).map { it.mediaId },
         )
+    }
+
+    private val ranges = listOf(ChapterRange(0, "One", 0.0, 60.0), ChapterRange(1, "Two", 60.0, 150.0), ChapterRange(2, "Three", 150.0, 200.0))
+    private val current = CurrentBookInfo(bookId = 7, title = "Dune", ranges = ranges, positionSec = 75.0)
+
+    @Test
+    fun `rootChildren leads with the chapters node only when a chaptered book is loaded`() {
+        assertEquals(listOf(AutoBrowseTree.CONTINUE_ID, AutoBrowseTree.DOWNLOADS_ID), AutoBrowseTree.rootChildren(null).map { it.mediaId })
+        val withBook = AutoBrowseTree.rootChildren(current)
+        assertEquals(AutoBrowseTree.NOW_PLAYING_CHAPTERS_ID, withBook.first().mediaId)
+        assertEquals("Chapters · Dune", withBook.first().title)
+        assertEquals(3, withBook.size)
+        assertEquals(2, AutoBrowseTree.rootChildren(current.copy(ranges = emptyList())).size)
+    }
+
+    @Test
+    fun `chapterEntries are playable with durations and completion`() {
+        val e = AutoBrowseTree.chapterEntries(current)
+        assertEquals(listOf("One", "Two", "Three"), e.map { it.title })
+        assertEquals(listOf("1m", "1m", "50s"), e.map { it.subtitle })
+        assertTrue(e.all { it.isPlayable })
+        assertEquals(listOf(CompletionStatus.FULLY_PLAYED, CompletionStatus.PARTIALLY_PLAYED, CompletionStatus.NOT_PLAYED), e.map { it.completion })
+    }
+
+    @Test
+    fun `chapter media ids round-trip`() {
+        assertEquals(7 to 2, AutoBrowseTree.parseChapterId(AutoBrowseTree.chapterMediaId(7, 2)))
+        assertNull(AutoBrowseTree.parseChapterId("book/7"))
+        assertNull(AutoBrowseTree.parseChapterId("chapter/x/1"))
+        assertNull(AutoBrowseTree.parseBookId(AutoBrowseTree.chapterMediaId(7, 2)))
     }
 }

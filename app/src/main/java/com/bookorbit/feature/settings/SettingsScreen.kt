@@ -37,6 +37,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bookorbit.BuildConfig
 import com.bookorbit.core.settings.ThemeMode
+import com.bookorbit.feature.player.ProgressBarMode
 import com.bookorbit.feature.player.SPEED_PRESETS
 import kotlin.math.abs
 import kotlin.math.pow
@@ -48,6 +49,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val wifiOnly by vm.wifiOnlyDownloads.collectAsStateWithLifecycle()
     val downloadsSummary by vm.downloadsSummary.collectAsStateWithLifecycle()
     val defaultSpeed by vm.defaultSpeed.collectAsStateWithLifecycle()
+    val progressBarMode by vm.progressBarMode.collectAsStateWithLifecycle()
     val message by vm.message.collectAsStateWithLifecycle()
     val downloadTreeUri by vm.downloadTreeUri.collectAsStateWithLifecycle()
     val downloadLocationLabel by vm.downloadLocationLabel.collectAsStateWithLifecycle()
@@ -164,6 +166,25 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                                 selected = abs(preset - defaultSpeed) < 0.001f,
                                 onClick = { vm.setDefaultSpeed(preset) },
                                 label = { Text("${preset}x") },
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                            )
+                        }
+                    }
+                    Text(
+                        "Progress bar",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 16.dp),
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        listOf(ProgressBarMode.BOOK to "Whole book", ProgressBarMode.CHAPTER to "Chapter").forEach { (mode, label) ->
+                            FilterChip(
+                                selected = progressBarMode == mode,
+                                onClick = { vm.setProgressBarMode(mode) },
+                                label = { Text(label) },
                                 modifier = Modifier.padding(horizontal = 4.dp),
                             )
                         }

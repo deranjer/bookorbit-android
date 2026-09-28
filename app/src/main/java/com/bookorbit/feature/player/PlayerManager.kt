@@ -10,10 +10,13 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.bookorbit.core.model.AudioProgress
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFileRef
 import com.bookorbit.feature.cast.CastSessionController
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -26,6 +29,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
+import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -35,6 +42,7 @@ import kotlin.coroutines.resume
  * state, the transport controls, and the offline-first progress reporting. A single instance is
  * shared by the player screen, mini-player, and book detail.
  */
+@OptIn(UnstableApi::class)
 @Singleton
 class PlayerManager @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -42,6 +50,9 @@ class PlayerManager @Inject constructor(
     private val audioProgress: AudioProgressRepository,
     private val settingsStore: AudioSettingsStore,
     private val castSessionController: CastSessionController,
+    private val activeBookPlayer: ActiveBookPlayer,
+    private val livePrefs: LivePlaybackPrefs,
+    private val restoreCandidates: RestoreCandidateFinder,
 ) {
     data class UiState(
         val currentBook: BookDetail? = null,
@@ -61,6 +72,7 @@ class PlayerManager @Inject constructor(
         /** Set on a load or playback failure so the UI can explain why nothing is playing, instead
          * of silently doing nothing (see issue #38). Cleared on the next successful load/resume. */
         val playerError: String? = null,
+        val progressBarMode: ProgressBarMode = ProgressBarMode.BOOK,
     )
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
@@ -68,9 +80,18 @@ class PlayerManager @Inject constructor(
     val state = _state.asStateFlow()
 
     private var controller: MediaController? = null
+    /** Serializes [controller] so a launch restore and a user tap can't each build one. */
+    private val controllerLock = Mutex()
     private var pollJob: Job? = null
     private var settings = AudioSettings()
     private var lastReport = 0L
+    private val settingsLoaded = CompletableDeferred<Unit>()
+
+    /** Bumped whenever the user, the car, or [stop] changes the queue; an in-flight launch restore
+     * that sees it move gives way instead of replacing what was just started. Atomic because Android
+     * Auto calls [adoptExternalQueue] off the main thread. */
+    private val loadGeneration = AtomicInteger()
+    private var restoreAttempted = false
 
     /** Wall-clock deadline for a duration-based sleep timer; null when off or in end-of-chapter mode. */
     private var sleepTimerEndAtMs: Long? = null
@@ -94,13 +115,18 @@ class PlayerManager @Inject constructor(
 
     init {
         scope.launch {
-            settings = settingsStore.load()
-            _state.update {
-                it.copy(
-                    speed = settings.speed,
-                    skipBackSeconds = settings.skipBackSeconds,
-                    skipForwardSeconds = settings.skipForwardSeconds,
-                )
+            try {
+                settings = settingsStore.load()
+                _state.update {
+                    it.copy(
+                        speed = settings.speed,
+                        skipBackSeconds = settings.skipBackSeconds,
+                        skipForwardSeconds = settings.skipForwardSeconds,
+                    )
+                }
+            } finally {
+                // Defaults stand in if loading failed; either way a waiting restore may proceed.
+                settingsLoaded.complete(Unit)
             }
         }
         scope.launch {
@@ -108,22 +134,34 @@ class PlayerManager @Inject constructor(
                 _state.update { it.copy(isCasting = cast.isConnected, castDeviceName = cast.deviceName) }
             }
         }
+        scope.launch {
+            livePrefs.settings.collect { s ->
+                _state.update { it.copy(progressBarMode = s.progressBarMode) }
+            }
+        }
     }
 
-    @OptIn(UnstableApi::class)
+    /** Whole-book position; the controller's own position may be chapter-relative (see BookAggregatingPlayer). */
+    private fun bookPositionMs(): Long? = activeBookPlayer.current?.bookPositionMs()
+
     private suspend fun controller(): MediaController {
         controller?.let { return it }
-        val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
-        val created = suspendCancellableCoroutine { cont ->
-            val future = MediaController.Builder(context, token).buildAsync()
-            future.addListener({ cont.resume(future.get()) }, ContextCompat.getMainExecutor(context))
+        return controllerLock.withLock {
+            controller ?: run {
+                val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
+                val created = suspendCancellableCoroutine { cont ->
+                    val future = MediaController.Builder(context, token).buildAsync()
+                    future.addListener({ cont.resume(future.get()) }, ContextCompat.getMainExecutor(context))
+                }
+                created.addListener(listener)
+                controller = created
+                created
+            }
         }
-        created.addListener(listener)
-        controller = created
-        return created
     }
 
     fun loadAndPlay(bookId: Int) {
+        loadGeneration.incrementAndGet()
         cancelSleepTimer()
         _state.update { it.copy(playerError = null) }
         scope.launch {
@@ -138,26 +176,65 @@ class PlayerManager @Inject constructor(
             }
             val c = controller()
             val resume = audioProgress.resolveResume(bookId)
-
-            c.setMediaItems(data.mediaItems)
-            c.prepare()
-            c.setPlaybackSpeed(settings.speed)
-            if (resume != null) {
-                val idx = data.files.indexOfFirst { it.id == resume.currentFileId }.coerceAtLeast(0)
-                c.seekTo(idx, (resume.positionSeconds * 1000).toLong())
-            }
-            c.play()
-
-            _state.update {
-                it.copy(
-                    currentBook = data.book,
-                    files = data.files,
-                    chapters = PlaybackQueue.resolveChapters(data.book),
-                    totalDurationSec = PlaybackQueue.totalDurationSec(data.files),
-                )
-            }
-            startPoller()
+            applyQueue(c, data, resume, autoPlay = true)
         }
+    }
+
+    /**
+     * Brings the mini-player back after the app was closed: when the app starts with nothing loaded,
+     * loads the most recently played unfinished audiobook (this device's history and the server's
+     * Continue Listening, whichever was played last) paused at its saved position. Runs at most once
+     * per process, stays silent if nothing can be loaded (e.g. offline and not downloaded), and gives
+     * way if the user or Android Auto loads something while it's still looking.
+     */
+    fun restoreLastBook() {
+        if (restoreAttempted) return
+        restoreAttempted = true
+        if (_state.value.currentBook != null) return
+        val generation = loadGeneration.get()
+        scope.launch {
+            try {
+                for ((bookId, resume) in restoreCandidates.find()) {
+                    // Downloads resolve locally; a streamed book needs the server, so don't wait long on it.
+                    val data = withTimeoutOrNull(RESTORE_RESOLVE_TIMEOUT_MS) { repo.resolve(bookId) } ?: continue
+                    settingsLoaded.await()
+                    if (generation != loadGeneration.get() || _state.value.currentBook != null) return@launch
+                    val c = controller()
+                    // Re-checked after the last suspension point: from here to applyQueue runs without yielding.
+                    if (generation != loadGeneration.get() || _state.value.currentBook != null || c.mediaItemCount > 0) return@launch
+                    applyQueue(c, data, resume, autoPlay = false)
+                    return@launch
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Best effort: a failed restore just leaves the app as it was before this feature.
+                Log.w(TAG, "couldn't restore the last audiobook", e)
+            }
+        }
+    }
+
+    /** Loads [data] into the session player at [resume]; plays only when [autoPlay]. */
+    private fun applyQueue(c: MediaController, data: PlayerRepository.PlayerData, resume: AudioProgress?, autoPlay: Boolean) {
+        val totalDurationSec = PlaybackQueue.totalDurationSec(data.files)
+        c.setMediaItems(data.mediaItems)
+        c.prepare()
+        c.setPlaybackSpeed(settings.speed)
+        if (resume != null) {
+            val idx = data.files.indexOfFirst { it.id == resume.currentFileId }.coerceAtLeast(0)
+            c.seekTo(idx, (resume.positionSeconds * 1000).toLong())
+        }
+        if (autoPlay) c.play()
+
+        _state.update {
+            it.copy(
+                currentBook = data.book,
+                files = data.files,
+                chapters = PlaybackQueue.resolveChapters(data.book, totalDurationSec),
+                totalDurationSec = totalDurationSec,
+            )
+        }
+        startPoller()
     }
 
     /**
@@ -167,13 +244,14 @@ class PlayerManager @Inject constructor(
      * items, so this only observes — it does not touch the controller's queue.
      */
     fun adoptExternalQueue(book: BookDetail, files: List<BookFileRef>) {
+        loadGeneration.incrementAndGet()
         scope.launch {
             controller() // ensure the listener is attached so play/pause state tracks
             _state.update {
                 it.copy(
                     currentBook = book,
                     files = files,
-                    chapters = PlaybackQueue.resolveChapters(book),
+                    chapters = PlaybackQueue.resolveChapters(book, PlaybackQueue.totalDurationSec(files)),
                     totalDurationSec = PlaybackQueue.totalDurationSec(files),
                 )
             }
@@ -187,21 +265,23 @@ class PlayerManager @Inject constructor(
     }
 
     fun skipBack() = scope.launch {
-        val c = controller()
-        c.seekTo((c.currentPosition - settings.skipBackSeconds * 1000L).coerceAtLeast(0))
+        val now = bookPositionMs() ?: return@launch
+        seekToAbsoluteNow(((now - settings.skipBackSeconds * 1000L).coerceAtLeast(0)) / 1000.0)
     }
 
     fun skipForward() = scope.launch {
-        val c = controller()
-        val target = c.currentPosition + settings.skipForwardSeconds * 1000L
-        val duration = c.duration
-        c.seekTo(if (duration > 0) minOf(duration, target) else target)
+        val now = bookPositionMs() ?: return@launch
+        val total = (_state.value.totalDurationSec * 1000).toLong()
+        val target = now + settings.skipForwardSeconds * 1000L
+        seekToAbsoluteNow((if (total > 0) minOf(total, target) else target) / 1000.0)
     }
 
-    fun seekToAbsolute(absoluteSec: Double) = scope.launch {
+    fun seekToAbsolute(absoluteSec: Double) = scope.launch { seekToAbsoluteNow(absoluteSec) }
+
+    private suspend fun seekToAbsoluteNow(absoluteSec: Double) {
         val c = controller()
         val files = _state.value.files
-        if (files.isEmpty()) return@launch
+        if (files.isEmpty()) return
         val loc = PlaybackQueue.locateAbsolute(files, absoluteSec)
         c.seekTo(loc.index, (loc.offsetSec * 1000).toLong())
     }
@@ -285,7 +365,7 @@ class PlayerManager @Inject constructor(
         val resume = audioProgress.resolveResume(book.id) ?: return@launch
         val resumeIdx = files.indexOfFirst { it.id == resume.currentFileId }.coerceAtLeast(0)
         val resumeAbs = PlaybackQueue.toAbsoluteSec(files, resumeIdx, resume.positionSeconds)
-        val currentAbs = c.currentPosition / 1000.0
+        val currentAbs = (bookPositionMs() ?: return@launch) / 1000.0
         if (kotlin.math.abs(resumeAbs - currentAbs) > STALE_THRESHOLD_SEC) {
             c.seekTo(resumeIdx, (resume.positionSeconds * 1000).toLong())
             updatePosition()
@@ -293,6 +373,7 @@ class PlayerManager @Inject constructor(
     }
 
     fun stop() = scope.launch {
+        loadGeneration.incrementAndGet()
         report(force = true)
         controller?.run {
             stop()
@@ -316,9 +397,9 @@ class PlayerManager @Inject constructor(
     }
 
     private fun updatePosition() {
-        val c = controller ?: return
         if (_state.value.files.isEmpty()) return
-        _state.update { it.copy(positionSec = c.currentPosition / 1000.0) }
+        val pos = bookPositionMs() ?: return
+        _state.update { it.copy(positionSec = pos / 1000.0) }
     }
 
     private suspend fun report(force: Boolean) {
@@ -327,9 +408,11 @@ class PlayerManager @Inject constructor(
         val files = _state.value.files
         if (files.isEmpty()) return
         if (!force && !c.isPlaying) return
-        // c.currentPosition is the whole-book aggregate (see BookAggregatingPlayer); recompute the
-        // real file + in-file offset together rather than pairing a stale currentMediaItemIndex with it.
-        val loc = PlaybackQueue.locateAbsolute(files, c.currentPosition / 1000.0)
+        val posMs = bookPositionMs() ?: return
+        // Book time comes from ActiveBookPlayer (the controller's position may be chapter-relative);
+        // recompute the real file + in-file offset together rather than pairing a stale
+        // currentMediaItemIndex with it.
+        val loc = PlaybackQueue.locateAbsolute(files, posMs / 1000.0)
         val pct = PlaybackQueue.percentageFor(files, loc.index, loc.offsetSec)
         lastReport = System.currentTimeMillis()
         audioProgress.report(book.id, files[loc.index].id, loc.offsetSec, pct)
@@ -356,5 +439,7 @@ class PlayerManager @Inject constructor(
         const val TAG = "BookOrbitPlayer"
         /** Minimum drift (seconds) before [refreshIfStale] bothers seeking to a server-side position. */
         const val STALE_THRESHOLD_SEC = 5.0
+        /** How long a launch restore waits to load a book that has to come from the server. */
+        const val RESTORE_RESOLVE_TIMEOUT_MS = 8_000L
     }
 }
