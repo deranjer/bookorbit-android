@@ -14,6 +14,8 @@ import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFileRef
 import com.bookorbit.core.model.BookFiles
 import com.bookorbit.core.network.ApiService
+import com.bookorbit.core.network.AudiobookAssetResolver
+import com.bookorbit.core.network.AudiobookAssetResolver.Sources
 import com.bookorbit.core.settings.DownloadLocationStore
 import com.bookorbit.core.storage.DownloadFileNaming
 import com.bookorbit.core.storage.LocalRef
@@ -40,6 +42,7 @@ class DownloadWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val dao: DownloadDao,
     private val api: ApiService,
+    private val audiobookAssets: AudiobookAssetResolver,
     private val json: Json,
     private val locationStore: DownloadLocationStore,
 ) : CoroutineWorker(appContext, params) {
@@ -84,14 +87,18 @@ class DownloadWorker @AssistedInject constructor(
         var activeFileId: Int? = null
 
         try {
+            activeStage = "audiobook_manifest"
+            val audioFiles = files.filter { it.format?.lowercase() in BookFiles.AUDIO_FORMATS }
+            val sources = if (audioFiles.isEmpty()) Sources.Legacy
+                else audiobookAssets.resolve(bookId, audioFiles)
             files.forEachIndexed { index, ref ->
                 activeFileId = ref.id
                 val name = DownloadFileNaming.fileName(ref, index, book)
                 activeStage = "request_or_transfer"
                 val localPath = if (bookFolder != null) {
-                    downloadToSaf(bookFolder, name, ref, completedWeight, weights[index], totalWeight)
+                    downloadToSaf(bookFolder, name, ref, bookId, sources, completedWeight, weights[index], totalWeight)
                 } else {
-                    downloadToInternal(internalDir, name, ref, completedWeight, weights[index], totalWeight)
+                    downloadToInternal(internalDir, name, ref, bookId, sources, completedWeight, weights[index], totalWeight)
                 }
                 downloaded.add(DownloadedFile(ref.id, localPath, ref.filename, ref.format, ref.durationSeconds))
                 completedWeight += weights[index]
@@ -145,7 +152,7 @@ class DownloadWorker @AssistedInject constructor(
 
     /** Resumability journal against DocumentFile: a same-named, size-matching document is skipped. */
     private suspend fun downloadToSaf(
-        folder: DocumentFile, name: String, ref: BookFileRef,
+        folder: DocumentFile, name: String, ref: BookFileRef, bookId: Int, sources: Sources,
         completedWeight: Double, fileWeight: Double, totalWeight: Double,
     ): String {
         val existing = folder.findFile(name)
@@ -160,7 +167,7 @@ class DownloadWorker @AssistedInject constructor(
             else -> createSafFile(folder, name, ref)
         }
         if (!complete) {
-            activeNetworkCall(ref.id) { body ->
+            activeNetworkCall(bookId, ref.id, sources) { body ->
                 applicationContext.contentResolver.openOutputStream(doc.uri)?.use { output ->
                     body.byteStream().use { input ->
                         copyWithProgress(input, output, body.contentLength(), ref.sizeBytes,
@@ -178,14 +185,14 @@ class DownloadWorker @AssistedInject constructor(
     }
 
     private suspend fun downloadToInternal(
-        dir: File, name: String, ref: BookFileRef,
+        dir: File, name: String, ref: BookFileRef, bookId: Int, sources: Sources,
         completedWeight: Double, fileWeight: Double, totalWeight: Double,
     ): String {
         val dest = File(dir, name)
         val complete = dest.exists() &&
             (ref.sizeBytes == null || ref.sizeBytes <= 0 || dest.length() == ref.sizeBytes)
         if (!complete) {
-            activeNetworkCall(ref.id) { body ->
+            activeNetworkCall(bookId, ref.id, sources) { body ->
                 body.byteStream().use { input ->
                     dest.outputStream().use { output ->
                         copyWithProgress(input, output, body.contentLength(), ref.sizeBytes,
@@ -197,9 +204,13 @@ class DownloadWorker @AssistedInject constructor(
         return Uri.fromFile(dest).toString()
     }
 
-    private suspend fun activeNetworkCall(fileId: Int, consume: suspend (okhttp3.ResponseBody) -> Unit) {
+    private suspend fun activeNetworkCall(
+        bookId: Int, fileId: Int, sources: Sources,
+        consume: suspend (okhttp3.ResponseBody) -> Unit,
+    ) {
+        val assetId = (sources as? Sources.Assets)?.assetIds?.get(fileId)
         val body = try {
-            api.serveFile(fileId)
+            if (assetId != null) api.serveAudiobookAsset(bookId, assetId) else api.serveFile(fileId)
         } catch (e: Exception) {
             throw DownloadStageException("server_request", e)
         }

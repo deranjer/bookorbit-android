@@ -1,6 +1,7 @@
 package com.bookorbit.core.network
 
 import com.bookorbit.core.model.AppInfo
+import com.bookorbit.core.model.AudiobookManifest
 import com.bookorbit.core.model.AudioProgress
 import com.bookorbit.core.model.AuthUser
 import com.bookorbit.core.model.AuthorsPage
@@ -122,10 +123,24 @@ interface ApiService {
         @Body body: SaveFileProgress,
     )
 
-    /** Raw file bytes (epub/audio/etc). Streamed so large files don't buffer in memory. */
+    /**
+     * Raw file bytes. Streamed so large files don't buffer in memory. Server 3.0+ 404s this for
+     * audio formats - use [serveAudiobookAsset] there (see [AudiobookAssetResolver]).
+     */
     @Streaming
     @GET("books/files/{fileId}/serve")
     suspend fun serveFile(@Path("fileId") fileId: Int): ResponseBody
+
+    // --- Audiobooks (server 3.0+) ---
+    @GET("audiobooks/{bookId}/manifest")
+    suspend fun getAudiobookManifest(@Path("bookId") bookId: Int): AudiobookManifest
+
+    @Streaming
+    @GET("audiobooks/{bookId}/assets/{assetId}/content")
+    suspend fun serveAudiobookAsset(
+        @Path("bookId") bookId: Int,
+        @Path("assetId") assetId: String,
+    ): ResponseBody
 
     /** Cover image bytes, for caching a downloaded book's cover offline. */
     @Streaming

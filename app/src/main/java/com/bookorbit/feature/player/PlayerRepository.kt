@@ -9,6 +9,8 @@ import androidx.media3.common.util.UnstableApi
 import com.bookorbit.core.auth.SessionManager
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFileRef
+import com.bookorbit.core.network.AudiobookAssetResolver
+import com.bookorbit.core.network.AudiobookAssetResolver.Sources
 import com.bookorbit.core.storage.LocalRef
 import com.bookorbit.core.storage.exists
 import com.bookorbit.core.storage.toUri
@@ -25,6 +27,7 @@ class PlayerRepository @Inject constructor(
     private val bookRepo: BookDetailRepository,
     private val downloads: DownloadsRepository,
     private val session: SessionManager,
+    private val audiobookAssets: AudiobookAssetResolver,
     private val json: Json,
     @ApplicationContext private val context: Context,
 ) {
@@ -50,14 +53,22 @@ class PlayerRepository @Inject constructor(
 
         val localFiles = downloads.localFiles(bookId)
         val coverPath = downloads.coverPath(bookId)
+        val localRefs = files.associate { file ->
+            file.id to localFiles[file.id]?.let(LocalRef::parse)?.takeIf { it.exists(context) }
+        }
+        // Only hit the manifest when something actually streams. On failure fall back to the
+        // legacy URLs - playback then fails loudly on 3.0+ rather than the queue not loading at all.
+        val sources = if (base != null && localRefs.values.any { it == null }) {
+            runCatching { audiobookAssets.resolve(bookId, files) }.getOrDefault(Sources.Legacy)
+        } else Sources.Legacy
         val performer = PlaybackQueue.performerLabel(book)
         val chapterStarts = PlaybackQueue.resolveChapters(book).map { it.startSec }.toDoubleArray()
 
         val items = files.map { file ->
-            val localRef = localFiles[file.id]?.let(LocalRef::parse)?.takeIf { it.exists(context) }
+            val localRef = localRefs[file.id]
             val uri = when {
                 localRef != null -> localRef.toUri().toString()
-                base != null -> "$base/api/v1/books/files/${file.id}/serve"
+                base != null -> "$base/api/v1/${audiobookAssets.path(bookId, file.id, sources)}"
                 else -> return null
             }
             // Extras carry data BookAggregatingPlayer needs to present a whole-book timeline to the
