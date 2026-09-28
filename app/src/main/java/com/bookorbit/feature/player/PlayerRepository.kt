@@ -62,7 +62,9 @@ class PlayerRepository @Inject constructor(
             runCatching { audiobookAssets.resolve(bookId, files) }.getOrDefault(Sources.Legacy)
         } else Sources.Legacy
         val performer = PlaybackQueue.performerLabel(book)
-        val chapterStarts = PlaybackQueue.resolveChapters(book, PlaybackQueue.totalDurationSec(files)).map { it.startSec }.toDoubleArray()
+        val chapters = PlaybackQueue.resolveChapters(book, PlaybackQueue.totalDurationSec(files))
+        val chapterStarts = chapters.map { it.startSec }.toDoubleArray()
+        val chapterTitles = chapters.map { it.title }.toTypedArray()
 
         val items = files.map { file ->
             val localRef = localRefs[file.id]
@@ -75,7 +77,10 @@ class PlayerRepository @Inject constructor(
             // MediaSession (Bluetooth/Android Auto) instead of ExoPlayer's real per-file position/duration.
             val extras = Bundle().apply {
                 putDouble(BookAggregatingPlayer.EXTRA_DURATION_SEC, file.durationSeconds ?: 0.0)
-                if (chapterStarts.size >= 2) putDoubleArray(BookAggregatingPlayer.EXTRA_CHAPTER_STARTS_SEC, chapterStarts)
+                if (chapterStarts.size >= 2) {
+                    putDoubleArray(BookAggregatingPlayer.EXTRA_CHAPTER_STARTS_SEC, chapterStarts)
+                    putStringArray(BookAggregatingPlayer.EXTRA_CHAPTER_TITLES, chapterTitles)
+                }
             }
             val metadata = MediaMetadata.Builder()
                 .setTitle(book.title ?: "Audiobook")

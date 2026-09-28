@@ -4,6 +4,7 @@ import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Presents the whole-book position/duration to every observer of the [PlaybackService]'s
@@ -16,20 +17,27 @@ import androidx.media3.common.util.UnstableApi
  * (ForwardingPlayer re-registers listeners directly on the wrapped player) would desync the session's
  * internal PlaybackState/PositionInfo bookkeeping.
  *
+ * The book-time accessors ([bookPositionMs], [bookDurationMs], [bookBufferedPositionMs],
+ * [seekToBookMs]) always report whole-book time; in-process code such as [PlayerManager] reads them
+ * via [ActiveBookPlayer] so it stays correct even if the session-facing position becomes chapter-relative.
+ *
  * Per-file durations and book-wide chapter start times are read from [androidx.media3.common.MediaItem]
  * metadata extras ([PlayerRepository] embeds them there) rather than [Timeline.Window.durationUs],
  * which is unset for queue items ExoPlayer hasn't buffered yet.
  */
 @UnstableApi
-class BookAggregatingPlayer(player: Player) : ForwardingPlayer(player) {
+class BookAggregatingPlayer(
+    player: Player,
+    private val prefs: StateFlow<AudioSettings>,
+) : ForwardingPlayer(player) {
 
     private val window = Timeline.Window()
 
-    override fun getDuration(): Long = (PlaybackQueue.sumDurationsSec(fileDurationsSec()) * 1000).toLong()
+    override fun getDuration(): Long = bookDurationMs()
 
-    override fun getCurrentPosition(): Long = absoluteMs(super.getCurrentPosition())
+    override fun getCurrentPosition(): Long = bookPositionMs()
 
-    override fun getBufferedPosition(): Long = absoluteMs(super.getBufferedPosition())
+    override fun getBufferedPosition(): Long = bookBufferedPositionMs()
 
     override fun getContentDuration(): Long = duration
 
@@ -37,10 +45,34 @@ class BookAggregatingPlayer(player: Player) : ForwardingPlayer(player) {
 
     override fun getContentBufferedPosition(): Long = bufferedPosition
 
-    override fun seekTo(positionMs: Long) {
+    override fun seekTo(positionMs: Long) = seekToBookMs(positionMs)
+
+    private fun clock(mode: ProgressBarMode = ProgressBarMode.BOOK): ChapterClock =
+        ChapterClock(fileDurationsSec(), chaptersFromExtras(), mode)
+
+    private fun chaptersFromExtras(): List<ResolvedChapter> {
+        val extras = currentMediaItem?.mediaMetadata?.extras ?: return emptyList()
+        val starts = extras.getDoubleArray(EXTRA_CHAPTER_STARTS_SEC) ?: return emptyList()
+        val titles = extras.getStringArray(EXTRA_CHAPTER_TITLES)
+        return starts.mapIndexed { i, s -> ResolvedChapter(titles?.getOrNull(i) ?: "Chapter ${i + 1}", s) }
+            .takeIf { it.size >= 2 } ?: emptyList()
+    }
+
+    fun bookPositionMs(): Long = absoluteMs(super.getCurrentPosition())
+    fun bookBufferedPositionMs(): Long = absoluteMs(super.getBufferedPosition())
+    fun bookDurationMs(): Long = clock().bookDurationMs
+
+    fun seekToBookMs(positionMs: Long) {
         val loc = PlaybackQueue.locateWithinDurations(fileDurationsSec(), positionMs / 1000.0)
         super.seekTo(loc.index, (loc.offsetSec * 1000).toLong())
     }
+
+    /**
+     * Stops wrapper-owned work (Task 5 adds a poller); call when the session drops this wrapper.
+     * Deliberately does NOT call super: the wrapped player outlives the wrapper across Cast swaps and
+     * is released explicitly by [PlaybackService].
+     */
+    override fun release() {}
 
     override fun seekToNext() = jumpToNavPoint(forward = true)
     override fun seekToNextMediaItem() = jumpToNavPoint(forward = true)
@@ -48,20 +80,19 @@ class BookAggregatingPlayer(player: Player) : ForwardingPlayer(player) {
     override fun seekToPreviousMediaItem() = jumpToNavPoint(forward = false)
 
     override fun hasNextMediaItem(): Boolean {
-        val points = navPoints()
-        if (points.size <= 1) return super.hasNextMediaItem()
-        return navPointIndex(points, currentPosition / 1000.0) < points.lastIndex
+        val c = clock()
+        if (c.navPointsSec().size <= 1) return super.hasNextMediaItem()
+        return c.hasNextNav(bookPositionMs())
     }
 
     override fun hasPreviousMediaItem(): Boolean {
-        val points = navPoints()
-        if (points.size <= 1) return super.hasPreviousMediaItem()
+        if (clock().navPointsSec().size <= 1) return super.hasPreviousMediaItem()
         return true
     }
 
     override fun getAvailableCommands(): Player.Commands {
         val base = super.getAvailableCommands()
-        if (navPoints().size <= 1) return base
+        if (clock().navPointsSec().size <= 1) return base
         val builder = base.buildUpon()
         if (hasNextMediaItem()) {
             builder.add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
@@ -82,44 +113,14 @@ class BookAggregatingPlayer(player: Player) : ForwardingPlayer(player) {
      * the standard smart-previous convention: restart the current point if more than a few seconds into
      * it, otherwise go to the prior point. */
     private fun jumpToNavPoint(forward: Boolean) {
-        val points = navPoints()
-        if (points.size <= 1) {
+        val c = clock()
+        if (c.navPointsSec().size <= 1) {
             if (forward) super.seekToNextMediaItem() else super.seekToPreviousMediaItem()
             return
         }
-        val absNowSec = currentPosition / 1000.0
-        val idx = navPointIndex(points, absNowSec)
-        val targetSec = if (forward) {
-            points.getOrNull(idx + 1) ?: return
-        } else {
-            val intoCurrent = absNowSec - points[idx]
-            val targetIdx = if (intoCurrent > PREVIOUS_RESTART_THRESHOLD_SEC) idx else (idx - 1).coerceAtLeast(0)
-            points[targetIdx]
-        }
-        seekTo((targetSec * 1000).toLong())
-    }
-
-    private fun navPointIndex(points: List<Double>, absoluteSec: Double): Int {
-        var found = 0
-        for (i in points.indices) {
-            if (points[i] <= absoluteSec + 0.001) found = i else break
-        }
-        return found
-    }
-
-    /** Chapter start times (book-wide, absolute seconds) when the book has >= 2 chapters, else the
-     * start-of-each-file offsets when there are >= 2 files, else empty (nothing meaningful to jump to). */
-    private fun navPoints(): List<Double> {
-        chapterStartsSec()?.let { return it }
-        val durations = fileDurationsSec()
-        if (durations.size <= 1) return emptyList()
-        return durations.indices.map { i -> PlaybackQueue.absoluteSecFrom(durations, i, 0.0) }
-    }
-
-    private fun chapterStartsSec(): List<Double>? {
-        val extras = currentMediaItem?.mediaMetadata?.extras ?: return null
-        val starts = extras.getDoubleArray(EXTRA_CHAPTER_STARTS_SEC) ?: return null
-        return starts.toList().takeIf { it.size >= 2 }
+        val now = bookPositionMs()
+        val target = (if (forward) c.nextNavTargetMs(now) else c.previousNavTargetMs(now)) ?: return
+        seekToBookMs(target)
     }
 
     private fun fileDurationsSec(): List<Double> {
@@ -133,6 +134,6 @@ class BookAggregatingPlayer(player: Player) : ForwardingPlayer(player) {
     companion object {
         const val EXTRA_DURATION_SEC = "com.bookorbit.duration_sec"
         const val EXTRA_CHAPTER_STARTS_SEC = "com.bookorbit.chapter_starts_sec"
-        private const val PREVIOUS_RESTART_THRESHOLD_SEC = 3.0
+        const val EXTRA_CHAPTER_TITLES = "com.bookorbit.chapter_titles"
     }
 }

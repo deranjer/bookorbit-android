@@ -42,6 +42,7 @@ class PlayerManager @Inject constructor(
     private val audioProgress: AudioProgressRepository,
     private val settingsStore: AudioSettingsStore,
     private val castSessionController: CastSessionController,
+    private val activeBookPlayer: ActiveBookPlayer,
 ) {
     data class UiState(
         val currentBook: BookDetail? = null,
@@ -109,6 +110,10 @@ class PlayerManager @Inject constructor(
             }
         }
     }
+
+    /** Whole-book position; the controller's own position may be chapter-relative (see BookAggregatingPlayer). */
+    @OptIn(UnstableApi::class)
+    private fun bookPositionMs(): Long? = activeBookPlayer.current?.bookPositionMs()
 
     @OptIn(UnstableApi::class)
     private suspend fun controller(): MediaController {
@@ -187,21 +192,22 @@ class PlayerManager @Inject constructor(
     }
 
     fun skipBack() = scope.launch {
-        val c = controller()
-        c.seekTo((c.currentPosition - settings.skipBackSeconds * 1000L).coerceAtLeast(0))
+        val now = bookPositionMs() ?: return@launch
+        seekToAbsoluteNow(((now - settings.skipBackSeconds * 1000L).coerceAtLeast(0)) / 1000.0)
     }
 
     fun skipForward() = scope.launch {
-        val c = controller()
-        val target = c.currentPosition + settings.skipForwardSeconds * 1000L
-        val duration = c.duration
-        c.seekTo(if (duration > 0) minOf(duration, target) else target)
+        val now = bookPositionMs() ?: return@launch
+        val total = (_state.value.totalDurationSec * 1000).toLong()
+        seekToAbsoluteNow(minOf(total, now + settings.skipForwardSeconds * 1000L) / 1000.0)
     }
 
-    fun seekToAbsolute(absoluteSec: Double) = scope.launch {
+    fun seekToAbsolute(absoluteSec: Double) = scope.launch { seekToAbsoluteNow(absoluteSec) }
+
+    private suspend fun seekToAbsoluteNow(absoluteSec: Double) {
         val c = controller()
         val files = _state.value.files
-        if (files.isEmpty()) return@launch
+        if (files.isEmpty()) return
         val loc = PlaybackQueue.locateAbsolute(files, absoluteSec)
         c.seekTo(loc.index, (loc.offsetSec * 1000).toLong())
     }
@@ -285,7 +291,7 @@ class PlayerManager @Inject constructor(
         val resume = audioProgress.resolveResume(book.id) ?: return@launch
         val resumeIdx = files.indexOfFirst { it.id == resume.currentFileId }.coerceAtLeast(0)
         val resumeAbs = PlaybackQueue.toAbsoluteSec(files, resumeIdx, resume.positionSeconds)
-        val currentAbs = c.currentPosition / 1000.0
+        val currentAbs = (bookPositionMs() ?: return@launch) / 1000.0
         if (kotlin.math.abs(resumeAbs - currentAbs) > STALE_THRESHOLD_SEC) {
             c.seekTo(resumeIdx, (resume.positionSeconds * 1000).toLong())
             updatePosition()
@@ -316,9 +322,9 @@ class PlayerManager @Inject constructor(
     }
 
     private fun updatePosition() {
-        val c = controller ?: return
         if (_state.value.files.isEmpty()) return
-        _state.update { it.copy(positionSec = c.currentPosition / 1000.0) }
+        val pos = bookPositionMs() ?: return
+        _state.update { it.copy(positionSec = pos / 1000.0) }
     }
 
     private suspend fun report(force: Boolean) {
@@ -327,9 +333,11 @@ class PlayerManager @Inject constructor(
         val files = _state.value.files
         if (files.isEmpty()) return
         if (!force && !c.isPlaying) return
-        // c.currentPosition is the whole-book aggregate (see BookAggregatingPlayer); recompute the
-        // real file + in-file offset together rather than pairing a stale currentMediaItemIndex with it.
-        val loc = PlaybackQueue.locateAbsolute(files, c.currentPosition / 1000.0)
+        val posMs = bookPositionMs() ?: return
+        // Book time comes from ActiveBookPlayer (the controller's position may be chapter-relative);
+        // recompute the real file + in-file offset together rather than pairing a stale
+        // currentMediaItemIndex with it.
+        val loc = PlaybackQueue.locateAbsolute(files, posMs / 1000.0)
         val pct = PlaybackQueue.percentageFor(files, loc.index, loc.offsetSec)
         lastReport = System.currentTimeMillis()
         audioProgress.report(book.id, files[loc.index].id, loc.offsetSec, pct)

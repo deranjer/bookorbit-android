@@ -42,6 +42,12 @@ class PlaybackService : MediaLibraryService() {
     @Inject
     lateinit var castHandoff: CastHandoff
 
+    @Inject
+    lateinit var activeBookPlayer: ActiveBookPlayer
+
+    @Inject
+    lateinit var livePrefs: LivePlaybackPrefs
+
     private var mediaSession: MediaLibrarySession? = null
 
     override fun onCreate() {
@@ -49,7 +55,7 @@ class PlaybackService : MediaLibraryService() {
         // Wraps `player` so the session (and everything observing it - Bluetooth AVRCP, Android Auto,
         // lock screen, and PlayerManager's own MediaController) sees whole-book position/duration
         // instead of ExoPlayer's real per-file numbers. See BookAggregatingPlayer's kdoc.
-        mediaSession = MediaLibrarySession.Builder(this, BookAggregatingPlayer(player), callback).build()
+        mediaSession = MediaLibrarySession.Builder(this, wrap(player), callback).build()
 
         castHandoff.initialize(this, onSessionAvailable = ::switchToCast, onSessionUnavailable = ::switchToLocal)
     }
@@ -57,12 +63,15 @@ class PlaybackService : MediaLibraryService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? =
         mediaSession
 
+    private fun wrap(p: Player) = BookAggregatingPlayer(p, livePrefs.settings).also { activeBookPlayer.current = it }
+
     /** Moves playback from the local [player] to [cast], preserving position and play state. */
     private fun switchToCast(cast: Player) {
         val session = mediaSession ?: return
         val current = session.player
 
-        val absoluteMs = current.currentPosition
+        val outgoing = activeBookPlayer.current
+        val absoluteMs = outgoing?.bookPositionMs() ?: current.currentPosition
         val wasPlaying = current.playWhenReady
         val items = current.currentTimeline.mediaItems()
         if (items.isEmpty()) return
@@ -73,9 +82,11 @@ class PlaybackService : MediaLibraryService() {
         cast.setMediaItems(rewritten)
         cast.prepare()
 
-        session.setPlayer(BookAggregatingPlayer(cast))
-        session.player.seekTo(absoluteMs)
-        session.player.playWhenReady = wasPlaying
+        outgoing?.release()
+        val incoming = wrap(cast)
+        session.setPlayer(incoming)
+        incoming.seekToBookMs(absoluteMs)
+        incoming.playWhenReady = wasPlaying
     }
 
     /** Moves playback back from the cast player to the local [player], preserving position and play state. */
@@ -83,12 +94,15 @@ class PlaybackService : MediaLibraryService() {
         val session = mediaSession ?: return
         val current = session.player
 
-        val absoluteMs = current.currentPosition
+        val outgoing = activeBookPlayer.current
+        val absoluteMs = outgoing?.bookPositionMs() ?: current.currentPosition
         val wasPlaying = current.playWhenReady
 
-        session.setPlayer(BookAggregatingPlayer(player))
-        session.player.seekTo(absoluteMs)
-        session.player.playWhenReady = wasPlaying
+        outgoing?.release()
+        val incoming = wrap(player)
+        session.setPlayer(incoming)
+        incoming.seekToBookMs(absoluteMs)
+        incoming.playWhenReady = wasPlaying
 
         castProxyServer.stop()
     }
@@ -112,6 +126,8 @@ class PlaybackService : MediaLibraryService() {
         // - if the service is destroyed while casting, the session's active player is the cast one,
         // and that call alone would leak the local `player` (ExoPlayer) instance.
         castHandoff.release()
+        activeBookPlayer.current?.release()
+        activeBookPlayer.current = null
         mediaSession?.release()
         mediaSession = null
         player.release()
