@@ -5,15 +5,15 @@ import org.junit.Test
 
 class AudioSettingsTest {
     @Test
-    fun `parse maps stored names and defaults to CHAPTER`() {
+    fun `parse maps stored names and defaults to BOOK`() {
         assertEquals(ProgressBarMode.BOOK, ProgressBarMode.parse("BOOK"))
         assertEquals(ProgressBarMode.CHAPTER, ProgressBarMode.parse("CHAPTER"))
-        assertEquals(ProgressBarMode.CHAPTER, ProgressBarMode.parse(null))
-        assertEquals(ProgressBarMode.CHAPTER, ProgressBarMode.parse("garbage"))
+        assertEquals(ProgressBarMode.BOOK, ProgressBarMode.parse(null))
+        assertEquals(ProgressBarMode.BOOK, ProgressBarMode.parse("garbage"))
     }
 
     @Test
-    fun `AudioSettings defaults to chapter progress`() {
-        assertEquals(ProgressBarMode.CHAPTER, AudioSettings().progressBarMode)
+    fun `AudioSettings defaults to whole-book progress`() {
+        assertEquals(ProgressBarMode.BOOK, AudioSettings().progressBarMode)
     }
 }

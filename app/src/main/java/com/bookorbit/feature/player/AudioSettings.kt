@@ -28,7 +28,7 @@ enum class ProgressBarMode {
     CHAPTER, BOOK;
 
     companion object {
-        fun parse(raw: String?): ProgressBarMode = entries.firstOrNull { it.name == raw } ?: CHAPTER
+        fun parse(raw: String?): ProgressBarMode = entries.firstOrNull { it.name == raw } ?: BOOK
     }
 }
 
@@ -36,7 +36,7 @@ data class AudioSettings(
     val speed: Float = DEFAULT_SPEED,
     val skipBackSeconds: Int = DEFAULT_SKIP_BACK,
     val skipForwardSeconds: Int = DEFAULT_SKIP_FORWARD,
-    val progressBarMode: ProgressBarMode = ProgressBarMode.CHAPTER,
+    val progressBarMode: ProgressBarMode = ProgressBarMode.BOOK,
 )
 
 private val Context.audioDataStore by preferencesDataStore("audio_settings")

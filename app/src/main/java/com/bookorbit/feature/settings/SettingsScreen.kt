@@ -180,7 +180,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                         horizontalArrangement = Arrangement.Center,
                     ) {
-                        listOf(ProgressBarMode.CHAPTER to "Chapter", ProgressBarMode.BOOK to "Whole book").forEach { (mode, label) ->
+                        listOf(ProgressBarMode.BOOK to "Whole book", ProgressBarMode.CHAPTER to "Chapter").forEach { (mode, label) ->
                             FilterChip(
                                 selected = progressBarMode == mode,
                                 onClick = { vm.setProgressBarMode(mode) },

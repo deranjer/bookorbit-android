@@ -55,7 +55,7 @@ class SettingsViewModel @Inject constructor(
 
     val progressBarMode: StateFlow<ProgressBarMode> = audioSettingsStore.settings
         .map { it.progressBarMode }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProgressBarMode.CHAPTER)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProgressBarMode.BOOK)
 
     val downloadTreeUri: StateFlow<Uri?> = locationStore.treeUri
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)

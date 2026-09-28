@@ -64,7 +64,7 @@ class PlayerManager @Inject constructor(
         /** Set on a load or playback failure so the UI can explain why nothing is playing, instead
          * of silently doing nothing (see issue #38). Cleared on the next successful load/resume. */
         val playerError: String? = null,
-        val progressBarMode: ProgressBarMode = ProgressBarMode.CHAPTER,
+        val progressBarMode: ProgressBarMode = ProgressBarMode.BOOK,
     )
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
