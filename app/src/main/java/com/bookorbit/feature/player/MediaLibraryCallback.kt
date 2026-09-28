@@ -57,7 +57,9 @@ class MediaLibraryCallback @Inject constructor(
         params: LibraryParams?,
     ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = future {
         val entries = when (parentId) {
-            AutoBrowseTree.ROOT_ID -> AutoBrowseTree.rootChildren()
+            AutoBrowseTree.ROOT_ID -> AutoBrowseTree.rootChildren(current())
+            AutoBrowseTree.NOW_PLAYING_CHAPTERS_ID ->
+                current()?.let { AutoBrowseTree.chapterEntries(it) } ?: emptyList()
             AutoBrowseTree.DOWNLOADS_ID -> AutoBrowseTree.downloadedAudiobooks(catalog())
             AutoBrowseTree.CONTINUE_ID ->
                 AutoBrowseTree.continueListening(catalog(), audioProgress.recent())
@@ -73,12 +75,17 @@ class MediaLibraryCallback @Inject constructor(
         mediaId: String,
     ): ListenableFuture<LibraryResult<MediaItem>> = future {
         val bookId = AutoBrowseTree.parseBookId(mediaId)
-        if (bookId != null) {
+        val chapterRef = AutoBrowseTree.parseChapterId(mediaId)
+        if (chapterRef != null) {
+            val entry = current()?.let { AutoBrowseTree.chapterEntries(it) }?.find { it.mediaId == mediaId }
+            if (entry != null) LibraryResult.ofItem(AutoBrowseTree.toMediaItem(entry), null)
+            else LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
+        } else if (bookId != null) {
             val entry = AutoBrowseTree.downloadedAudiobooks(catalog()).find { it.mediaId == mediaId }
             if (entry != null) LibraryResult.ofItem(AutoBrowseTree.toMediaItem(entry), null)
             else LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
         } else {
-            val node = AutoBrowseTree.rootChildren().find { it.mediaId == mediaId }
+            val node = AutoBrowseTree.rootChildren(current()).find { it.mediaId == mediaId }
             if (node != null) LibraryResult.ofItem(AutoBrowseTree.toMediaItem(node), null)
             else LibraryResult.ofItem(AutoBrowseTree.rootMediaItem(), null)
         }
@@ -92,6 +99,13 @@ class MediaLibraryCallback @Inject constructor(
         startIndex: Int,
         startPositionMs: Long,
     ): ListenableFuture<MediaItemsWithStartPosition> = future {
+        val chapterRef = mediaItems.firstNotNullOfOrNull { AutoBrowseTree.parseChapterId(it.mediaId) }
+        if (chapterRef != null) {
+            val (chapterBookId, index) = chapterRef
+            val start = current()?.takeIf { it.bookId == chapterBookId }?.ranges?.getOrNull(index)?.startSec
+            return@future resolveQueue(chapterBookId, startAtBookSec = start)
+                ?: MediaItemsWithStartPosition(mediaItems, startIndex, startPositionMs)
+        }
         val bookId = mediaItems.firstNotNullOfOrNull { AutoBrowseTree.parseBookId(it.mediaId) }
         bookId?.let { resolveQueue(it) }
             ?: MediaItemsWithStartPosition(mediaItems, startIndex, startPositionMs)
@@ -106,13 +120,23 @@ class MediaLibraryCallback @Inject constructor(
             ?: MediaItemsWithStartPosition(emptyList(), 0, 0)
     }
 
-    private suspend fun resolveQueue(bookId: Int): MediaItemsWithStartPosition? {
+    private fun current() = AutoBrowseTree.currentBookInfo(playerManager.state.value)
+
+    private suspend fun resolveQueue(bookId: Int, startAtBookSec: Double? = null): MediaItemsWithStartPosition? {
         val data = playerRepo.resolve(bookId) ?: return null
-        val resume = audioProgress.resolveResume(bookId)
-        val index = resume
-            ?.let { data.files.indexOfFirst { f -> f.id == it.currentFileId } }
-            ?.coerceAtLeast(0) ?: 0
-        val positionMs = ((resume?.positionSeconds ?: 0.0) * 1000).toLong()
+        val index: Int
+        val positionMs: Long
+        if (startAtBookSec != null) {
+            val loc = PlaybackQueue.locateAbsolute(data.files, startAtBookSec)
+            index = loc.index
+            positionMs = (loc.offsetSec * 1000).toLong()
+        } else {
+            val resume = audioProgress.resolveResume(bookId)
+            index = resume
+                ?.let { data.files.indexOfFirst { f -> f.id == it.currentFileId } }
+                ?.coerceAtLeast(0) ?: 0
+            positionMs = ((resume?.positionSeconds ?: 0.0) * 1000).toLong()
+        }
         // Seed the in-app player state so the shared progress poller reports car-started playback.
         playerManager.adoptExternalQueue(data.book, data.files)
         return MediaItemsWithStartPosition(data.mediaItems, index, positionMs)

@@ -9,6 +9,13 @@ import androidx.media3.session.MediaSession
 import com.bookorbit.feature.cast.CastHandoff
 import com.bookorbit.feature.cast.CastProxyServer
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -48,6 +55,12 @@ class PlaybackService : MediaLibraryService() {
     @Inject
     lateinit var livePrefs: LivePlaybackPrefs
 
+    @Inject
+    lateinit var playerManager: PlayerManager
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var lastNotifiedBookId: Int? = null
+
     private var mediaSession: MediaLibrarySession? = null
 
     override fun onCreate() {
@@ -56,6 +69,20 @@ class PlaybackService : MediaLibraryService() {
         // lock screen, and PlayerManager's own MediaController) sees whole-book position/duration
         // instead of ExoPlayer's real per-file numbers. See BookAggregatingPlayer's kdoc.
         mediaSession = MediaLibrarySession.Builder(this, wrap(player), callback).build()
+
+        serviceScope.launch {
+            playerManager.state
+                .map { s -> s.currentBook?.id to PlaybackQueue.chapterRange(s.chapters, s.totalDurationSec, s.positionSec)?.index }
+                .distinctUntilChanged()
+                .collect { (bookId, _) ->
+                    val session = mediaSession ?: return@collect
+                    if (bookId != lastNotifiedBookId) {
+                        lastNotifiedBookId = bookId
+                        session.notifyChildrenChanged(AutoBrowseTree.ROOT_ID, Int.MAX_VALUE, null)
+                    }
+                    session.notifyChildrenChanged(AutoBrowseTree.NOW_PLAYING_CHAPTERS_ID, Int.MAX_VALUE, null)
+                }
+        }
 
         castHandoff.initialize(this, onSessionAvailable = ::switchToCast, onSessionUnavailable = ::switchToLocal)
     }
@@ -122,6 +149,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        serviceScope.cancel()
         // Release both possible players explicitly rather than through `mediaSession.player.release()`
         // - if the service is destroyed while casting, the session's active player is the cast one,
         // and that call alone would leak the local `player` (ExoPlayer) instance.
