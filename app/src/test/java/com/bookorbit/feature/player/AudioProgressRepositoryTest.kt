@@ -3,6 +3,7 @@ package com.bookorbit.feature.player
 import android.util.Log
 import com.bookorbit.core.db.AudioProgressDao
 import com.bookorbit.core.db.AudioProgressEntity
+import com.bookorbit.core.model.AudioProgress
 import com.bookorbit.core.model.AudiobookPlaybackState
 import com.bookorbit.core.model.PutAudiobookPlaybackState
 import com.bookorbit.core.network.ApiService
@@ -213,5 +214,74 @@ class AudioProgressRepositoryTest {
         coEvery { api.getPlaybackState(1) } returns stateBody("")
 
         assertNull(repo.resolveResume(1))
+    }
+
+    // --- resumePoint: resume position plus when it was captured (drives which book reopens on launch) ---
+
+    @Test
+    fun `resumePoint uses the server write time when the server is newer`() = runTest {
+        coEvery { assets.forBook(1, any()) } returns v3Sources
+        coEvery { dao.dirtyEntries() } returns emptyList()
+        coEvery { dao.get(1) } returns AudioProgressEntity(1, 10, 30.0, 5.0, 100L, dirty = false)
+        coEvery { api.getPlaybackState(1) } returns
+            stateBody("""{"assetId":"aud_eleven","positionMs":12500,"percentage":40,"capturedAt":"2026-01-01T00:00:00Z","revision":3}""")
+
+        val point = repo.resumePoint(1)!!
+
+        assertEquals(Instant.parse("2026-01-01T00:00:00Z").toEpochMilli(), point.lastActivityMillis)
+        assertEquals(40.0, point.progress.percentage, 0.0)
+        assertEquals(11, point.progress.currentFileId)
+    }
+
+    @Test
+    fun `resumePoint uses the local time when the local row is newer`() = runTest {
+        val localAt = Instant.parse("2026-02-01T00:00:00Z").toEpochMilli()
+        coEvery { assets.forBook(1, any()) } returns v3Sources
+        coEvery { dao.dirtyEntries() } returns emptyList()
+        coEvery { dao.get(1) } returns AudioProgressEntity(1, 10, 30.0, 5.0, localAt, dirty = false)
+        coEvery { api.getPlaybackState(1) } returns
+            stateBody("""{"assetId":"aud_eleven","positionMs":12500,"percentage":40,"capturedAt":"2026-01-01T00:00:00Z","revision":3}""")
+
+        val point = repo.resumePoint(1)!!
+
+        assertEquals(localAt, point.lastActivityMillis)
+        assertEquals(5.0, point.progress.percentage, 0.0)
+        assertEquals(10, point.progress.currentFileId)
+    }
+
+    @Test
+    fun `resumePoint ranks a server position without a timestamp as oldest`() = runTest {
+        coEvery { dao.dirtyEntries() } returns emptyList()
+        coEvery { dao.get(1) } returns null
+        coEvery { api.getAudioProgress(1) } returns AudioProgress(currentFileId = 10, positionSeconds = 30.0, percentage = 12.0, updatedAt = null)
+
+        val point = repo.resumePoint(1)!!
+
+        assertEquals(0L, point.lastActivityMillis)
+        assertEquals(12.0, point.progress.percentage, 0.0)
+    }
+
+    @Test
+    fun `localResumePoint reads only the local row`() = runTest {
+        coEvery { dao.get(1) } returns AudioProgressEntity(1, 10, 30.0, 5.0, 777L, dirty = false)
+
+        val point = repo.localResumePoint(1)!!
+
+        assertEquals(777L, point.lastActivityMillis)
+        assertEquals(30.0, point.progress.positionSeconds, 0.0)
+        coVerify(exactly = 0) { api.getPlaybackState(any()) }
+        coVerify(exactly = 0) { api.getAudioProgress(any()) }
+    }
+
+    @Test
+    fun `resumePoint falls back to the local row and time when the server call fails`() = runTest {
+        coEvery { dao.dirtyEntries() } returns emptyList()
+        coEvery { dao.get(1) } returns AudioProgressEntity(1, 10, 30.0, 5.0, 555L, dirty = false)
+        coEvery { api.getAudioProgress(1) } throws RuntimeException("offline")
+
+        val point = repo.resumePoint(1)!!
+
+        assertEquals(555L, point.lastActivityMillis)
+        assertEquals(10, point.progress.currentFileId)
     }
 }
