@@ -1,5 +1,10 @@
 package com.bookorbit.feature.bookdetail
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,11 +49,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.bookorbit.core.model.BookDetail
@@ -71,6 +78,19 @@ fun BookDetailScreen(
     val collections by vm.collections.collectAsStateWithLifecycle()
     var statusSheet by remember { mutableStateOf(false) }
     var collectionSheet by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { vm.startDownload() }
+    val startDownload = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            vm.startDownload()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -98,6 +118,7 @@ fun BookDetailScreen(
                     onReadPdf = onReadPdf,
                     onListen = onListen,
                     onBookClick = onBookClick,
+                    onStartDownload = startDownload,
                     onOpenStatusSheet = { statusSheet = true },
                     onOpenCollectionSheet = { collectionSheet = true },
                 )
@@ -136,6 +157,7 @@ private fun BookDetailContent(
     onReadPdf: (Int) -> Unit,
     onListen: (Int) -> Unit,
     onBookClick: (Int) -> Unit,
+    onStartDownload: () -> Unit,
     onOpenStatusSheet: () -> Unit,
     onOpenCollectionSheet: () -> Unit,
 ) {
@@ -232,7 +254,7 @@ private fun BookDetailContent(
                         style = MaterialTheme.typography.bodySmall,
                     )
                     androidx.compose.material3.OutlinedButton(
-                        onClick = vm::startDownload,
+                        onClick = onStartDownload,
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     ) {
                         Icon(Icons.Filled.Download, contentDescription = null)
@@ -240,7 +262,7 @@ private fun BookDetailContent(
                     }
                 }
                 else -> androidx.compose.material3.OutlinedButton(
-                    onClick = vm::startDownload,
+                    onClick = onStartDownload,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Icon(Icons.Filled.Download, contentDescription = null)
