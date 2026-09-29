@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/deranjer/bookorbit-android/compare/v0.5.0...v0.5.1) (2026-09-29)
+
+
+### Bug Fixes
+
+* **downloads:** request notification access when starting download ([5bac44b](https://github.com/deranjer/bookorbit-android/commit/5bac44b230dd356b21d51a2de04785c3cefaa4cd))
+* **downloads:** request notification access when starting download ([a2af2d1](https://github.com/deranjer/bookorbit-android/commit/a2af2d19a2493ed6d36e1a7342b5cf255f85376b))
+
 ## [0.5.0](https://github.com/deranjer/bookorbit-android/compare/v0.4.2...v0.5.0) (2026-09-28)
 
 
