@@ -2,6 +2,12 @@ package com.bookorbit.feature.main
 
 import android.net.Uri
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -46,6 +52,7 @@ import com.bookorbit.feature.series.SeriesBooksScreen
 import com.bookorbit.feature.settings.SettingsScreen
 import com.bookorbit.feature.stats.StatsScreen
 import com.bookorbit.feature.you.YouScreen
+import com.bookorbit.ui.components.CenteredContent
 
 private enum class Tab(val route: String, val label: String, val icon: ImageVector) {
     HOME("home", "Home", Icons.Outlined.Home),
@@ -71,6 +78,9 @@ private object SubRoute {
     val fromYou = setOf(STATS, DOWNLOADS, BOOK_DROP, SETTINGS)
 }
 
+/** At and above this width the shell uses a navigation rail and caps single-column content. */
+const val WIDE_BREAKPOINT_DP = 600
+
 /** Server permission required to see / use the Book Dock. */
 private const val BOOK_DOCK_PERMISSION = "book_dock_access"
 
@@ -92,6 +102,8 @@ fun MainShell(
     vm: MainShellViewModel = hiltViewModel(),
 ) {
     val tabNav = rememberNavController()
+    // Tablets, unfolded foldables and landscape phones: a navigation rail beats a bottom bar.
+    val wide = LocalConfiguration.current.screenWidthDp >= WIDE_BREAKPOINT_DP
     val appInfo by vm.appInfo.collectAsStateWithLifecycle()
 
     val backStackEntry by tabNav.currentBackStackEntryAsState()
@@ -149,32 +161,53 @@ fun MainShell(
         bottomBar = {
             Column {
                 MiniPlayer(onOpenPlayer = onOpenPlayer)
-                NavigationBar {
-                    Tab.entries.forEach { tab ->
-                        NavigationBarItem(
-                            selected = selectedRoute == tab.route,
-                            onClick = { navigateTab(tab.route) },
-                            icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        )
+                // On wide windows the tabs move to a rail on the left instead.
+                if (!wide) {
+                    NavigationBar {
+                        Tab.entries.forEach { tab ->
+                            NavigationBarItem(
+                                selected = selectedRoute == tab.route,
+                                onClick = { navigateTab(tab.route) },
+                                icon = { Icon(tab.icon, contentDescription = tab.label) },
+                                label = { Text(tab.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            )
+                        }
                     }
                 }
             }
         },
     ) { padding ->
+      Row(Modifier.padding(padding).consumeWindowInsets(padding)) {
+        if (wide) {
+            NavigationRail {
+                Spacer(Modifier.weight(1f))
+                Tab.entries.forEach { tab ->
+                    NavigationRailItem(
+                        selected = selectedRoute == tab.route,
+                        onClick = { navigateTab(tab.route) },
+                        icon = { Icon(tab.icon, contentDescription = tab.label) },
+                        label = { Text(tab.label, maxLines = 1) },
+                        alwaysShowLabel = true,
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+            }
+        }
         NavHost(
             navController = tabNav,
             startDestination = Tab.HOME.route,
             // Consume the insets Scaffold already applied, so a nested screen's own TopAppBar
             // (book detail) doesn't add the status-bar inset a second time.
-            modifier = Modifier.padding(padding).consumeWindowInsets(padding),
+            modifier = Modifier.weight(1f).fillMaxHeight(),
         ) {
             composable(Tab.HOME.route) {
-                DashboardScreen(
-                    userName = user.name ?: user.username,
-                    onOpenProfile = { navigateTab(Tab.YOU.route) },
-                    onBookClick = onBookClick,
-                )
+                CenteredContent {
+                    DashboardScreen(
+                        userName = user.name ?: user.username,
+                        onOpenProfile = { navigateTab(Tab.YOU.route) },
+                        onBookClick = onBookClick,
+                    )
+                }
             }
             composable(Tab.LIBRARY.route) {
                 LibraryHubScreen(onBookClick = onBookClick, onAuthorClick = onAuthorClick, onSeriesClick = onSeriesClick)
@@ -198,8 +231,9 @@ fun MainShell(
                 SeriesBooksScreen(seriesId = entry.arguments?.getInt("id") ?: 0, onBookClick = onBookClick)
             }
             composable(Tab.SEARCH.route) { SearchScreen(onBookClick = onBookClick) }
-            composable(Tab.NOTES.route) { NotesScreen(onBookClick = onBookClick) }
+            composable(Tab.NOTES.route) { CenteredContent { NotesScreen(onBookClick = onBookClick) } }
             composable(Tab.YOU.route) {
+                CenteredContent {
                 YouScreen(
                     user = user,
                     serverVersion = appInfo?.version,
@@ -212,15 +246,17 @@ fun MainShell(
                     onSettings = { tabNav.navigate(SubRoute.SETTINGS) },
                     onSignOut = onSignOut,
                 )
+                }
             }
-            composable(SubRoute.STATS) { StatsScreen() }
+            composable(SubRoute.STATS) { CenteredContent { StatsScreen() } }
             composable(SubRoute.DOWNLOADS) { DownloadsScreen(onBookClick = onBookClick) }
             composable(SubRoute.BOOK_DROP) { BookDropScreen() }
-            composable(SubRoute.SETTINGS) { SettingsScreen() }
+            composable(SubRoute.SETTINGS) { CenteredContent { SettingsScreen() } }
             composable(
                 route = SubRoute.BOOK_DETAIL,
                 arguments = listOf(navArgument("id") { type = NavType.IntType }),
             ) {
+                CenteredContent {
                 BookDetailScreen(
                     onBack = { tabNav.popBackStack() },
                     onRead = onOpenReader,
@@ -231,7 +267,9 @@ fun MainShell(
                     onAuthorClick = onAuthorClick,
                     onSeriesClick = onSeriesClick,
                 )
+                }
             }
         }
+      }
     }
 }
