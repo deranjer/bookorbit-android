@@ -1,5 +1,6 @@
 package com.bookorbit.feature.dashboard
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bookorbit.core.model.BookCard
@@ -22,6 +23,8 @@ class DashboardViewModel @Inject constructor(
         val continueListening: List<BookCard> = emptyList(),
         val recentlyAdded: List<BookCard> = emptyList(),
         val loading: Boolean = true,
+        /** True when every scroller request failed — distinct from a genuinely empty library. */
+        val error: Boolean = false,
     )
 
     private val _ui = MutableStateFlow(UiState())
@@ -34,10 +37,22 @@ class DashboardViewModel @Inject constructor(
     fun refresh() {
         _ui.value = _ui.value.copy(loading = true)
         viewModelScope.launch {
-            val continueReading = async { runCatching { repo.scroller(ScrollerType.CONTINUE_READING) }.getOrDefault(emptyList()) }
-            val continueListening = async { runCatching { repo.scroller(ScrollerType.CONTINUE_LISTENING) }.getOrDefault(emptyList()) }
-            val recentlyAdded = async { runCatching { repo.scroller(ScrollerType.RECENTLY_ADDED) }.getOrDefault(emptyList()) }
-            _ui.value = UiState(continueReading.await(), continueListening.await(), recentlyAdded.await(), loading = false)
+            var failures = 0
+            suspend fun load(type: String): List<BookCard> =
+                runCatching { repo.scroller(type) }
+                    .onFailure {
+                        failures++
+                        Log.w("Dashboard", "scroller $type failed", it)
+                    }
+                    .getOrDefault(emptyList())
+
+            val continueReading = async { load(ScrollerType.CONTINUE_READING) }
+            val continueListening = async { load(ScrollerType.CONTINUE_LISTENING) }
+            val recentlyAdded = async { load(ScrollerType.RECENTLY_ADDED) }
+            val reading = continueReading.await()
+            val listening = continueListening.await()
+            val recent = recentlyAdded.await()
+            _ui.value = UiState(reading, listening, recent, loading = false, error = failures == 3)
         }
     }
 }

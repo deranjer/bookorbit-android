@@ -4,8 +4,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,7 +35,14 @@ fun DashboardScreen(
         onRefresh = { vm.refresh() },
         modifier = Modifier.fillMaxSize(),
     ) {
-        if (isEmpty) {
+        if (ui.error) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Couldn't load your dashboard", color = MaterialTheme.colorScheme.error)
+                    Button(onClick = { vm.refresh() }, modifier = Modifier.padding(top = 12.dp)) { Text("Retry") }
+                }
+            }
+        } else if (isEmpty) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     "Nothing here yet. Add books on the server.",

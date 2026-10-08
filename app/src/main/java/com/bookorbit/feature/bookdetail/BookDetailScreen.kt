@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import com.bookorbit.ui.components.htmlToAnnotatedString
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -108,7 +109,10 @@ fun BookDetailScreen(
             when {
                 ui.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
                 ui.error || ui.book == null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Text("Failed to load book details", color = MaterialTheme.colorScheme.error)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Failed to load book details", color = MaterialTheme.colorScheme.error)
+                        Button(onClick = vm::load, modifier = Modifier.padding(top = 12.dp)) { Text("Retry") }
+                    }
                 }
                 else -> BookDetailContent(
                     book = ui.book!!,
@@ -353,7 +357,8 @@ private fun BookDetailContent(
 
         book.description?.let { description ->
             Section("Synopsis") {
-                Text(description, style = MaterialTheme.typography.bodyMedium)
+                val annotated = remember(description) { htmlToAnnotatedString(description) }
+                Text(annotated, style = MaterialTheme.typography.bodyMedium)
             }
         }
 

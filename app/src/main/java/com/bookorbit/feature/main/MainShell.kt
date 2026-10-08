@@ -1,6 +1,7 @@
 package com.bookorbit.feature.main
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -186,7 +187,9 @@ fun MainShell(
             NavHost(
                 navController = tabNav,
                 startDestination = Tab.DASHBOARD.route,
-                modifier = Modifier.padding(padding),
+                // Consume the insets Scaffold already applied, so a nested screen's own TopAppBar
+                // (book detail) doesn't add the status-bar inset a second time.
+                modifier = Modifier.padding(padding).consumeWindowInsets(padding),
             ) {
                 composable(Tab.DASHBOARD.route) { DashboardScreen(onBookClick = onBookClick) }
                 composable(Tab.LIBRARIES.route) { LibrariesScreen(onBookClick = onBookClick) }

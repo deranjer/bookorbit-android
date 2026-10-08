@@ -6,12 +6,13 @@ BookOrbit server and get a fast, native way to browse, read, and listen
 to your library on your phone or tablet.
 
 FEATURES
-• Secure sign-in to your server via OIDC
+• Sign in with username and password or your OIDC provider
 • Browse and search your full library, with smart scopes and collections
 • Author and series pages
-• Built-in EPUB reader
-• Audiobook player with background playback and Android Auto support
+• Built-in ebook reader (EPUB, MOBI, AZW3, FB2, CBZ) and PDF reader, with progress synced to your server
+• Audiobook player with background playback, sleep timer, Chromecast and Android Auto
 • Download books for offline reading and listening
+• Upload and review new books with Book Drop
 • Your data stays on your server — no ads, no tracking, no analytics
 
 REQUIREMENTS
