@@ -2,91 +2,73 @@ package com.bookorbit.feature.main
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.LibraryBooks
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.outlined.Adjust
-import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material.icons.outlined.GridView
-import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LocalLibrary
-import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
-import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.bookorbit.BuildConfig
+import androidx.navigation.navArgument
 import com.bookorbit.core.model.AuthUser
-import com.bookorbit.feature.authors.AuthorsScreen
 import com.bookorbit.feature.bookdetail.BookDetailScreen
 import com.bookorbit.feature.bookdrop.BookDropScreen
-import com.bookorbit.feature.collections.CollectionsScreen
 import com.bookorbit.feature.dashboard.DashboardScreen
 import com.bookorbit.feature.downloads.DownloadsScreen
-import com.bookorbit.feature.library.LibrariesScreen
+import com.bookorbit.feature.notes.NotesScreen
 import com.bookorbit.feature.player.MiniPlayer
-import com.bookorbit.feature.scopes.SmartScopesScreen
 import com.bookorbit.feature.search.SearchScreen
-import com.bookorbit.feature.series.SeriesScreen
 import com.bookorbit.feature.settings.SettingsScreen
-import kotlinx.coroutines.launch
+import com.bookorbit.feature.you.YouScreen
 
 private enum class Tab(val route: String, val label: String, val icon: ImageVector) {
-    DASHBOARD("dashboard", "Dashboard", Icons.Outlined.GridView),
-    LIBRARIES("libraries", "Libraries", Icons.Outlined.LocalLibrary),
+    HOME("home", "Home", Icons.Outlined.Home),
+    LIBRARY("library", "Library", Icons.Outlined.LocalLibrary),
     SEARCH("search", "Search", Icons.Outlined.Search),
-    SCOPES("scopes", "Scopes", Icons.Outlined.Adjust),
-    COLLECTIONS("collections", "Collections", Icons.Outlined.FolderOpen),
+    NOTES("notes", "Notes", Icons.Outlined.EditNote),
+    YOU("you", "You", Icons.Outlined.Person),
 }
 
-private object DrawerRoute {
-    const val AUTHORS = "authors"
-    const val SERIES = "series"
+/** Screens reached from the You tab, plus book detail. They keep the bottom bar and mini-player. */
+private object SubRoute {
     const val DOWNLOADS = "downloads"
     const val BOOK_DROP = "bookdrop"
     const val SETTINGS = "settings"
     const val BOOK_DETAIL = "book/{id}"
     fun bookDetail(id: Int) = "book/$id"
+
+    val fromYou = setOf(DOWNLOADS, BOOK_DROP, SETTINGS)
 }
 
 /** Server permission required to see / use the Book Dock. */
 private const val BOOK_DOCK_PERMISSION = "book_dock_access"
 
 /**
- * Authenticated shell: a navigation drawer (profile, Authors/Series/Downloads, sign out) plus a
- * bottom navigation bar over a nested NavHost for the five primary tabs.
+ * Authenticated shell: a bottom navigation bar (Home, Library, Search, Notes, You) over a nested
+ * NavHost, with the mini-player above the bar. There is no drawer; everything it held lives under
+ * You, and Series/Authors/Collections/Scopes live inside Library.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,18 +82,12 @@ fun MainShell(
     vm: MainShellViewModel = hiltViewModel(),
 ) {
     val tabNav = rememberNavController()
-    val drawerState = androidx.compose.material3.rememberDrawerState(DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
     val appInfo by vm.appInfo.collectAsStateWithLifecycle()
-    val serverVersion = appInfo?.version
-    val updateAvailable = appInfo?.updateAvailable == true
-    val latestVersion = appInfo?.latestVersion
 
     val backStackEntry by tabNav.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    // Book detail lives inside the shell's nav host so the bottom bar + mini-player stay visible.
-    val isBookDetail = currentRoute == DrawerRoute.BOOK_DETAIL
-    val onBookClick: (Int) -> Unit = { id -> tabNav.navigate(DrawerRoute.bookDetail(id)) }
+    val isBookDetail = currentRoute == SubRoute.BOOK_DETAIL
+    val onBookClick: (Int) -> Unit = { id -> tabNav.navigate(SubRoute.bookDetail(id)) }
 
     fun navigateTab(route: String) {
         tabNav.navigate(route) {
@@ -121,202 +97,102 @@ fun MainShell(
         }
     }
 
-    fun closeDrawerThen(route: String) {
-        scope.launch { drawerState.close() }
-        navigateTab(route)
+    // The tab to highlight: the You sub-screens count as You; book detail highlights nothing.
+    val selectedRoute = when (currentRoute) {
+        in SubRoute.fromYou -> Tab.YOU.route
+        else -> currentRoute
     }
 
     val title = when (currentRoute) {
-        Tab.DASHBOARD.route -> "Dashboard"
-        Tab.LIBRARIES.route -> "Libraries"
+        Tab.LIBRARY.route -> "Library"
         Tab.SEARCH.route -> "Search"
-        Tab.SCOPES.route -> "Smart Scopes"
-        Tab.COLLECTIONS.route -> "Collections"
-        DrawerRoute.AUTHORS -> "Authors"
-        DrawerRoute.SERIES -> "Series"
-        DrawerRoute.DOWNLOADS -> "Downloads"
-        DrawerRoute.BOOK_DROP -> "Book Drop"
-        DrawerRoute.SETTINGS -> "Settings"
+        Tab.NOTES.route -> "Highlights & notes"
+        Tab.YOU.route -> "You"
+        SubRoute.DOWNLOADS -> "Downloads"
+        SubRoute.BOOK_DROP -> "Book Drop"
+        SubRoute.SETTINGS -> "Settings"
         else -> "BookOrbit"
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            DrawerContent(
-                user = user,
-                serverVersion = serverVersion,
-                updateAvailable = updateAvailable,
-                latestVersion = latestVersion,
-                onNavigate = ::closeDrawerThen,
-                onSignOut = onSignOut,
-            )
-        },
-    ) {
-        Scaffold(
-            topBar = {
-                // Book detail renders its own top bar (with a back arrow); hide the shell's here so
-                // there aren't two stacked app bars.
-                // Home draws its own greeting header, so it skips the generic bar too.
-                if (!isBookDetail && currentRoute != Tab.DASHBOARD.route) {
-                    TopAppBar(
-                        title = { Text(title) },
-                        navigationIcon = {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(Icons.Filled.Menu, contentDescription = "Menu")
-                            }
-                        },
-                    )
-                }
-            },
-            bottomBar = {
-                Column {
-                    MiniPlayer(onOpenPlayer = onOpenPlayer)
-                    NavigationBar {
-                        Tab.entries.forEach { tab ->
-                            NavigationBarItem(
-                                selected = currentRoute == tab.route,
-                                onClick = { navigateTab(tab.route) },
-                                icon = { Icon(tab.icon, contentDescription = tab.label) },
-                                label = { Text(tab.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                            )
-                        }
-                    }
-                }
-            },
-        ) { padding ->
-            NavHost(
-                navController = tabNav,
-                startDestination = Tab.DASHBOARD.route,
-                // Consume the insets Scaffold already applied, so a nested screen's own TopAppBar
-                // (book detail) doesn't add the status-bar inset a second time.
-                modifier = Modifier.padding(padding).consumeWindowInsets(padding),
-            ) {
-                composable(Tab.DASHBOARD.route) {
-                    DashboardScreen(
-                        userName = user.name ?: user.username,
-                        onOpenMenu = { scope.launch { drawerState.open() } },
-                        onBookClick = onBookClick,
-                    )
-                }
-                composable(Tab.LIBRARIES.route) { LibrariesScreen(onBookClick = onBookClick) }
-                composable(Tab.SEARCH.route) { SearchScreen(onBookClick = onBookClick) }
-                composable(Tab.SCOPES.route) { SmartScopesScreen(onBookClick = onBookClick) }
-                composable(Tab.COLLECTIONS.route) { CollectionsScreen(onBookClick = onBookClick) }
-                composable(DrawerRoute.AUTHORS) { AuthorsScreen(onBookClick = onBookClick) }
-                composable(DrawerRoute.SERIES) { SeriesScreen(onBookClick = onBookClick) }
-                composable(DrawerRoute.DOWNLOADS) { DownloadsScreen(onBookClick = onBookClick) }
-                composable(DrawerRoute.BOOK_DROP) { BookDropScreen() }
-                composable(DrawerRoute.SETTINGS) { SettingsScreen() }
-                composable(
-                    route = DrawerRoute.BOOK_DETAIL,
-                    arguments = listOf(navArgument("id") { type = NavType.IntType }),
-                ) {
-                    BookDetailScreen(
-                        onBack = { tabNav.popBackStack() },
-                        onRead = onOpenReader,
-                        onReadPdf = onOpenPdf,
-                        onListen = onListen,
-                        onBookClick = onBookClick,
-                    )
-                }
-            }
-        }
-    }
-}
+    val canUseBookDrop = user.isSuperuser || BOOK_DOCK_PERMISSION in user.permissions
 
-@Composable
-private fun DrawerContent(
-    user: AuthUser,
-    serverVersion: String?,
-    updateAvailable: Boolean,
-    latestVersion: String?,
-    onNavigate: (String) -> Unit,
-    onSignOut: () -> Unit,
-) {
-    ModalDrawerSheet {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                user.name ?: user.username,
-                style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
-            )
-            user.email?.let {
-                Text(
-                    it,
-                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+    Scaffold(
+        topBar = {
+            // Home draws its own greeting header and book detail its own bar; the rest share this one.
+            if (!isBookDetail && currentRoute != Tab.HOME.route) {
+                TopAppBar(
+                    title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    navigationIcon = {
+                        if (currentRoute in SubRoute.fromYou) {
+                            IconButton(onClick = { tabNav.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        }
+                    },
                 )
             }
-        }
-        HorizontalDivider()
-        NavigationDrawerItem(
-            label = { Text("Authors") },
-            selected = false,
-            icon = { Icon(Icons.Outlined.People, contentDescription = null) },
-            onClick = { onNavigate(DrawerRoute.AUTHORS) },
-            modifier = Modifier.padding(horizontal = 12.dp),
-        )
-        NavigationDrawerItem(
-            label = { Text("Series") },
-            selected = false,
-            icon = { Icon(Icons.AutoMirrored.Outlined.LibraryBooks, contentDescription = null) },
-            onClick = { onNavigate(DrawerRoute.SERIES) },
-            modifier = Modifier.padding(horizontal = 12.dp),
-        )
-        NavigationDrawerItem(
-            label = { Text("Downloads") },
-            selected = false,
-            icon = { Icon(Icons.Filled.Download, contentDescription = null) },
-            onClick = { onNavigate(DrawerRoute.DOWNLOADS) },
-            modifier = Modifier.padding(horizontal = 12.dp),
-        )
-        if (user.isSuperuser || BOOK_DOCK_PERMISSION in user.permissions) {
-            NavigationDrawerItem(
-                label = { Text("Book Drop") },
-                selected = false,
-                icon = { Icon(Icons.Outlined.Inbox, contentDescription = null) },
-                onClick = { onNavigate(DrawerRoute.BOOK_DROP) },
-                modifier = Modifier.padding(horizontal = 12.dp),
-            )
-        }
-        NavigationDrawerItem(
-            label = { Text("Settings") },
-            selected = false,
-            icon = {
-                BadgedBox(badge = { if (updateAvailable) Badge() }) {
-                    Icon(Icons.Outlined.Settings, contentDescription = null)
+        },
+        bottomBar = {
+            Column {
+                MiniPlayer(onOpenPlayer = onOpenPlayer)
+                NavigationBar {
+                    Tab.entries.forEach { tab ->
+                        NavigationBarItem(
+                            selected = selectedRoute == tab.route,
+                            onClick = { navigateTab(tab.route) },
+                            icon = { Icon(tab.icon, contentDescription = tab.label) },
+                            label = { Text(tab.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        )
+                    }
                 }
-            },
-            onClick = { onNavigate(DrawerRoute.SETTINGS) },
-            modifier = Modifier.padding(horizontal = 12.dp),
-        )
-        Spacer(modifier = Modifier.weight(1f))
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-        NavigationDrawerItem(
-            label = { Text("Sign out") },
-            selected = false,
-            onClick = onSignOut,
-            modifier = Modifier.padding(horizontal = 12.dp),
-        )
-        val versionLabel = buildString {
-            // VERSION_CODE is what actually changes build-to-build (CI run number); VERSION_NAME
-            // is bumped by hand, so show both -- otherwise this always reads "0.1.0".
-            append("App ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
-            serverVersion?.let { append(" · Server $it") }
-        }
-        Text(
-            versionLabel,
-            style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
-            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(16.dp),
-        )
-        if (updateAvailable) {
-            Text(
-                "Update available" + (latestVersion?.let { " ($it)" } ?: ""),
-                style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
-                color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
+            }
+        },
+    ) { padding ->
+        NavHost(
+            navController = tabNav,
+            startDestination = Tab.HOME.route,
+            // Consume the insets Scaffold already applied, so a nested screen's own TopAppBar
+            // (book detail) doesn't add the status-bar inset a second time.
+            modifier = Modifier.padding(padding).consumeWindowInsets(padding),
+        ) {
+            composable(Tab.HOME.route) {
+                DashboardScreen(
+                    userName = user.name ?: user.username,
+                    onOpenProfile = { navigateTab(Tab.YOU.route) },
+                    onBookClick = onBookClick,
+                )
+            }
+            composable(Tab.LIBRARY.route) { LibraryHubScreen(onBookClick = onBookClick) }
+            composable(Tab.SEARCH.route) { SearchScreen(onBookClick = onBookClick) }
+            composable(Tab.NOTES.route) { NotesScreen(onBookClick = onBookClick) }
+            composable(Tab.YOU.route) {
+                YouScreen(
+                    user = user,
+                    serverVersion = appInfo?.version,
+                    updateAvailable = appInfo?.updateAvailable == true,
+                    latestVersion = appInfo?.latestVersion,
+                    canUseBookDrop = canUseBookDrop,
+                    onDownloads = { tabNav.navigate(SubRoute.DOWNLOADS) },
+                    onBookDrop = { tabNav.navigate(SubRoute.BOOK_DROP) },
+                    onSettings = { tabNav.navigate(SubRoute.SETTINGS) },
+                    onSignOut = onSignOut,
+                )
+            }
+            composable(SubRoute.DOWNLOADS) { DownloadsScreen(onBookClick = onBookClick) }
+            composable(SubRoute.BOOK_DROP) { BookDropScreen() }
+            composable(SubRoute.SETTINGS) { SettingsScreen() }
+            composable(
+                route = SubRoute.BOOK_DETAIL,
+                arguments = listOf(navArgument("id") { type = NavType.IntType }),
+            ) {
+                BookDetailScreen(
+                    onBack = { tabNav.popBackStack() },
+                    onRead = onOpenReader,
+                    onReadPdf = onOpenPdf,
+                    onListen = onListen,
+                    onBookClick = onBookClick,
+                )
+            }
         }
     }
 }

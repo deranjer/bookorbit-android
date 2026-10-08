@@ -32,3 +32,28 @@ data class CreateAnnotation(
     val note: String?,
     val chapterTitle: String?,
 )
+
+/** One row of `GET /annotations` (the library-wide hub): an annotation plus the book it belongs to. */
+@Serializable
+data class HubAnnotation(
+    val id: Int,
+    val bookId: Int,
+    val cfi: String? = null,
+    val text: String = "",
+    val color: String = "yellow",
+    val style: String = "highlight",
+    val note: String? = null,
+    val chapterTitle: String? = null,
+    val origin: String = "web",
+    val highlightedAt: String? = null,
+    val bookTitle: String? = null,
+    val author: String? = null,
+)
+
+@Serializable
+data class HubAnnotationPage(
+    val items: List<HubAnnotation> = emptyList(),
+    val total: Int = 0,
+    val page: Int = 1,
+    val pageSize: Int = 0,
+)

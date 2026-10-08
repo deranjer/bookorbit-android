@@ -59,7 +59,7 @@ class ReaderAnnotationRepository @Inject constructor(
         val COLORS: List<Pair<String, String>> = listOf(
             "yellow" to "#FACC15",
             "green" to "#4ADE80",
-            "blue" to "#60A5FA",
+            "blue" to "#38BDF8",
             "pink" to "#F472B6",
             "orange" to "#FB923C",
         )
