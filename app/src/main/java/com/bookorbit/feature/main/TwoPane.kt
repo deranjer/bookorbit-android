@@ -20,8 +20,15 @@ const val TWO_PANE_BREAKPOINT_DP = 840
 val TWO_PANE_LIST_WIDTH = 460.dp
 
 object TwoPane {
-    /** The tabs whose lists open a book: these show the book beside the list on a wide window. */
-    val LIST_ROUTES = setOf("library", "search", "notes")
+    /** The screens whose lists open a book: these show the book beside the list on a wide window. */
+    val LIST_ROUTES = setOf(
+        Tab.LIBRARY.route,
+        Tab.SEARCH.route,
+        Tab.NOTES.route,
+        SubRoute.AUTHOR,
+        SubRoute.SERIES,
+        SubRoute.DOWNLOADS,
+    )
 
     /** True when [route] should be drawn as list + detail at this window width. */
     fun isActive(widthDp: Int, route: String?): Boolean =

@@ -8,7 +8,7 @@ import org.junit.Test
 class TwoPaneTest {
     @Test
     fun `list tabs use two panes once the window is wide enough`() {
-        for (route in listOf("library", "search", "notes")) {
+        for (route in listOf("library", "search", "notes", "downloads", "author/{id}?name={name}", "series/{id}?name={name}")) {
             assertTrue(route, TwoPane.isActive(TWO_PANE_BREAKPOINT_DP, route))
             assertTrue(route, TwoPane.isActive(1280, route))
         }
@@ -23,7 +23,7 @@ class TwoPaneTest {
 
     @Test
     fun `non-list screens never split, however wide the window is`() {
-        for (route in listOf("home", "you", "stats", "settings", "downloads", "bookdrop", "book/{id}", "author/{id}?name={name}", null)) {
+        for (route in listOf("home", "you", "stats", "settings", "bookdrop", "book/{id}", null)) {
             assertFalse(route.toString(), TwoPane.isActive(2000, route))
         }
     }

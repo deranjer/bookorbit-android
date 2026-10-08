@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
@@ -61,7 +62,7 @@ import com.bookorbit.feature.stats.StatsScreen
 import com.bookorbit.feature.you.YouScreen
 import com.bookorbit.ui.components.CenteredContent
 
-private enum class Tab(val route: String, @StringRes val label: Int, val icon: ImageVector) {
+internal enum class Tab(val route: String, @StringRes val label: Int, val icon: ImageVector) {
     HOME("home", R.string.tab_home, Icons.Outlined.Home),
     LIBRARY("library", R.string.tab_library, Icons.Outlined.LocalLibrary),
     SEARCH("search", R.string.tab_search, Icons.Outlined.Search),
@@ -70,7 +71,7 @@ private enum class Tab(val route: String, @StringRes val label: Int, val icon: I
 }
 
 /** Screens reached from the You tab, plus book detail. They keep the bottom bar and mini-player. */
-private object SubRoute {
+internal object SubRoute {
     const val STATS = "stats"
     const val DOWNLOADS = "downloads"
     const val BOOK_DROP = "bookdrop"
@@ -169,22 +170,24 @@ fun MainShell(
 
     val canUseBookDrop = user.isSuperuser || BOOK_DOCK_PERMISSION in user.permissions
 
-    Scaffold(
-        topBar = {
-            // Home draws its own greeting header and book detail its own bar; the rest share this one.
-            if (!isBookDetail && currentRoute != Tab.HOME.route) {
-                TopAppBar(
-                    title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    navigationIcon = {
-                        if (currentRoute in SubRoute.fromYou || currentRoute == SubRoute.AUTHOR || currentRoute == SubRoute.SERIES) {
-                            IconButton(onClick = { tabNav.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                            }
+    // Home draws its own greeting header and book detail its own bar; the rest share this one. It sits
+    // above the list column only, so in two-pane mode the book pane keeps the full height beside it.
+    val appBar: @Composable () -> Unit = {
+        if (!isBookDetail && currentRoute != Tab.HOME.route) {
+            TopAppBar(
+                title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                navigationIcon = {
+                    if (currentRoute in SubRoute.fromYou || currentRoute == SubRoute.AUTHOR || currentRoute == SubRoute.SERIES) {
+                        IconButton(onClick = { tabNav.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
-                    },
-                )
-            }
-        },
+                    }
+                },
+            )
+        }
+    }
+
+    Scaffold(
         bottomBar = {
             Column {
                 MiniPlayer(onOpenPlayer = onOpenPlayer)
@@ -241,13 +244,15 @@ fun MainShell(
                 Spacer(Modifier.weight(1f))
             }
         }
+        Column(if (twoPane) Modifier.width(TWO_PANE_LIST_WIDTH).fillMaxHeight() else Modifier.weight(1f).fillMaxHeight()) {
+        appBar()
         NavHost(
             navController = tabNav,
             startDestination = Tab.HOME.route,
             // Consume the insets Scaffold already applied, so a nested screen's own TopAppBar
             // (book detail) doesn't add the status-bar inset a second time.
             // Two-pane: a fixed-width list column, with the book pane hosted once below (not per destination).
-            modifier = if (twoPane) Modifier.width(TWO_PANE_LIST_WIDTH).fillMaxHeight() else Modifier.weight(1f).fillMaxHeight(),
+            modifier = Modifier.weight(1f).fillMaxWidth(),
         ) {
             composable(Tab.HOME.route) {
                 CenteredContent {
@@ -268,7 +273,7 @@ fun MainShell(
                     navArgument("name") { type = NavType.StringType; defaultValue = "" },
                 ),
             ) { entry ->
-                AuthorBooksScreen(authorId = entry.arguments?.getInt("id") ?: 0, onBookClick = onBookClick)
+                AuthorBooksScreen(authorId = entry.arguments?.getInt("id") ?: 0, onBookClick = onListBookClick)
             }
             composable(
                 route = SubRoute.SERIES,
@@ -277,7 +282,7 @@ fun MainShell(
                     navArgument("name") { type = NavType.StringType; defaultValue = "" },
                 ),
             ) { entry ->
-                SeriesBooksScreen(seriesId = entry.arguments?.getInt("id") ?: 0, onBookClick = onBookClick)
+                SeriesBooksScreen(seriesId = entry.arguments?.getInt("id") ?: 0, onBookClick = onListBookClick)
             }
             composable(Tab.SEARCH.route) { SearchScreen(onBookClick = onListBookClick) }
             composable(Tab.NOTES.route) {
@@ -301,7 +306,7 @@ fun MainShell(
                 }
             }
             composable(SubRoute.STATS) { CenteredContent { StatsScreen() } }
-            composable(SubRoute.DOWNLOADS) { DownloadsScreen(onBookClick = onBookClick) }
+            composable(SubRoute.DOWNLOADS) { DownloadsScreen(onBookClick = onListBookClick) }
             composable(SubRoute.BOOK_DROP) { BookDropScreen() }
             composable(SubRoute.SETTINGS) { CenteredContent { SettingsScreen() } }
             composable(
@@ -321,6 +326,7 @@ fun MainShell(
                 )
                 }
             }
+        }
         }
         if (twoPane) {
             VerticalDivider()
