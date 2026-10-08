@@ -62,7 +62,7 @@ Server endpoints available but unused by this app:
 ## P1 — Targeted refresh
 
 - Dashboard: streak, goal and a Continue card shipped; highlight of the day and discover still to do.
-- "My Reading" statistics screen (heatmap, completion timeline, pace).
+- Reading stats: shipped under You (totals, streak/goal, 30-day chart, 12-week heatmap, source split). Completion timeline and pace charts still to do.
 - Navigation: shipped (Home/Library/Search/Notes/You, no drawer). Statistics screen under You still to do.
 - Theme: Material You option, AA contrast on primary, tonal surfaces.
 - Tablet / foldable two-pane layout (moved up from P2).

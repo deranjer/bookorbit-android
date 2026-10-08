@@ -41,6 +41,7 @@ import com.bookorbit.feature.notes.NotesScreen
 import com.bookorbit.feature.player.MiniPlayer
 import com.bookorbit.feature.search.SearchScreen
 import com.bookorbit.feature.settings.SettingsScreen
+import com.bookorbit.feature.stats.StatsScreen
 import com.bookorbit.feature.you.YouScreen
 
 private enum class Tab(val route: String, val label: String, val icon: ImageVector) {
@@ -53,13 +54,14 @@ private enum class Tab(val route: String, val label: String, val icon: ImageVect
 
 /** Screens reached from the You tab, plus book detail. They keep the bottom bar and mini-player. */
 private object SubRoute {
+    const val STATS = "stats"
     const val DOWNLOADS = "downloads"
     const val BOOK_DROP = "bookdrop"
     const val SETTINGS = "settings"
     const val BOOK_DETAIL = "book/{id}"
     fun bookDetail(id: Int) = "book/$id"
 
-    val fromYou = setOf(DOWNLOADS, BOOK_DROP, SETTINGS)
+    val fromYou = setOf(STATS, DOWNLOADS, BOOK_DROP, SETTINGS)
 }
 
 /** Server permission required to see / use the Book Dock. */
@@ -108,6 +110,7 @@ fun MainShell(
         Tab.SEARCH.route -> "Search"
         Tab.NOTES.route -> "Highlights & notes"
         Tab.YOU.route -> "You"
+        SubRoute.STATS -> "Reading stats"
         SubRoute.DOWNLOADS -> "Downloads"
         SubRoute.BOOK_DROP -> "Book Drop"
         SubRoute.SETTINGS -> "Settings"
@@ -172,12 +175,14 @@ fun MainShell(
                     updateAvailable = appInfo?.updateAvailable == true,
                     latestVersion = appInfo?.latestVersion,
                     canUseBookDrop = canUseBookDrop,
+                    onStats = { tabNav.navigate(SubRoute.STATS) },
                     onDownloads = { tabNav.navigate(SubRoute.DOWNLOADS) },
                     onBookDrop = { tabNav.navigate(SubRoute.BOOK_DROP) },
                     onSettings = { tabNav.navigate(SubRoute.SETTINGS) },
                     onSignOut = onSignOut,
                 )
             }
+            composable(SubRoute.STATS) { StatsScreen() }
             composable(SubRoute.DOWNLOADS) { DownloadsScreen(onBookClick = onBookClick) }
             composable(SubRoute.BOOK_DROP) { BookDropScreen() }
             composable(SubRoute.SETTINGS) { SettingsScreen() }

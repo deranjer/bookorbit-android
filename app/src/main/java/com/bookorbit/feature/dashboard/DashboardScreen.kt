@@ -146,7 +146,7 @@ private fun greeting(): String = when (LocalTime.now().hour) {
 
 /** Streak and yearly goal side by side; each hides itself if the server doesn't provide it. */
 @Composable
-private fun StatsStrip(streak: ReadingStreakWidget?, goal: ReadingGoalWidget?) {
+internal fun StatsStrip(streak: ReadingStreakWidget?, goal: ReadingGoalWidget?) {
     if (streak == null && goal == null) return
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
