@@ -1,5 +1,9 @@
 package com.bookorbit.feature.settings
 
+import com.bookorbit.ui.asString
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +12,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import com.bookorbit.feature.main.NavConfig
+import com.bookorbit.feature.main.NavItem
+import com.bookorbit.feature.main.icon
+import com.bookorbit.feature.main.labelRes
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +64,7 @@ import kotlin.math.pow
 @Composable
 fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val themeMode by vm.themeMode.collectAsStateWithLifecycle()
+    val navItems by vm.navItems.collectAsStateWithLifecycle()
     val wifiOnly by vm.wifiOnlyDownloads.collectAsStateWithLifecycle()
     val dynamicColor by vm.dynamicColor.collectAsStateWithLifecycle()
     val downloadsSummary by vm.downloadsSummary.collectAsStateWithLifecycle()
@@ -54,6 +73,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val message by vm.message.collectAsStateWithLifecycle()
     val downloadTreeUri by vm.downloadTreeUri.collectAsStateWithLifecycle()
     val downloadLocationLabel by vm.downloadLocationLabel.collectAsStateWithLifecycle()
+    val appContext = androidx.compose.ui.platform.LocalContext.current
     val downloadLocationAccessible by vm.downloadLocationAccessible.collectAsStateWithLifecycle()
     val appInfo by vm.appInfo.collectAsStateWithLifecycle()
 
@@ -65,14 +85,14 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
 
     LaunchedEffect(message) {
         message?.let {
-            snackbarHostState.showSnackbar(it)
+            snackbarHostState.showSnackbar(it.resolve(appContext))
             vm.consumeMessage()
         }
     }
 
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         LazyColumn(modifier = Modifier.fillMaxWidth().padding(padding)) {
-            item { SectionHeader("Appearance") }
+            item { SectionHeader(stringResource(R.string.appearance)) }
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
@@ -90,41 +110,101 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                 item {
                     SettingsRow(
-                        title = "Material You colours",
-                        subtitle = "Match your wallpaper instead of BookOrbit blue",
+                        title = stringResource(R.string.settings_material_you),
+                        subtitle = stringResource(R.string.settings_material_you_desc),
                         trailing = { Switch(checked = dynamicColor, onCheckedChange = vm::setDynamicColor) },
                     )
                 }
             }
             item { HorizontalDivider() }
 
-            item { SectionHeader("Downloads") }
+            item { SectionHeader(stringResource(R.string.settings_nav_bar)) }
+            item {
+                Text(
+                    stringResource(R.string.settings_nav_bar_desc, NavConfig.MAX_ITEMS),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+            itemsIndexed(navItems) { index, navItem ->
+                val label = stringResource(navItem.labelRes())
+                ListItem(
+                    headlineContent = { Text(label) },
+                    leadingContent = { Icon(navItem.icon(), contentDescription = null) },
+                    trailingContent = {
+                        Row {
+                            IconButton(onClick = { vm.moveNavItem(index, -1) }, enabled = index > 0) {
+                                Icon(Icons.Filled.ArrowUpward, contentDescription = stringResource(R.string.settings_nav_move_up, label))
+                            }
+                            IconButton(onClick = { vm.moveNavItem(index, 1) }, enabled = index < navItems.lastIndex) {
+                                Icon(Icons.Filled.ArrowDownward, contentDescription = stringResource(R.string.settings_nav_move_down, label))
+                            }
+                            IconButton(onClick = { vm.removeNavItem(navItem) }, enabled = navItem != NavItem.YOU) {
+                                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.settings_nav_remove, label))
+                            }
+                        }
+                    },
+                )
+            }
+            val addable = NavConfig.available(navItems, vm.canUseBookDrop)
+            if (addable.isNotEmpty()) {
+                item {
+                    Text(
+                        if (navItems.size >= NavConfig.MAX_ITEMS) stringResource(R.string.settings_nav_full) else stringResource(R.string.settings_nav_available),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
+                    )
+                }
+                items(addable) { navItem ->
+                    val label = stringResource(navItem.labelRes())
+                    ListItem(
+                        headlineContent = { Text(label) },
+                        leadingContent = { Icon(navItem.icon(), contentDescription = null) },
+                        trailingContent = {
+                            IconButton(onClick = { vm.addNavItem(navItem) }, enabled = navItems.size < NavConfig.MAX_ITEMS) {
+                                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.settings_nav_add, label))
+                            }
+                        },
+                    )
+                }
+            }
+            item {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    OutlinedButton(onClick = vm::resetNavItems, enabled = navItems != NavConfig.DEFAULT) {
+                        Text(stringResource(R.string.settings_nav_reset))
+                    }
+                }
+            }
+            item { HorizontalDivider() }
+
+            item { SectionHeader(stringResource(R.string.downloads)) }
             item {
                 SettingsRow(
-                    title = "Wi-Fi only",
-                    subtitle = "Only download books over an unmetered connection",
+                    title = stringResource(R.string.settings_wifi_only),
+                    subtitle = stringResource(R.string.settings_wifi_only_desc),
                     trailing = { Switch(checked = wifiOnly, onCheckedChange = vm::setWifiOnlyDownloads) },
                 )
             }
             item {
                 SettingsRow(
-                    title = "Download location",
-                    subtitle = downloadLocationLabel,
-                    trailing = { TextButton(onClick = { folderLauncher.launch(null) }) { Text("Change") } },
+                    title = stringResource(R.string.settings_download_location),
+                    subtitle = downloadLocationLabel.asString(),
+                    trailing = { TextButton(onClick = { folderLauncher.launch(null) }) { Text(stringResource(R.string.change)) } },
                 )
             }
             if (downloadTreeUri != null) {
                 item {
                     Row(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        TextButton(onClick = vm::resetDownloadLocation) { Text("Use app storage instead") }
+                        TextButton(onClick = vm::resetDownloadLocation) { Text(stringResource(R.string.use_app_storage_instead)) }
                     }
                 }
             }
             if (downloadTreeUri != null && !downloadLocationAccessible) {
                 item {
                     Text(
-                        "This folder isn't accessible anymore (permission revoked or the storage was " +
-                            "removed). New downloads will use app storage until you pick a new folder.",
+                        stringResource(R.string.settings_folder_inaccessible),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
@@ -134,7 +214,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Text(
-                        "${downloadsSummary.count} book(s), ${formatBytes(downloadsSummary.totalBytes)}",
+                        pluralStringResource(R.plurals.settings_downloads_summary, downloadsSummary.count, downloadsSummary.count, formatBytes(downloadsSummary.totalBytes)),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -143,27 +223,27 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                         enabled = downloadsSummary.count > 0,
                         modifier = Modifier.padding(top = 8.dp),
                     ) {
-                        Text("Clear all downloads")
+                        Text(stringResource(R.string.clear_all_downloads))
                     }
                 }
             }
             item { HorizontalDivider() }
 
-            item { SectionHeader("Storage") }
+            item { SectionHeader(stringResource(R.string.storage)) }
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     OutlinedButton(onClick = vm::clearImageCache) {
-                        Text("Clear image cache")
+                        Text(stringResource(R.string.clear_image_cache))
                     }
                 }
             }
             item { HorizontalDivider() }
 
-            item { SectionHeader("Playback") }
+            item { SectionHeader(stringResource(R.string.playback)) }
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Text(
-                        "Default speed",
+                        stringResource(R.string.default_speed),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -175,13 +255,13 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                             FilterChip(
                                 selected = abs(preset - defaultSpeed) < 0.001f,
                                 onClick = { vm.setDefaultSpeed(preset) },
-                                label = { Text("${preset}x") },
+                                label = { Text(stringResource(R.string.x, preset)) },
                                 modifier = Modifier.padding(horizontal = 4.dp),
                             )
                         }
                     }
                     Text(
-                        "Progress bar",
+                        stringResource(R.string.progress_bar),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 16.dp),
@@ -190,7 +270,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                         horizontalArrangement = Arrangement.Center,
                     ) {
-                        listOf(ProgressBarMode.BOOK to "Whole book", ProgressBarMode.CHAPTER to "Chapter").forEach { (mode, label) ->
+                        listOf(ProgressBarMode.BOOK to stringResource(R.string.settings_progress_book), ProgressBarMode.CHAPTER to stringResource(R.string.settings_progress_chapter)).forEach { (mode, label) ->
                             FilterChip(
                                 selected = progressBarMode == mode,
                                 onClick = { vm.setProgressBarMode(mode) },
@@ -203,10 +283,10 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             }
 
             item { HorizontalDivider() }
-            item { SectionHeader("About") }
+            item { SectionHeader(stringResource(R.string.about)) }
             item {
                 SettingsRow(
-                    title = "App version",
+                    title = stringResource(R.string.settings_app_version),
                     subtitle = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
                     trailing = {},
                 )
@@ -215,11 +295,12 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                 item {
                     val updateAvailable = appInfo?.updateAvailable == true
                     SettingsRow(
-                        title = if (updateAvailable) "Update available" else "Up to date",
+                        title = stringResource(if (updateAvailable) R.string.settings_update_available else R.string.settings_up_to_date),
                         subtitle = if (updateAvailable) {
-                            "Server is on version ${appInfo?.latestVersion ?: "a newer version"}"
+                            appInfo?.latestVersion?.let { stringResource(R.string.settings_server_newer, it) }
+                                ?: stringResource(R.string.settings_server_newer_unknown)
                         } else {
-                            "Server: ${appInfo?.version}"
+                            stringResource(R.string.settings_server_version, appInfo?.version.orEmpty())
                         },
                         trailing = { if (updateAvailable) Badge() },
                     )
@@ -231,16 +312,16 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     if (confirmClearDownloads) {
         AlertDialog(
             onDismissRequest = { confirmClearDownloads = false },
-            title = { Text("Clear all downloads?") },
-            text = { Text("This removes every downloaded file from this device. You can download books again later.") },
+            title = { Text(stringResource(R.string.clear_all_downloads_2)) },
+            text = { Text(stringResource(R.string.this_removes_every_downloaded_file)) },
             confirmButton = {
                 TextButton(onClick = {
                     vm.clearAllDownloads()
                     confirmClearDownloads = false
-                }) { Text("Clear") }
+                }) { Text(stringResource(R.string.clear)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmClearDownloads = false }) { Text("Cancel") }
+                TextButton(onClick = { confirmClearDownloads = false }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }
@@ -274,11 +355,14 @@ private fun SettingsRow(title: String, subtitle: String, trailing: @Composable (
     }
 }
 
-private fun ThemeMode.label() = when (this) {
-    ThemeMode.SYSTEM -> "System"
-    ThemeMode.LIGHT -> "Light"
-    ThemeMode.DARK -> "Dark"
-}
+@Composable
+private fun ThemeMode.label() = stringResource(
+    when (this) {
+        ThemeMode.SYSTEM -> R.string.theme_system
+        ThemeMode.LIGHT -> R.string.theme_light
+        ThemeMode.DARK -> R.string.theme_dark
+    },
+)
 
 private fun formatBytes(bytes: Long): String {
     if (bytes <= 0) return "0 MB"

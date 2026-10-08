@@ -13,6 +13,15 @@ import org.junit.Test
 /** The Android Auto browse tree's offline filtering/ordering (no Android framework involved). */
 class AutoBrowseTreeTest {
 
+    /** Deliberately not the English defaults: if any title were still hard-coded, the tests below would catch it. */
+    private val labels = AutoBrowseTree.Labels(
+        appName = "App*",
+        continueListening = "Continue*",
+        downloaded = "Downloaded*",
+        audiobook = "Audiobook*",
+        chaptersOf = { "Chapters* $it" },
+    )
+
     private fun download(
         id: Int,
         title: String = "Book $id",
@@ -57,6 +66,7 @@ class AutoBrowseTreeTest {
                 download(3, isAudiobook = false), // ebook — excluded
                 download(4, status = DownloadStatus.DOWNLOADING), // in-flight — excluded
             ),
+            labels,
         )
         assertEquals(listOf("book/2", "book/1"), items.map { it.mediaId })
         assertTrue(items.all { it.isPlayable })
@@ -64,14 +74,14 @@ class AutoBrowseTreeTest {
 
     @Test
     fun `book entry uses narrators as subtitle and the local cover`() {
-        val entry = AutoBrowseTree.downloadedAudiobooks(listOf(download(7, narrators = "Jane Doe"))).single()
+        val entry = AutoBrowseTree.downloadedAudiobooks(listOf(download(7, narrators = "Jane Doe")), labels).single()
         assertEquals("Jane Doe", entry.subtitle)
         assertEquals("/covers/7.jpg", entry.coverPath)
     }
 
     @Test
     fun `book entry falls back to authors when no narrator`() {
-        val entry = AutoBrowseTree.downloadedAudiobooks(listOf(download(7, narrators = "", authors = "A. Writer"))).single()
+        val entry = AutoBrowseTree.downloadedAudiobooks(listOf(download(7, narrators = "", authors = "A. Writer")), labels).single()
         assertEquals("A. Writer", entry.subtitle)
     }
 
@@ -83,7 +93,7 @@ class AutoBrowseTreeTest {
             progress(bookId = 3, updatedAt = 500),
             progress(bookId = 99, updatedAt = 900), // not downloaded — excluded
         )
-        val items = AutoBrowseTree.continueListening(downloads, progress)
+        val items = AutoBrowseTree.continueListening(downloads, progress, labels)
         assertEquals(listOf("book/3", "book/1"), items.map { it.mediaId })
     }
 
@@ -91,7 +101,7 @@ class AutoBrowseTreeTest {
     fun `root has continue and downloads shelves`() {
         assertEquals(
             listOf(AutoBrowseTree.CONTINUE_ID, AutoBrowseTree.DOWNLOADS_ID),
-            AutoBrowseTree.rootChildren(null).map { it.mediaId },
+            AutoBrowseTree.rootChildren(null, labels).map { it.mediaId },
         )
     }
 
@@ -100,12 +110,12 @@ class AutoBrowseTreeTest {
 
     @Test
     fun `rootChildren leads with the chapters node only when a chaptered book is loaded`() {
-        assertEquals(listOf(AutoBrowseTree.CONTINUE_ID, AutoBrowseTree.DOWNLOADS_ID), AutoBrowseTree.rootChildren(null).map { it.mediaId })
-        val withBook = AutoBrowseTree.rootChildren(current)
+        assertEquals(listOf(AutoBrowseTree.CONTINUE_ID, AutoBrowseTree.DOWNLOADS_ID), AutoBrowseTree.rootChildren(null, labels).map { it.mediaId })
+        val withBook = AutoBrowseTree.rootChildren(current, labels)
         assertEquals(AutoBrowseTree.NOW_PLAYING_CHAPTERS_ID, withBook.first().mediaId)
-        assertEquals("Chapters · Dune", withBook.first().title)
+        assertEquals("Chapters* Dune", withBook.first().title)
         assertEquals(3, withBook.size)
-        assertEquals(2, AutoBrowseTree.rootChildren(current.copy(ranges = emptyList())).size)
+        assertEquals(2, AutoBrowseTree.rootChildren(current.copy(ranges = emptyList()), labels).size)
     }
 
     @Test
@@ -123,5 +133,18 @@ class AutoBrowseTreeTest {
         assertNull(AutoBrowseTree.parseChapterId("book/7"))
         assertNull(AutoBrowseTree.parseChapterId("chapter/x/1"))
         assertNull(AutoBrowseTree.parseBookId(AutoBrowseTree.chapterMediaId(7, 2)))
+    }
+
+    @Test
+    fun `root shelves use the supplied labels, not built-in text`() {
+        val shelves = AutoBrowseTree.rootChildren(null, labels)
+        assertEquals(listOf("Continue*", "Downloaded*"), shelves.map { it.title })
+        assertEquals("App*", AutoBrowseTree.rootMediaItem(labels).mediaMetadata.title.toString())
+    }
+
+    @Test
+    fun `an untitled download falls back to the audiobook label`() {
+        val entry = AutoBrowseTree.downloadedAudiobooks(listOf(download(9).copy(title = null)), labels).single()
+        assertEquals("Audiobook*", entry.title)
     }
 }

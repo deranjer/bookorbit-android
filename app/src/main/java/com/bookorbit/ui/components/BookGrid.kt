@@ -1,5 +1,7 @@
 package com.bookorbit.ui.components
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,7 +66,7 @@ fun BookGrid(
             if (items.loadState.append is LoadState.Error) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                        TextButton(onClick = { items.retry() }) { Text("Couldn't load more. Retry") }
+                        TextButton(onClick = { items.retry() }) { Text(stringResource(R.string.couldn_t_load_more_retry)) }
                     }
                 }
             }
@@ -91,11 +93,11 @@ fun BookGrid(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    "Couldn't load books",
+                    stringResource(R.string.couldn_t_load_books),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.error,
                 )
-                Button(onClick = { items.retry() }, modifier = Modifier.padding(top = 12.dp)) { Text("Retry") }
+                Button(onClick = { items.retry() }, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.retry)) }
             }
         }
 

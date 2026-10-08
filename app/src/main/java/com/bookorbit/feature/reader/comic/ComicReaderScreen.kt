@@ -1,5 +1,8 @@
 package com.bookorbit.feature.reader.comic
 
+import com.bookorbit.ui.asString
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
@@ -77,10 +80,10 @@ fun ComicReaderScreen(
         when {
             ui.loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
             ui.error != null -> Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(ui.error.orEmpty(), color = Color.White)
+                Text(ui.error?.asString().orEmpty(), color = Color.White)
                 Row(Modifier.padding(top = 16.dp)) {
-                    Button(onClick = vm::load) { Text("Retry") }
-                    Button(onClick = onBack, modifier = Modifier.padding(start = 12.dp)) { Text("Back") }
+                    Button(onClick = vm::load) { Text(stringResource(R.string.retry)) }
+                    Button(onClick = onBack, modifier = Modifier.padding(start = 12.dp)) { Text(stringResource(R.string.back)) }
                 }
             }
             else -> ComicPages(ui, rtl, vm, onToggleChrome = { chromeVisible = !chromeVisible })
@@ -95,12 +98,12 @@ fun ComicReaderScreen(
                     .padding(horizontal = 4.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White) }
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = Color.White) }
                 Text(ui.title.orEmpty(), color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 IconButton(onClick = { vm.setRtl(!rtl) }) {
                     Icon(
                         if (rtl) Icons.AutoMirrored.Filled.FormatTextdirectionRToL else Icons.AutoMirrored.Filled.FormatTextdirectionLToR,
-                        contentDescription = if (rtl) "Reading right to left. Switch to left to right" else "Reading left to right. Switch to right to left",
+                        contentDescription = stringResource(if (rtl) R.string.comic_dir_rtl else R.string.comic_dir_ltr),
                         tint = Color.White,
                     )
                 }
@@ -244,7 +247,7 @@ private fun ZoomablePage(
     ) {
         AsyncImage(
             model = imageUrls.comicPage(fileId, page),
-            contentDescription = "Page ${page + 1}",
+            contentDescription = stringResource(R.string.page, page + 1),
             contentScale = ContentScale.Fit,
             modifier = Modifier
                 .fillMaxSize()

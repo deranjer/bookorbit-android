@@ -1,5 +1,7 @@
 package com.bookorbit.ui.components
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -69,7 +71,7 @@ fun RecommendationScroller(
                             )
                         } else {
                             Text(
-                                rec.title ?: "Unknown",
+                                rec.title ?: stringResource(R.string.card_unknown),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 3,
@@ -79,7 +81,7 @@ fun RecommendationScroller(
                         }
                     }
                     Text(
-                        rec.title ?: "Unknown",
+                        rec.title ?: stringResource(R.string.card_unknown),
                         style = MaterialTheme.typography.labelSmall,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,

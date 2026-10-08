@@ -19,7 +19,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.bookorbit.R
 import coil.compose.AsyncImage
 import com.bookorbit.core.model.BookCard
 import com.bookorbit.core.model.BookFiles
@@ -77,7 +79,7 @@ fun BookCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        book.title ?: "Unknown",
+                        book.title ?: stringResource(R.string.card_unknown),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 3,
@@ -119,7 +121,7 @@ fun BookCard(
 
         Column(modifier = Modifier.padding(6.dp)) {
             Text(
-                book.title ?: "Unknown Title",
+                book.title ?: stringResource(R.string.card_unknown_title),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,

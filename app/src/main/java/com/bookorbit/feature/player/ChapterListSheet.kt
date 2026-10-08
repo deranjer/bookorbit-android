@@ -1,5 +1,7 @@
 package com.bookorbit.feature.player
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,7 +33,7 @@ fun ChapterListSheet(
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = (currentIndex - 2).coerceAtLeast(0))
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Text(
-            "Chapters",
+            stringResource(R.string.chapters),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
         )

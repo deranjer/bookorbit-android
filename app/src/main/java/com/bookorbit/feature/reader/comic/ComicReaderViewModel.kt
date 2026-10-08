@@ -1,5 +1,7 @@
 package com.bookorbit.feature.reader.comic
 
+import com.bookorbit.R
+import com.bookorbit.ui.UiText
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -38,7 +40,7 @@ class ComicReaderViewModel @Inject constructor(
 
     data class UiState(
         val loading: Boolean = true,
-        val error: String? = null,
+        val error: UiText? = null,
         val title: String? = null,
         val fileId: Int = 0,
         val pageCount: Int = 0,
@@ -65,7 +67,7 @@ class ComicReaderViewModel @Inject constructor(
             val book = runCatching { bookRepo.detail(bookId) }.getOrNull() ?: downloads.cachedBook(bookId)
             val file = book?.let(BookFiles::comicFile)
             if (book == null || file == null) {
-                _ui.update { it.copy(loading = false, error = "Couldn't load this comic.") }
+                _ui.update { it.copy(loading = false, error = UiText.of(R.string.comic_err_load)) }
                 return@launch
             }
             val count = runCatching { api.getComicPageCount(file.id).pageCount }.getOrNull()
@@ -74,7 +76,7 @@ class ComicReaderViewModel @Inject constructor(
                     it.copy(
                         loading = false,
                         title = book.title,
-                        error = "Couldn't read this comic. CBR and CB7 comics need a connection to your server.",
+                        error = UiText.of(R.string.comic_err_read),
                     )
                 }
                 return@launch

@@ -1,5 +1,7 @@
 package com.bookorbit.feature.stats
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -51,19 +53,19 @@ fun StatsScreen(vm: StatsViewModel = hiltViewModel()) {
         ui.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
         ui.failed -> Box(Modifier.fillMaxSize(), Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Couldn't load your reading stats", color = MaterialTheme.colorScheme.error)
-                Button(onClick = vm::refresh, modifier = Modifier.padding(top = 12.dp)) { Text("Retry") }
+                Text(stringResource(R.string.couldn_t_load_your_reading), color = MaterialTheme.colorScheme.error)
+                Button(onClick = vm::refresh, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.retry)) }
             }
         }
         else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
             ui.summary?.let { s ->
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Tile("Started", s.startedBooks.toString(), Modifier.weight(1f))
-                    Tile("In progress", s.inProgressBooks.toString(), Modifier.weight(1f))
+                    Tile(stringResource(R.string.started), s.startedBooks.toString(), Modifier.weight(1f))
+                    Tile(stringResource(R.string.in_progress), s.inProgressBooks.toString(), Modifier.weight(1f))
                 }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Tile("Completed", s.completedBooks.toString(), Modifier.weight(1f))
-                    Tile("Avg progress", "${s.meanProgressPercent.toInt()}%", Modifier.weight(1f))
+                    Tile(stringResource(R.string.completed), s.completedBooks.toString(), Modifier.weight(1f))
+                    Tile(stringResource(R.string.avg_progress), "${s.meanProgressPercent.toInt()}%", Modifier.weight(1f))
                 }
             }
 
@@ -72,21 +74,21 @@ fun StatsScreen(vm: StatsViewModel = hiltViewModel()) {
             if (ui.daily.isNotEmpty()) {
                 val last30 = ui.daily.entries.toList().takeLast(30)
                 val total = last30.sumOf { it.value }
-                SectionTitle("Last 30 days")
+                SectionTitle(stringResource(R.string.last_30_days))
                 Text(
-                    "${formatSeconds(total)} total · ${formatSeconds(total / 30)} a day",
+                    stringResource(R.string.total_a_day, formatSeconds(total), formatSeconds(total / 30)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
                 BarChart(last30.map { it.value }, Modifier.fillMaxWidth().padding(16.dp).height(110.dp))
 
-                SectionTitle("Reading heatmap")
+                SectionTitle(stringResource(R.string.reading_heatmap))
                 Heatmap(ui.daily, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
             }
 
             ui.sources?.takeIf { it.totalSeconds > 0 }?.let {
-                SectionTitle("Where you read")
+                SectionTitle(stringResource(R.string.where_you_read))
                 SourceSplit(it, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
             }
         }
@@ -179,12 +181,12 @@ private fun shade(seconds: Long, base: Color, none: Color): Color = when {
 }
 
 private val SOURCE_LABELS = mapOf(
-    "bookorbit" to "BookOrbit web",
-    "android" to "Android app",
-    "ios" to "iOS app",
-    "watchos" to "Apple Watch",
-    "koreader" to "KOReader",
-    "kobo" to "Kobo",
+    "bookorbit" to R.string.stats_src_bookorbit,
+    "android" to R.string.stats_src_android,
+    "ios" to R.string.stats_src_ios,
+    "watchos" to R.string.stats_src_watchos,
+    "koreader" to R.string.stats_src_koreader,
+    "kobo" to R.string.stats_src_kobo,
 )
 
 private val SOURCE_COLORS = listOf(Color(0xFF4A9EFF), Color(0xFF4ADE80), Color(0xFFFB923C), Color(0xFFF472B6), Color(0xFFC084FC), Color(0xFF22D3EE))
@@ -207,7 +209,7 @@ private fun SourceSplit(dist: SourceDistribution, modifier: Modifier) {
             Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(10.dp).clip(CircleShape).background(SOURCE_COLORS[i % SOURCE_COLORS.size]))
                 Text(
-                    SOURCE_LABELS[s.bucket] ?: s.bucket.replaceFirstChar { it.uppercase() },
+                    SOURCE_LABELS[s.bucket]?.let { stringResource(it) } ?: s.bucket.replaceFirstChar { it.uppercase() },
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 8.dp).weight(1f),
                 )

@@ -1,5 +1,7 @@
 package com.bookorbit.feature.auth
 
+import com.bookorbit.R
+import com.bookorbit.ui.UiText
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -22,7 +24,7 @@ class LoginViewModel @Inject constructor(
     data class UiState(
         val submitting: Boolean = false,
         val oidcLoadingSlug: String? = null,
-        val error: String? = null,
+        val error: UiText? = null,
         val providers: List<OidcProviderPublic> = emptyList(),
     )
 
@@ -45,7 +47,7 @@ class LoginViewModel @Inject constructor(
             try {
                 repo.login(username, password)
             } catch (_: Exception) {
-                _ui.update { it.copy(error = "Invalid username or password.") }
+                _ui.update { it.copy(error = UiText.of(R.string.login_err_invalid)) }
             } finally {
                 _ui.update { it.copy(submitting = false) }
             }
@@ -59,7 +61,7 @@ class LoginViewModel @Inject constructor(
             try {
                 launch(oidc.buildAuthIntent(provider))
             } catch (e: Exception) {
-                _ui.update { it.copy(oidcLoadingSlug = null, error = e.message ?: "OIDC login failed") }
+                _ui.update { it.copy(oidcLoadingSlug = null, error = e.message?.let { m -> UiText.raw(m) } ?: UiText.of(R.string.login_err_oidc)) }
             }
         }
     }
@@ -72,7 +74,7 @@ class LoginViewModel @Inject constructor(
             } catch (_: OidcCancelledException) {
                 // User dismissed the browser — stay silent.
             } catch (e: Exception) {
-                _ui.update { it.copy(error = e.message ?: "OIDC login failed") }
+                _ui.update { it.copy(error = e.message?.let { m -> UiText.raw(m) } ?: UiText.of(R.string.login_err_oidc)) }
             } finally {
                 _ui.update { it.copy(oidcLoadingSlug = null) }
             }

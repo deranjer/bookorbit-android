@@ -1,5 +1,7 @@
 package com.bookorbit.feature.search
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,13 +49,13 @@ fun SearchScreen(
                 .fillMaxWidth()
                 .padding(12.dp),
             singleLine = true,
-            placeholder = { Text("Search books…") },
+            placeholder = { Text(stringResource(R.string.search_books)) },
         )
 
         when {
-            state.showHint -> CenteredHint("Type to search your library")
+            state.showHint -> CenteredHint(stringResource(R.string.search_hint))
             state.results.isEmpty() && !state.loading ->
-                CenteredHint("No results for \"${query.trim()}\"")
+                CenteredHint(stringResource(R.string.search_no_results, query.trim()))
             else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(state.results, key = { it.id }) { result ->
                     SearchResultRow(result = result, onClick = { onBookClick(result.id) })
@@ -95,7 +97,7 @@ private fun SearchResultRow(result: SearchResult, onClick: () -> Unit) {
                 .padding(horizontal = 12.dp),
         ) {
             Text(
-                result.title ?: "Unknown Title",
+                result.title ?: stringResource(R.string.card_unknown_title),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,

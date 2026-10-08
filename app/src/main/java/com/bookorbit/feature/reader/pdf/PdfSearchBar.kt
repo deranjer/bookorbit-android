@@ -1,5 +1,7 @@
 package com.bookorbit.feature.reader.pdf
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -50,7 +52,7 @@ fun PdfSearchBar(
                 onValueChange = { text = it },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
-                placeholder = { Text("Search") },
+                placeholder = { Text(stringResource(R.string.search)) },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { onQuery(text) }),
             )
@@ -65,13 +67,13 @@ fun PdfSearchBar(
                 Text(label, style = MaterialTheme.typography.labelMedium)
             }
             IconButton(onClick = onPrev, enabled = count > 0) {
-                Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Previous match")
+                Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.previous_match))
             }
             IconButton(onClick = onNext, enabled = count > 0) {
-                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Next match")
+                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.next_match))
             }
             IconButton(onClick = onClose) {
-                Icon(Icons.Filled.Close, contentDescription = "Close search")
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.close_search))
             }
         }
     }

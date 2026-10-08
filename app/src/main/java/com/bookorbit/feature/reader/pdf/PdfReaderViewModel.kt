@@ -1,5 +1,7 @@
 package com.bookorbit.feature.reader.pdf
 
+import com.bookorbit.R
+import com.bookorbit.ui.UiText
 import android.graphics.RectF
 import android.os.Build
 import androidx.lifecycle.SavedStateHandle
@@ -51,7 +53,7 @@ class PdfReaderViewModel @Inject constructor(
 
     data class UiState(
         val loading: Boolean = true,
-        val error: String? = null,
+        val error: UiText? = null,
         val title: String? = null,
         val core: PdfRenderCore? = null,
         val pageCount: Int = 0,
@@ -82,7 +84,7 @@ class PdfReaderViewModel @Inject constructor(
             // Fall back to the offline-downloaded copy when the network is unavailable.
             val book = runCatching { bookRepo.detail(bookId) }.getOrNull() ?: downloads.cachedBook(bookId)
             if (book == null) {
-                _ui.update { it.copy(loading = false, error = "Failed to load book") }
+                _ui.update { it.copy(loading = false, error = UiText.of(R.string.reader_err_load_book)) }
                 return@launch
             }
             _ui.update { it.copy(title = book.title) }
@@ -104,7 +106,7 @@ class PdfReaderViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                _ui.update { it.copy(loading = false, error = e.message ?: "Could not open this PDF.") }
+                _ui.update { it.copy(loading = false, error = e.message?.let { m -> UiText.raw(m) } ?: UiText.of(R.string.pdf_err_open)) }
             }
         }
     }

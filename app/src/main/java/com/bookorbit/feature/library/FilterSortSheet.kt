@@ -1,5 +1,7 @@
 package com.bookorbit.feature.library
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -66,13 +68,13 @@ fun FilterSortSheet(
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            SectionLabel("Sort by")
+            SectionLabel(stringResource(R.string.filter_sort_by))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SORT_OPTIONS.forEach { (field, label) ->
+                SORT_OPTIONS.forEach { (field, labelRes) ->
                     FilterChip(
                         selected = sort.field == field,
                         onClick = { sort = sort.copy(field = field) },
-                        label = { Text(label) },
+                        label = { Text(stringResource(labelRes)) },
                     )
                 }
             }
@@ -80,41 +82,41 @@ fun FilterSortSheet(
                 FilterChip(
                     selected = sort.dir == "asc",
                     onClick = { sort = sort.copy(dir = "asc") },
-                    label = { Text("Ascending") },
+                    label = { Text(stringResource(R.string.ascending)) },
                 )
                 FilterChip(
                     selected = sort.dir == "desc",
                     onClick = { sort = sort.copy(dir = "desc") },
-                    label = { Text("Descending") },
+                    label = { Text(stringResource(R.string.descending)) },
                 )
             }
 
             HorizontalDivider()
-            SectionLabel("Read Status")
+            SectionLabel(stringResource(R.string.filter_read_status))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                READ_STATUS_OPTIONS.forEach { (value, label) ->
+                READ_STATUS_OPTIONS.forEach { (value, labelRes) ->
                     FilterChip(
                         selected = value in filters.readStatus,
                         onClick = { filters = filters.copy(readStatus = toggle(filters.readStatus, value)) },
-                        label = { Text(label) },
+                        label = { Text(stringResource(labelRes)) },
                     )
                 }
             }
 
-            SectionLabel("Read Progress")
+            SectionLabel(stringResource(R.string.filter_read_progress))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                READ_PROGRESS_OPTIONS.forEach { (value, label) ->
+                READ_PROGRESS_OPTIONS.forEach { (value, labelRes) ->
                     FilterChip(
                         selected = filters.readProgress == value,
                         onClick = {
                             filters = filters.copy(readProgress = if (filters.readProgress == value) null else value)
                         },
-                        label = { Text(label) },
+                        label = { Text(stringResource(labelRes)) },
                     )
                 }
             }
 
-            SectionLabel("Formats")
+            SectionLabel(stringResource(R.string.filter_formats))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FORMAT_OPTIONS.forEach { fmt ->
                     FilterChip(
@@ -125,47 +127,47 @@ fun FilterSortSheet(
                 }
             }
 
-            SectionLabel("File Availability")
+            SectionLabel(stringResource(R.string.filter_file_availability))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FILE_AVAILABILITY_OPTIONS.forEach { (value, label) ->
+                FILE_AVAILABILITY_OPTIONS.forEach { (value, labelRes) ->
                     FilterChip(
                         selected = filters.fileAvailability == value,
                         onClick = {
                             filters = filters.copy(fileAvailability = if (filters.fileAvailability == value) null else value)
                         },
-                        label = { Text(label) },
+                        label = { Text(stringResource(labelRes)) },
                     )
                 }
             }
 
             HorizontalDivider()
             TypeaheadMultiSelect(
-                label = "Authors",
+                label = stringResource(R.string.authors),
                 selected = filters.authors,
                 onSelectedChange = { filters = filters.copy(authors = it) },
                 search = { searchCatalog(CatalogKind.AUTHORS, it) },
             )
             TypeaheadMultiSelect(
-                label = "Genres",
+                label = stringResource(R.string.genres),
                 selected = filters.genres,
                 onSelectedChange = { filters = filters.copy(genres = it) },
                 search = { searchCatalog(CatalogKind.GENRES, it) },
             )
             TypeaheadMultiSelect(
-                label = "Tags",
+                label = stringResource(R.string.tags),
                 selected = filters.tags,
                 onSelectedChange = { filters = filters.copy(tags = it) },
                 search = { searchCatalog(CatalogKind.TAGS, it) },
             )
             TypeaheadMultiSelect(
-                label = "Languages",
+                label = stringResource(R.string.languages),
                 selected = filters.languages,
                 onSelectedChange = { filters = filters.copy(languages = it) },
                 search = { searchCatalog(CatalogKind.LANGUAGES, it) },
             )
 
             HorizontalDivider()
-            SectionLabel("Minimum Rating")
+            SectionLabel(stringResource(R.string.filter_min_rating))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 (1..5).forEach { rating ->
                     FilterChip(
@@ -173,17 +175,17 @@ fun FilterSortSheet(
                         onClick = {
                             filters = filters.copy(minRating = if (filters.minRating == rating) null else rating)
                         },
-                        label = { Text("$rating★") },
+                        label = { Text(stringResource(R.string.filter_rating_stars, rating)) },
                     )
                 }
             }
 
-            SectionLabel("Published Year")
+            SectionLabel(stringResource(R.string.filter_published_year))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = filters.yearFrom?.toString() ?: "",
                     onValueChange = { filters = filters.copy(yearFrom = it.toIntOrNull()) },
-                    label = { Text("From") },
+                    label = { Text(stringResource(R.string.from)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.width(140.dp),
@@ -191,7 +193,7 @@ fun FilterSortSheet(
                 OutlinedTextField(
                     value = filters.yearTo?.toString() ?: "",
                     onValueChange = { filters = filters.copy(yearTo = it.toIntOrNull()) },
-                    label = { Text("To") },
+                    label = { Text(stringResource(R.string.to)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.width(140.dp),
@@ -209,11 +211,11 @@ fun FilterSortSheet(
                         sort = DEFAULT_SORT
                     },
                     modifier = Modifier.weight(1f),
-                ) { Text("Reset") }
+                ) { Text(stringResource(R.string.reset)) }
                 Button(
                     onClick = { onApply(filters, sort) },
                     modifier = Modifier.weight(1f),
-                ) { Text("Apply") }
+                ) { Text(stringResource(R.string.apply)) }
             }
         }
     }

@@ -1,5 +1,8 @@
 package com.bookorbit.feature.auth
 
+import com.bookorbit.ui.asString
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -70,13 +73,13 @@ fun LoginScreen(
         BrandLogo(modifier = Modifier.align(Alignment.CenterHorizontally))
         Spacer(Modifier.height(16.dp))
         Text(
-            "BookOrbit",
+            stringResource(R.string.bookorbit),
             style = MaterialTheme.typography.headlineLarge,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "Sign in to your library",
+            stringResource(R.string.sign_in_to_your_library),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -88,7 +91,7 @@ fun LoginScreen(
             onValueChange = { username = it },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            placeholder = { Text("Username") },
+            placeholder = { Text(stringResource(R.string.username)) },
             keyboardOptions = KeyboardOptions(
                 imeAction = ImeAction.Next,
                 autoCorrectEnabled = false,
@@ -101,7 +104,7 @@ fun LoginScreen(
             onValueChange = { password = it },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            placeholder = { Text("Password") },
+            placeholder = { Text(stringResource(R.string.password)) },
             visualTransformation = if (showPassword) {
                 VisualTransformation.None
             } else {
@@ -113,7 +116,7 @@ fun LoginScreen(
                 IconButton(onClick = { showPassword = !showPassword }) {
                     Icon(
                         if (showPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                        contentDescription = if (showPassword) "Hide password" else "Show password",
+                        contentDescription = stringResource(if (showPassword) R.string.login_hide_password else R.string.login_show_password),
                     )
                 }
             },
@@ -122,7 +125,7 @@ fun LoginScreen(
         ui.error?.let {
             Spacer(Modifier.height(12.dp))
             Text(
-                it,
+                it.asString(),
                 color = MaterialTheme.colorScheme.error,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
@@ -138,7 +141,7 @@ fun LoginScreen(
             if (ui.submitting) {
                 CircularProgressIndicator(modifier = Modifier.height(20.dp), strokeWidth = 2.dp)
             } else {
-                Text("Sign In")
+                Text(stringResource(R.string.sign_in))
             }
         }
 
@@ -147,7 +150,7 @@ fun LoginScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 HorizontalDivider(modifier = Modifier.weight(1f))
                 Text(
-                    "or continue with",
+                    stringResource(R.string.or_continue_with),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 12.dp),
@@ -184,7 +187,7 @@ fun LoginScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            TextButton(onClick = onChangeServer) { Text("Change server") }
+            TextButton(onClick = onChangeServer) { Text(stringResource(R.string.change_server)) }
         }
     }
 }

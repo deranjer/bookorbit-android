@@ -9,6 +9,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.bookorbit.core.auth.SessionManager
 import com.bookorbit.core.db.DownloadDao
 import com.bookorbit.core.db.DownloadEntity
 import com.bookorbit.core.model.BookDetail
@@ -36,6 +37,7 @@ class DownloadsRepository @Inject constructor(
     private val json: Json,
     private val appSettings: AppSettingsStore,
     private val locationStore: DownloadLocationStore,
+    private val session: SessionManager,
 ) {
     val downloads: Flow<List<DownloadEntity>> = dao.observeAll()
 
@@ -110,7 +112,7 @@ class DownloadsRepository @Inject constructor(
             decodeFiles(it).forEach { f -> LocalRef.parse(f.localPath).delete(context) }
         }
         // Handles the cover (always internal) plus legacy/fallback-mode files in one sweep.
-        File(context.filesDir, "downloads/$bookId").deleteRecursively()
+        DownloadFolders.internalDir(context, session.dataScope, bookId).deleteRecursively()
     }
 
     private suspend fun deleteSafFolderIfAny(entity: DownloadEntity) {

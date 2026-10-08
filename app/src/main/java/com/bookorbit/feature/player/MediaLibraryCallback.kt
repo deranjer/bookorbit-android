@@ -1,5 +1,8 @@
 package com.bookorbit.feature.player
 
+import android.content.Context
+import com.bookorbit.R
+import dagger.hilt.android.qualifiers.ApplicationContext
 import android.os.Bundle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
@@ -32,6 +35,7 @@ import javax.inject.Singleton
 @UnstableApi
 @Singleton
 class MediaLibraryCallback @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val downloads: DownloadsRepository,
     private val playerRepo: PlayerRepository,
     private val audioProgress: AudioProgressRepository,
@@ -45,7 +49,7 @@ class MediaLibraryCallback @Inject constructor(
         browser: ControllerInfo,
         params: LibraryParams?,
     ): ListenableFuture<LibraryResult<MediaItem>> = future {
-        LibraryResult.ofItem(AutoBrowseTree.rootMediaItem(), contentStyledParams(params))
+        LibraryResult.ofItem(AutoBrowseTree.rootMediaItem(labels()), contentStyledParams(params))
     }
 
     override fun onGetChildren(
@@ -57,12 +61,12 @@ class MediaLibraryCallback @Inject constructor(
         params: LibraryParams?,
     ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = future {
         val entries = when (parentId) {
-            AutoBrowseTree.ROOT_ID -> AutoBrowseTree.rootChildren(current())
+            AutoBrowseTree.ROOT_ID -> AutoBrowseTree.rootChildren(current(), labels())
             AutoBrowseTree.NOW_PLAYING_CHAPTERS_ID ->
                 current()?.let { AutoBrowseTree.chapterEntries(it) } ?: emptyList()
-            AutoBrowseTree.DOWNLOADS_ID -> AutoBrowseTree.downloadedAudiobooks(catalog())
+            AutoBrowseTree.DOWNLOADS_ID -> AutoBrowseTree.downloadedAudiobooks(catalog(), labels())
             AutoBrowseTree.CONTINUE_ID ->
-                AutoBrowseTree.continueListening(catalog(), audioProgress.recent())
+                AutoBrowseTree.continueListening(catalog(), audioProgress.recent(), labels())
             else -> emptyList()
         }
         val items = ImmutableList.copyOf(entries.map { AutoBrowseTree.toMediaItem(it) })
@@ -81,13 +85,13 @@ class MediaLibraryCallback @Inject constructor(
             if (entry != null) LibraryResult.ofItem(AutoBrowseTree.toMediaItem(entry), null)
             else LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
         } else if (bookId != null) {
-            val entry = AutoBrowseTree.downloadedAudiobooks(catalog()).find { it.mediaId == mediaId }
+            val entry = AutoBrowseTree.downloadedAudiobooks(catalog(), labels()).find { it.mediaId == mediaId }
             if (entry != null) LibraryResult.ofItem(AutoBrowseTree.toMediaItem(entry), null)
             else LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
         } else {
-            val node = AutoBrowseTree.rootChildren(current()).find { it.mediaId == mediaId }
+            val node = AutoBrowseTree.rootChildren(current(), labels()).find { it.mediaId == mediaId }
             if (node != null) LibraryResult.ofItem(AutoBrowseTree.toMediaItem(node), null)
-            else LibraryResult.ofItem(AutoBrowseTree.rootMediaItem(), null)
+            else LibraryResult.ofItem(AutoBrowseTree.rootMediaItem(labels()), null)
         }
     }
 
@@ -119,7 +123,16 @@ class MediaLibraryCallback @Inject constructor(
             ?: MediaItemsWithStartPosition(emptyList(), 0, 0)
     }
 
-    private fun current() = AutoBrowseTree.currentBookInfo(playerManager.state.value)
+    /** Built on each request, so the car follows the device language even if it changes while connected. */
+    private fun labels() = AutoBrowseTree.Labels(
+        appName = context.getString(R.string.app_name),
+        continueListening = context.getString(R.string.auto_continue_listening),
+        downloaded = context.getString(R.string.auto_downloaded),
+        audiobook = context.getString(R.string.player_audiobook),
+        chaptersOf = { title -> context.getString(R.string.auto_chapters_of, title) },
+    )
+
+    private fun current() = AutoBrowseTree.currentBookInfo(playerManager.state.value, labels())
 
     private suspend fun resolveQueue(bookId: Int, startAtChapterIndex: Int? = null): MediaItemsWithStartPosition? {
         val data = playerRepo.resolve(bookId) ?: return null

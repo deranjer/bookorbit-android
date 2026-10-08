@@ -1,5 +1,7 @@
 package com.bookorbit.ui.components
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -12,6 +14,6 @@ import androidx.compose.ui.Modifier
 @Composable
 fun PlaceholderScreen(title: String, modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("$title — coming soon", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.coming_soon, title), color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

@@ -1,5 +1,8 @@
 package com.bookorbit.feature.auth
 
+import com.bookorbit.ui.asString
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -53,10 +56,10 @@ fun ServerSetupScreen(
             .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("BookOrbit", style = androidx.compose.material3.MaterialTheme.typography.headlineLarge)
+        Text(stringResource(R.string.bookorbit), style = androidx.compose.material3.MaterialTheme.typography.headlineLarge)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Enter your server URL",
+            stringResource(R.string.enter_your_server_url),
             style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
             color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -67,7 +70,7 @@ fun ServerSetupScreen(
             onValueChange = { url = it },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            placeholder = { Text("https://your-bookorbit-server.com") },
+            placeholder = { Text(stringResource(R.string.https_your_bookorbit_server_com)) },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Uri,
                 imeAction = ImeAction.Go,
@@ -86,8 +89,7 @@ fun ServerSetupScreen(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "Insecure connection. HTTP traffic — including your login — is sent unencrypted " +
-                        "and can be read by others on the network. Use HTTPS whenever possible.",
+                    stringResource(R.string.server_http_warning),
                     color = WarningOrange,
                     style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
                 )
@@ -97,7 +99,7 @@ fun ServerSetupScreen(
         ui.error?.let {
             Spacer(Modifier.height(12.dp))
             Text(
-                it,
+                it.asString(),
                 color = androidx.compose.material3.MaterialTheme.colorScheme.error,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
@@ -113,7 +115,7 @@ fun ServerSetupScreen(
             if (ui.loading) {
                 CircularProgressIndicator(modifier = Modifier.height(20.dp), strokeWidth = 2.dp)
             } else {
-                Text("Connect")
+                Text(stringResource(R.string.connect))
             }
         }
     }

@@ -37,6 +37,12 @@ class LibrariesViewModel @Inject constructor(
     private val _libraries = MutableStateFlow<List<Library>>(emptyList())
     val libraries = _libraries.asStateFlow()
 
+    /** Where loading the library list stands, so the screen can show an error instead of spinning forever. */
+    enum class Status { LOADING, READY, EMPTY, ERROR }
+
+    private val _status = MutableStateFlow(Status.LOADING)
+    val status = _status.asStateFlow()
+
     private val _selectedId = MutableStateFlow<Int?>(null)
     val selectedId = _selectedId.asStateFlow()
 
@@ -59,9 +65,16 @@ class LibrariesViewModel @Inject constructor(
     }
 
     fun loadLibraries() {
+        _status.value = Status.LOADING
         viewModelScope.launch {
-            val libs = runCatching { repo.libraries() }.getOrDefault(emptyList())
+            val result = runCatching { repo.libraries() }
+            val libs = result.getOrDefault(emptyList())
             _libraries.value = libs
+            _status.value = when {
+                result.isFailure -> Status.ERROR
+                libs.isEmpty() -> Status.EMPTY
+                else -> Status.READY
+            }
             if (_selectedId.value == null) {
                 libs.firstOrNull()?.id?.let { selectLibrary(it) }
             }

@@ -1,5 +1,7 @@
 package com.bookorbit.feature.you
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,19 +37,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material3.ListItemDefaults
 import com.bookorbit.BuildConfig
 import com.bookorbit.core.model.AuthUser
+import com.bookorbit.feature.main.NavItem
+import com.bookorbit.feature.main.icon
+import com.bookorbit.feature.main.labelRes
 
-/** The You tab: who's signed in, plus Downloads, Book Drop, Settings and sign out (formerly the drawer). */
+/** The You tab: who's signed in, every screen that isn't in the bottom bar, and sign out. */
 @Composable
 fun YouScreen(
     user: AuthUser,
     serverVersion: String?,
     updateAvailable: Boolean,
     latestVersion: String?,
-    canUseBookDrop: Boolean,
-    onStats: () -> Unit,
-    onDownloads: () -> Unit,
-    onBookDrop: () -> Unit,
-    onSettings: () -> Unit,
+    /** The screens that aren't in the bottom bar, so they can still be opened from here. */
+    unpinned: List<NavItem>,
+    onOpen: (NavItem) -> Unit,
     onSignOut: () -> Unit,
 ) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -71,28 +74,39 @@ fun YouScreen(
             }
         }
         HorizontalDivider()
-        Row2("Reading stats", Icons.Outlined.BarChart, onStats)
-        Row2("Downloads", Icons.Filled.Download, onDownloads)
-        if (canUseBookDrop) Row2("Book Drop", Icons.Outlined.Inbox, onBookDrop)
-        ListItem(
-            headlineContent = { Text("Settings") },
-            leadingContent = {
-                BadgedBox(badge = { if (updateAvailable) Badge() }) { Icon(Icons.Outlined.Settings, contentDescription = null) }
-            },
-            supportingContent = if (updateAvailable) {
-                { Text("Update available" + (latestVersion?.let { " ($it)" } ?: ""), color = MaterialTheme.colorScheme.primary) }
-            } else null,
-            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background),
-            modifier = Modifier.clickable(onClick = onSettings),
-        )
+        // Everything that isn't in the bottom bar is reached from here.
+        unpinned.forEach { item ->
+            if (item == NavItem.SETTINGS) {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.settings)) },
+                    leadingContent = {
+                        BadgedBox(badge = { if (updateAvailable) Badge() }) { Icon(item.icon(), contentDescription = null) }
+                    },
+                    supportingContent = if (updateAvailable) {
+                        {
+                            Text(
+                                if (latestVersion != null) stringResource(R.string.you_update_available_version, latestVersion) else stringResource(R.string.you_update_available),
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    } else null,
+                    colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background),
+                    modifier = Modifier.clickable { onOpen(item) },
+                )
+            } else {
+                val label = if (item == NavItem.STATS) R.string.you_reading_stats else item.labelRes()
+                Row2(stringResource(label), item.icon()) { onOpen(item) }
+            }
+        }
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
-        Row2("Sign out", Icons.AutoMirrored.Outlined.Logout, onSignOut)
+        Row2(stringResource(R.string.you_sign_out), Icons.AutoMirrored.Outlined.Logout, onSignOut)
         Spacer(Modifier.height(16.dp))
         Text(
-            buildString {
-                // VERSION_CODE is what changes build-to-build; VERSION_NAME is bumped by hand, so show both.
-                append("App ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
-                serverVersion?.let { append(" · Server $it") }
+            // VERSION_CODE is what changes build-to-build; VERSION_NAME is bumped by hand, so show both.
+            if (serverVersion != null) {
+                stringResource(R.string.you_app_server_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE, serverVersion)
+            } else {
+                stringResource(R.string.you_app_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)
             },
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

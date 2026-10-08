@@ -1,5 +1,7 @@
 package com.bookorbit.feature.player
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -69,14 +71,14 @@ fun MiniPlayer(
                 .padding(horizontal = 12.dp),
         ) {
             Text(
-                book.title ?: "Audiobook",
+                book.title ?: stringResource(R.string.player_audiobook),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                if (state.isCasting) "Casting to ${state.castDeviceName ?: "device"}" else PlaybackQueue.performerLabel(book),
+                if (state.isCasting) stringResource(R.string.player_casting_to, state.castDeviceName ?: stringResource(R.string.player_casting_device)) else PlaybackQueue.performerLabel(book),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -86,7 +88,7 @@ fun MiniPlayer(
         IconButton(onClick = { vm.togglePlay() }) {
             Icon(
                 if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                contentDescription = if (state.isPlaying) "Pause" else "Play",
+                contentDescription = stringResource(if (state.isPlaying) R.string.player_pause else R.string.player_play),
             )
         }
     }

@@ -1,5 +1,7 @@
 package com.bookorbit.feature.bookdrop
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -76,6 +78,7 @@ fun BookDropScreen(vm: BookDropViewModel = hiltViewModel()) {
     val imageUrls = LocalImageUrls.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val appContext = androidx.compose.ui.platform.LocalContext.current
 
     var detailFile by remember { mutableStateOf<BookDockFile?>(null) }
     var pickerLibraries by remember { mutableStateOf<List<Library>?>(null) }
@@ -87,13 +90,13 @@ fun BookDropScreen(vm: BookDropViewModel = hiltViewModel()) {
     // Surface action results / errors as a snackbar, then clear them.
     LaunchedEffect(action.message) {
         action.message?.let {
-            snackbarHostState.showSnackbar(it)
+            snackbarHostState.showSnackbar(it.resolve(appContext))
             vm.consumeMessage()
         }
     }
     LaunchedEffect(action.error) {
         action.error?.let {
-            snackbarHostState.showSnackbar(it)
+            snackbarHostState.showSnackbar(it.resolve(appContext))
             vm.consumeError()
         }
     }
@@ -115,7 +118,7 @@ fun BookDropScreen(vm: BookDropViewModel = hiltViewModel()) {
         floatingActionButton = {
             if (!selection.active) {
                 FloatingActionButton(onClick = { uploadLauncher.launch("*/*") }) {
-                    Icon(Icons.Filled.Upload, contentDescription = "Upload a file")
+                    Icon(Icons.Filled.Upload, contentDescription = stringResource(R.string.upload_a_file))
                 }
             }
         },
@@ -148,8 +151,8 @@ fun BookDropScreen(vm: BookDropViewModel = hiltViewModel()) {
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("$selectedCount selected", style = MaterialTheme.typography.labelLarge)
-                    TextButton(onClick = vm::selectAllInFilter) { Text("Select all ($filteredTotal)") }
+                    Text(stringResource(R.string.selected_2, selectedCount), style = MaterialTheme.typography.labelLarge)
+                    TextButton(onClick = vm::selectAllInFilter) { Text(stringResource(R.string.select_all, filteredTotal)) }
                 }
             }
 
@@ -162,7 +165,7 @@ fun BookDropScreen(vm: BookDropViewModel = hiltViewModel()) {
             ) {
                 if (files.itemCount == 0 && files.loadState.refresh !is LoadState.Loading) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Nothing in the Book Dock.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.nothing_in_the_book_dock), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -193,7 +196,7 @@ fun BookDropScreen(vm: BookDropViewModel = hiltViewModel()) {
     pickerLibraries?.let { libs ->
         DestinationPickerSheet(
             libraries = libs,
-            applyLabel = "Set destination",
+            applyLabel = stringResource(R.string.set_destination),
             onApply = { libraryId, folderId ->
                 vm.setTargetSelection(libraryId, folderId)
                 pickerLibraries = null
@@ -213,10 +216,10 @@ private fun StatusFilterRow(
     onSelect: (String?) -> Unit,
 ) {
     val tabs = listOf(
-        StatusTab(null, "All ($summary)"),
-        StatusTab("ready", "Ready ($ready)"),
-        StatusTab("pending", "Pending ($pending)"),
-        StatusTab("error", "Error ($error)"),
+        StatusTab(null, stringResource(R.string.bookdrop_tab_all, summary)),
+        StatusTab("ready", stringResource(R.string.bookdrop_tab_ready, ready)),
+        StatusTab("pending", stringResource(R.string.bookdrop_tab_pending, pending)),
+        StatusTab("error", stringResource(R.string.bookdrop_tab_error, error)),
     )
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
@@ -289,7 +292,7 @@ private fun BookDockRow(
                 if (file.targetFolderId != null) {
                     Icon(
                         Icons.Filled.CheckCircle,
-                        contentDescription = "Destination set",
+                        contentDescription = stringResource(R.string.destination_set),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(14.dp),
                     )
@@ -314,18 +317,18 @@ private fun BulkActionBar(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) }
             Box(modifier = Modifier.weight(1f))
             IconButton(onClick = onApplyFetched, enabled = !busy && selectedCount > 0) {
-                Icon(Icons.Filled.AutoFixHigh, contentDescription = "Apply fetched metadata")
+                Icon(Icons.Filled.AutoFixHigh, contentDescription = stringResource(R.string.apply_fetched_metadata))
             }
             IconButton(onClick = onSetDestination, enabled = !busy && selectedCount > 0) {
-                Icon(Icons.Outlined.FolderOpen, contentDescription = "Set destination")
+                Icon(Icons.Outlined.FolderOpen, contentDescription = stringResource(R.string.set_destination))
             }
             IconButton(onClick = onDiscard, enabled = !busy && selectedCount > 0) {
-                Icon(Icons.Filled.Delete, contentDescription = "Discard", tint = MaterialTheme.colorScheme.error)
+                Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.discard), tint = MaterialTheme.colorScheme.error)
             }
-            TextButton(onClick = onApprove, enabled = !busy && selectedCount > 0) { Text("Approve") }
+            TextButton(onClick = onApprove, enabled = !busy && selectedCount > 0) { Text(stringResource(R.string.approve)) }
         }
     }
 }

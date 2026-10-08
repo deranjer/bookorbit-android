@@ -1,5 +1,7 @@
 package com.bookorbit.feature.bookdetail
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,7 +28,7 @@ fun ReadStatusSheet(
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Text(
-            "Reading Status",
+            stringResource(R.string.reading_status),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(start = 20.dp, bottom = 8.dp),
         )
@@ -40,14 +42,14 @@ fun ReadStatusSheet(
             ) {
                 Icon(meta.icon, contentDescription = null, tint = meta.color)
                 Text(
-                    meta.label,
+                    stringResource(meta.label),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = 16.dp),
                 )
                 if (meta.value == current) {
-                    Icon(Icons.Filled.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.selected), tint = MaterialTheme.colorScheme.primary)
                 }
             }
         }

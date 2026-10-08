@@ -1,5 +1,7 @@
 package com.bookorbit.feature.collections
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -23,8 +25,8 @@ fun CollectionsScreen(
         onSelect = vm::select,
         books = books,
         onBookClick = onBookClick,
-        emptyTitle = "No Collections",
-        emptyBody = "Create collections in the web app to group books together.",
-        emptyBooksText = "No books in this collection.",
+        emptyTitle = stringResource(R.string.no_collections),
+        emptyBody = stringResource(R.string.create_collections_in_the_web),
+        emptyBooksText = stringResource(R.string.no_books_in_this_collection),
     )
 }

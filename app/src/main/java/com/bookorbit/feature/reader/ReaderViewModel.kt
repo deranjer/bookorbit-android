@@ -1,5 +1,7 @@
 package com.bookorbit.feature.reader
 
+import com.bookorbit.R
+import com.bookorbit.ui.UiText
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -53,7 +55,7 @@ class ReaderViewModel @Inject constructor(
 
     data class UiState(
         val loadingFile: Boolean = true,
-        val error: String? = null,
+        val error: UiText? = null,
         val title: String? = null,
         val resolved: ResolvedOpen? = null,
         val settings: ReaderSettings = ReaderSettings(),
@@ -67,7 +69,7 @@ class ReaderViewModel @Inject constructor(
         val search: SearchState? = null,
         val toolbar: ToolbarTarget? = null,
         /** One-shot message for the screen to toast, then clear via [consumeMessage]. */
-        val message: String? = null,
+        val message: UiText? = null,
     )
 
     /** In-book search: the query, matches grouped by chapter as they stream in, and progress. */
@@ -107,7 +109,7 @@ class ReaderViewModel @Inject constructor(
             // Fall back to the offline-downloaded copy when the network is unavailable.
             val book = runCatching { bookRepo.detail(bookId) }.getOrNull() ?: downloads.cachedBook(bookId)
             if (book == null) {
-                _ui.update { it.copy(loadingFile = false, error = "Failed to load book") }
+                _ui.update { it.copy(loadingFile = false, error = UiText.of(R.string.reader_err_load_book)) }
                 return@launch
             }
             _ui.update { it.copy(title = book.title) }
@@ -123,7 +125,7 @@ class ReaderViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                _ui.update { it.copy(loadingFile = false, error = e.message ?: "Could not open this book.") }
+                _ui.update { it.copy(loadingFile = false, error = e.message?.let { m -> UiText.raw(m) } ?: UiText.of(R.string.reader_err_open_book)) }
             }
         }
     }
@@ -186,7 +188,7 @@ class ReaderViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { bookmarkRepo.add(bookId, cfi, title) }
                 .onSuccess { created -> _ui.update { it.copy(bookmarks = it.bookmarks + created) } }
-                .onFailure { _ui.update { it.copy(message = "Couldn't save the bookmark. Check your connection and try again.") } }
+                .onFailure { _ui.update { it.copy(message = UiText.of(R.string.reader_err_bookmark_save)) } }
         }
     }
 
@@ -194,7 +196,7 @@ class ReaderViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { bookmarkRepo.delete(bookId, id) }
                 .onSuccess { _ui.update { s -> s.copy(bookmarks = s.bookmarks.filterNot { it.id == id }) } }
-                .onFailure { _ui.update { it.copy(message = "Couldn't delete the bookmark.") } }
+                .onFailure { _ui.update { it.copy(message = UiText.of(R.string.reader_err_bookmark_delete)) } }
         }
     }
 
@@ -270,7 +272,7 @@ class ReaderViewModel @Inject constructor(
                 refreshLocalAnnotations()
                 syncAnnotations()
             }.onFailure {
-                _ui.update { s -> s.copy(message = "Couldn't save the highlight.") }
+                _ui.update { s -> s.copy(message = UiText.of(R.string.reader_err_highlight_save)) }
             }
         }
     }
@@ -282,12 +284,12 @@ class ReaderViewModel @Inject constructor(
                     refreshLocalAnnotations()
                     syncAnnotations()
                 }
-                .onFailure { _ui.update { s -> s.copy(message = "Couldn't delete the highlight.") } }
+                .onFailure { _ui.update { s -> s.copy(message = UiText.of(R.string.reader_err_highlight_delete)) } }
         }
     }
 
     fun onError(message: String) {
-        _ui.update { it.copy(error = message) }
+        _ui.update { it.copy(error = UiText.raw(message)) }
     }
 
     fun updateSettings(settings: ReaderSettings) {

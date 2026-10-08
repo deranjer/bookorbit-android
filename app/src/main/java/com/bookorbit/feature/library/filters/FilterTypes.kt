@@ -1,5 +1,6 @@
 package com.bookorbit.feature.library.filters
 
+import com.bookorbit.R
 import kotlinx.serialization.Serializable
 
 /**
@@ -36,45 +37,46 @@ data class StoredFilterPrefs(
 val DEFAULT_FILTERS = LibraryFilters()
 val DEFAULT_SORT = LibrarySort()
 
-val READ_STATUS_OPTIONS: List<Pair<String, String>> = listOf(
-    "unread" to "Unread",
-    "want_to_read" to "Want to Read",
-    "reading" to "Reading",
-    "on_hold" to "On Hold",
-    "rereading" to "Rereading",
-    "read" to "Read",
-    "skimmed" to "Skimmed",
-    "abandoned" to "Abandoned",
+/** Filter options as (server value, label resource). Labels stay resource ids so this file holds no English. */
+val READ_STATUS_OPTIONS: List<Pair<String, Int>> = listOf(
+    "unread" to R.string.status_unread,
+    "want_to_read" to R.string.status_want_to_read,
+    "reading" to R.string.status_reading,
+    "on_hold" to R.string.status_on_hold,
+    "rereading" to R.string.status_rereading,
+    "read" to R.string.status_read,
+    "skimmed" to R.string.status_skimmed,
+    "abandoned" to R.string.status_abandoned,
 )
 
-val READ_PROGRESS_OPTIONS: List<Pair<String, String>> = listOf(
-    "unread" to "Unread",
-    "inProgress" to "In Progress",
-    "finished" to "Finished",
+val READ_PROGRESS_OPTIONS: List<Pair<String, Int>> = listOf(
+    "unread" to R.string.progress_unread,
+    "inProgress" to R.string.progress_in_progress,
+    "finished" to R.string.progress_finished,
 )
 
-val FILE_AVAILABILITY_OPTIONS: List<Pair<String, String>> = listOf(
-    "present" to "Present",
-    "missing" to "Missing",
+val FILE_AVAILABILITY_OPTIONS: List<Pair<String, Int>> = listOf(
+    "present" to R.string.availability_present,
+    "missing" to R.string.availability_missing,
 )
 
 val FORMAT_OPTIONS: List<String> = listOf(
     "epub", "pdf", "mobi", "azw3", "cbz", "cbr", "fb2", "m4b", "mp3", "m4a", "opus", "ogg", "flac",
 )
 
-val SORT_OPTIONS: List<Pair<String, String>> = listOf(
-    "title" to "Title",
-    "author" to "Author",
-    "addedAt" to "Date Added",
-    "updatedAt" to "Date Updated",
-    "publishedYear" to "Published Year",
-    "rating" to "Rating",
-    "series" to "Series",
-    "pageCount" to "Page Count",
-    "readStatus" to "Read Status",
-    "readProgress" to "Read Progress",
-    "lastReadAt" to "Last Read",
-    "random" to "Random",
+val SORT_OPTIONS: List<Pair<String, Int>> = listOf(
+    "title" to R.string.sort_title,
+    "author" to R.string.sort_author,
+    "addedAt" to R.string.sort_added,
+    "updatedAt" to R.string.sort_updated,
+    "publishedYear" to R.string.sort_published,
+    "rating" to R.string.sort_rating,
+    "series" to R.string.sort_series,
+    "pageCount" to R.string.sort_pages,
+    "readStatus" to R.string.sort_status,
+    "readProgress" to R.string.sort_progress,
+    "lastReadAt" to R.string.sort_last_read,
+    "random" to R.string.sort_random,
 )
 
 /** Catalog kinds for the typeahead multiselects. */

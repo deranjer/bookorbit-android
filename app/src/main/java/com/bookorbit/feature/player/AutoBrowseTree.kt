@@ -48,21 +48,36 @@ object AutoBrowseTree {
 
     enum class CompletionStatus { NOT_PLAYED, PARTIALLY_PLAYED, FULLY_PLAYED }
 
+    /**
+     * The words shown in the car. They come from string resources (built per request by the media
+     * callback, so they follow the device language) but are passed in, keeping this object free of
+     * Android resources and easy to unit test.
+     */
+    data class Labels(
+        val appName: String,
+        val continueListening: String,
+        val downloaded: String,
+        /** Fallback for a book with no title. */
+        val audiobook: String,
+        /** "Chapters · <book title>" */
+        val chaptersOf: (bookTitle: String) -> String,
+    )
+
     data class CurrentBookInfo(val bookId: Int, val title: String, val ranges: List<ChapterRange>, val positionSec: Double)
 
-    fun currentBookInfo(state: PlayerManager.UiState): CurrentBookInfo? {
+    fun currentBookInfo(state: PlayerManager.UiState, labels: Labels): CurrentBookInfo? {
         val book = state.currentBook ?: return null
         val ranges = PlaybackQueue.chapterRanges(state.chapters, state.totalDurationSec)
-        return CurrentBookInfo(book.id, book.title ?: "Audiobook", ranges, state.positionSec)
+        return CurrentBookInfo(book.id, book.title ?: labels.audiobook, ranges, state.positionSec)
     }
 
     /** Top-level shelves shown under the root. */
-    fun rootChildren(current: CurrentBookInfo?): List<BrowseEntry> = buildList {
+    fun rootChildren(current: CurrentBookInfo?, labels: Labels): List<BrowseEntry> = buildList {
         if (current != null && current.ranges.size >= 2) {
-            add(BrowseEntry(NOW_PLAYING_CHAPTERS_ID, "Chapters · ${current.title}", null, null, isPlayable = false))
+            add(BrowseEntry(NOW_PLAYING_CHAPTERS_ID, labels.chaptersOf(current.title), null, null, isPlayable = false))
         }
-        add(BrowseEntry(CONTINUE_ID, "Continue listening", null, null, isPlayable = false))
-        add(BrowseEntry(DOWNLOADS_ID, "Downloaded", null, null, isPlayable = false))
+        add(BrowseEntry(CONTINUE_ID, labels.continueListening, null, null, isPlayable = false))
+        add(BrowseEntry(DOWNLOADS_ID, labels.downloaded, null, null, isPlayable = false))
     }
 
     fun chapterMediaId(bookId: Int, index: Int) = "$CHAPTER_PREFIX$bookId/$index"
@@ -86,10 +101,10 @@ object AutoBrowseTree {
     }
 
     /** Completed audiobook downloads as playable items (most recently downloaded first). */
-    fun downloadedAudiobooks(downloads: List<DownloadEntity>): List<BrowseEntry> =
+    fun downloadedAudiobooks(downloads: List<DownloadEntity>, labels: Labels): List<BrowseEntry> =
         downloads.filter { it.isComplete }
             .sortedByDescending { it.downloadedAt }
-            .map { it.toBrowseEntry() }
+            .map { it.toBrowseEntry(labels) }
 
     /**
      * Downloaded audiobooks that have a saved listening position, ordered by most recently played.
@@ -99,14 +114,15 @@ object AutoBrowseTree {
     fun continueListening(
         downloads: List<DownloadEntity>,
         progress: List<AudioProgressEntity>,
+        labels: Labels,
     ): List<BrowseEntry> {
         val byId = downloads.filter { it.isComplete }.associateBy { it.bookId }
         return progress.sortedByDescending { it.updatedAt }
-            .mapNotNull { byId[it.bookId]?.toBrowseEntry() }
+            .mapNotNull { byId[it.bookId]?.toBrowseEntry(labels) }
     }
 
     /** Builds the browsable root node. */
-    fun rootMediaItem(): MediaItem = browsableItem(ROOT_ID, "BookOrbit", null)
+    fun rootMediaItem(labels: Labels): MediaItem = browsableItem(ROOT_ID, labels.appName, null)
 
     @OptIn(UnstableApi::class)
     fun toMediaItem(entry: BrowseEntry): MediaItem =
@@ -157,9 +173,9 @@ object AutoBrowseTree {
     private val DownloadEntity.isComplete: Boolean
         get() = isAudiobook && status.isCompleteDownloadStatus()
 
-    private fun DownloadEntity.toBrowseEntry(): BrowseEntry = BrowseEntry(
+    private fun DownloadEntity.toBrowseEntry(labels: Labels): BrowseEntry = BrowseEntry(
         mediaId = bookMediaId(bookId),
-        title = title ?: "Audiobook",
+        title = title ?: labels.audiobook,
         subtitle = narrators.ifBlank { authors }.ifBlank { null },
         coverPath = coverLocalPath,
         isPlayable = true,

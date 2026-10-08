@@ -1,5 +1,8 @@
 package com.bookorbit.feature.player
 
+import com.bookorbit.ui.asString
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -78,7 +81,7 @@ fun PlayerScreen(
     val toastContext = androidx.compose.ui.platform.LocalContext.current
     message?.let { msg ->
         LaunchedEffect(msg) {
-            android.widget.Toast.makeText(toastContext, msg, android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(toastContext, msg.resolve(toastContext), android.widget.Toast.LENGTH_SHORT).show()
             vm.consumeMessage()
         }
     }
@@ -91,7 +94,7 @@ fun PlayerScreen(
     if (book == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
-                state.playerError ?: "Nothing playing",
+                state.playerError?.asString() ?: stringResource(R.string.player_nothing_playing),
                 color = if (state.playerError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 32.dp),
@@ -132,10 +135,10 @@ fun PlayerScreen(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Close")
+                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.close))
             }
             Text(
-                "NOW PLAYING",
+                stringResource(R.string.now_playing),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
@@ -143,21 +146,21 @@ fun PlayerScreen(
             )
             if (ranges.isNotEmpty()) {
                 IconButton(onClick = { showChapters = true }) {
-                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Chapters")
+                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = stringResource(R.string.chapters))
                 }
             }
             IconButton(onClick = {
                 vm.loadBookmarks()
                 showBookmarks = true
             }) {
-                Icon(Icons.Filled.Bookmarks, contentDescription = "Bookmarks")
+                Icon(Icons.Filled.Bookmarks, contentDescription = stringResource(R.string.bookmarks))
             }
             CastButton()
             val timerActive = state.sleepTimerRemainingSec != null
             IconButton(onClick = { showSleepTimerSheet = true }) {
                 Icon(
                     Icons.Filled.Bedtime,
-                    contentDescription = if (timerActive) "Sleep timer active" else "Sleep timer",
+                    contentDescription = stringResource(if (timerActive) R.string.player_sleep_timer_active else R.string.sleep_timer),
                     tint = if (timerActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -181,7 +184,7 @@ fun PlayerScreen(
                     .background(MaterialTheme.colorScheme.surface),
             )
             Text(
-                book.title ?: "Audiobook",
+                book.title ?: stringResource(R.string.player_audiobook),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -195,7 +198,7 @@ fun PlayerScreen(
             )
             if (state.isCasting) {
                 Text(
-                    "Casting to ${state.castDeviceName ?: "device"}",
+                    stringResource(R.string.player_casting_to, state.castDeviceName ?: stringResource(R.string.player_casting_device)),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp),
@@ -213,7 +216,7 @@ fun PlayerScreen(
             }
             state.playerError?.let {
                 Text(
-                    it,
+                    it.asString(),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                     textAlign = TextAlign.Center,
@@ -244,7 +247,7 @@ fun PlayerScreen(
         }
         if (chapterMode && currentChapter != null) {
             Text(
-                "Ch ${currentChapter.index + 1} of ${ranges.size} · ${PlaybackQueue.formatDurationShort(total - displayBookPos)} left in book",
+                stringResource(R.string.ch_of_left_in_book, currentChapter.index + 1, ranges.size, PlaybackQueue.formatDurationShort(total - displayBookPos)),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
@@ -260,10 +263,10 @@ fun PlayerScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = { prevChapter() }, enabled = state.chapters.isNotEmpty()) {
-                Icon(Icons.Filled.SkipPrevious, contentDescription = "Previous chapter")
+                Icon(Icons.Filled.SkipPrevious, contentDescription = stringResource(R.string.previous_chapter))
             }
             IconButton(onClick = { vm.skipBack() }) {
-                Icon(Icons.Filled.Replay10, contentDescription = "Skip back")
+                Icon(Icons.Filled.Replay10, contentDescription = stringResource(R.string.skip_back))
             }
             Box(
                 modifier = Modifier
@@ -278,7 +281,7 @@ fun PlayerScreen(
                     IconButton(onClick = { vm.togglePlay() }) {
                         Icon(
                             if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                            contentDescription = if (state.isPlaying) "Pause" else "Play",
+                            contentDescription = stringResource(if (state.isPlaying) R.string.player_pause else R.string.player_play),
                             tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(38.dp),
                         )
@@ -286,10 +289,10 @@ fun PlayerScreen(
                 }
             }
             IconButton(onClick = { vm.skipForward() }) {
-                Icon(Icons.Filled.Forward30, contentDescription = "Skip forward")
+                Icon(Icons.Filled.Forward30, contentDescription = stringResource(R.string.skip_forward))
             }
             IconButton(onClick = { nextChapter() }, enabled = state.chapters.isNotEmpty()) {
-                Icon(Icons.Filled.SkipNext, contentDescription = "Next chapter")
+                Icon(Icons.Filled.SkipNext, contentDescription = stringResource(R.string.next_chapter))
             }
         }
 
@@ -316,7 +319,7 @@ fun PlayerScreen(
                 )
             } else {
                 IconButton(onClick = { showSpeedSheet = true }) {
-                    Icon(Icons.Filled.Tune, contentDescription = "Custom speed")
+                    Icon(Icons.Filled.Tune, contentDescription = stringResource(R.string.custom_speed))
                 }
             }
         }

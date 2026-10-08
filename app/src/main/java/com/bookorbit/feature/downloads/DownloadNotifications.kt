@@ -1,5 +1,6 @@
 package com.bookorbit.feature.downloads
 
+import com.bookorbit.R
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -23,7 +24,7 @@ object DownloadNotifications {
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setContentTitle(title)
-            .setContentText(percent?.let { "Downloading · $it%" } ?: "Downloading")
+            .setContentText(percent?.let { context.getString(R.string.notif_downloading_percent, it) } ?: context.getString(R.string.notif_downloading))
             .setProgress(100, percent ?: 0, percent == null)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -41,8 +42,8 @@ object DownloadNotifications {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         if (manager.getNotificationChannel(CHANNEL_ID) != null) return
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Downloads", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Progress of books downloading for offline use"
+            NotificationChannel(CHANNEL_ID, context.getString(R.string.notif_channel_downloads), NotificationManager.IMPORTANCE_LOW).apply {
+                description = context.getString(R.string.notif_channel_downloads_desc)
             },
         )
     }

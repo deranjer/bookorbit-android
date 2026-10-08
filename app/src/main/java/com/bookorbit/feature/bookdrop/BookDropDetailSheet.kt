@@ -1,5 +1,9 @@
 package com.bookorbit.feature.bookdrop
 
+import com.bookorbit.ui.UiText
+import com.bookorbit.ui.asString
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -72,7 +76,7 @@ fun BookDropDetailSheet(
     }
 
     val busy = action.inProgress
-    var approveError by remember { mutableStateOf<String?>(null) }
+    var approveError by remember { mutableStateOf<UiText?>(null) }
     val hasDestination = libraryId != null && folderId != null
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
@@ -107,24 +111,24 @@ fun BookDropDetailSheet(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Icon(Icons.Filled.AutoFixHigh, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                    Text("Apply fetched metadata")
+                    Text(stringResource(R.string.apply_fetched_metadata))
                 }
             }
 
             HorizontalDivider()
 
-            Field("Title", form.title) { form.title = it }
-            Field("Subtitle", form.subtitle) { form.subtitle = it }
-            Field("Authors (comma-separated)", form.authors) { form.authors = it }
-            Field("Description", form.description, singleLine = false) { form.description = it }
-            Field("Publisher", form.publisher) { form.publisher = it }
-            Field("Year", form.year, keyboard = KeyboardType.Number) { form.year = it }
-            Field("Language", form.language) { form.language = it }
-            Field("ISBN-13", form.isbn13) { form.isbn13 = it }
-            Field("ISBN-10", form.isbn10) { form.isbn10 = it }
-            Field("Series", form.seriesName) { form.seriesName = it }
-            Field("Series #", form.seriesIndex, keyboard = KeyboardType.Number) { form.seriesIndex = it }
-            Field("Genres (comma-separated)", form.genres) { form.genres = it }
+            Field(stringResource(R.string.title), form.title) { form.title = it }
+            Field(stringResource(R.string.subtitle), form.subtitle) { form.subtitle = it }
+            Field(stringResource(R.string.authors_comma_separated), form.authors) { form.authors = it }
+            Field(stringResource(R.string.description), form.description, singleLine = false) { form.description = it }
+            Field(stringResource(R.string.publisher), form.publisher) { form.publisher = it }
+            Field(stringResource(R.string.year), form.year, keyboard = KeyboardType.Number) { form.year = it }
+            Field(stringResource(R.string.language), form.language) { form.language = it }
+            Field(stringResource(R.string.isbn_13), form.isbn13) { form.isbn13 = it }
+            Field(stringResource(R.string.isbn_10), form.isbn10) { form.isbn10 = it }
+            Field(stringResource(R.string.series), form.seriesName) { form.seriesName = it }
+            Field(stringResource(R.string.series_2), form.seriesIndex, keyboard = KeyboardType.Number) { form.seriesIndex = it }
+            Field(stringResource(R.string.genres_comma_separated), form.genres) { form.genres = it }
 
             HorizontalDivider()
 
@@ -140,7 +144,7 @@ fun BookDropDetailSheet(
             )
 
             approveError?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                Text(it.asString(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -149,7 +153,7 @@ fun BookDropDetailSheet(
                     enabled = !busy,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Save")
+                    Text(stringResource(R.string.save))
                 }
                 Button(
                     onClick = {
@@ -167,7 +171,7 @@ fun BookDropDetailSheet(
                     if (busy) {
                         CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
                     }
-                    Text("Approve")
+                    Text(stringResource(R.string.approve))
                 }
             }
 
@@ -177,7 +181,7 @@ fun BookDropDetailSheet(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                Text("Discard")
+                Text(stringResource(R.string.discard))
             }
         }
     }

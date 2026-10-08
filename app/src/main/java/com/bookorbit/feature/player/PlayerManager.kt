@@ -1,5 +1,7 @@
 package com.bookorbit.feature.player
 
+import com.bookorbit.R
+import com.bookorbit.ui.UiText
 import android.content.ComponentName
 import android.content.Context
 import android.util.Log
@@ -75,7 +77,7 @@ class PlayerManager @Inject constructor(
         val castDeviceName: String? = null,
         /** Set on a load or playback failure so the UI can explain why nothing is playing, instead
          * of silently doing nothing (see issue #38). Cleared on the next successful load/resume. */
-        val playerError: String? = null,
+        val playerError: UiText? = null,
         val progressBarMode: ProgressBarMode = ProgressBarMode.BOOK,
     )
 
@@ -174,8 +176,7 @@ class PlayerManager @Inject constructor(
             if (data == null) {
                 Log.e(TAG, "unable to resolve playback data for bookId=$bookId")
                 _state.update {
-                    it.copy(playerError = "Couldn't load this audiobook. Check your connection, " +
-                        "or that it finished downloading for offline use.")
+                    it.copy(playerError = UiText.of(R.string.player_err_load))
                 }
                 return@launch
             }
@@ -450,19 +451,19 @@ class PlayerManager @Inject constructor(
 
     /** Friendly text for a Media3 playback failure - falls back to the exception's own message
      * (still logged in full above) when the error code isn't one of the common, expected cases. */
-    private fun describePlayerError(error: PlaybackException): String = when (error.errorCode) {
+    private fun describePlayerError(error: PlaybackException): UiText = when (error.errorCode) {
         PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
         PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
-        -> "Lost connection to the server while playing."
+        -> UiText.of(R.string.player_err_network)
         PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS,
         PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
         PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND,
-        -> "The server couldn't serve this audiobook's file."
+        -> UiText.of(R.string.player_err_server)
         PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
         PlaybackException.ERROR_CODE_DECODING_FAILED,
         PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED,
-        -> "This audio format isn't supported on this device."
-        else -> error.message ?: "Playback failed unexpectedly."
+        -> UiText.of(R.string.player_err_format)
+        else -> error.message?.let { UiText.raw(it) } ?: UiText.of(R.string.player_err_unknown)
     }
 
     private companion object {

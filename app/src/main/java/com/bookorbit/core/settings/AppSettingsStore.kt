@@ -31,6 +31,7 @@ class AppSettingsStore @Inject constructor(
     private val dynamicColorKey = booleanPreferencesKey("dynamic_color")
     private val comicRtlKey = booleanPreferencesKey("comic_rtl")
     private val seriesViewModeKey = stringPreferencesKey("series_view_mode")
+    private val navItemsKey = stringPreferencesKey("nav_items")
 
     val themeMode = context.appSettingsDataStore.data.map { prefs ->
         prefs[themeModeKey]?.let { raw -> runCatching { ThemeMode.valueOf(raw) }.getOrNull() } ?: ThemeMode.SYSTEM
@@ -62,6 +63,13 @@ class AppSettingsStore @Inject constructor(
 
     val seriesViewMode = context.appSettingsDataStore.data.map { prefs ->
         prefs[seriesViewModeKey]?.let { raw -> runCatching { SeriesViewMode.valueOf(raw) }.getOrNull() } ?: SeriesViewMode.LIST
+    }
+
+    /** Bottom-bar buttons as saved ids in order; null until stored (callers fall back to the default). */
+    val navItems = context.appSettingsDataStore.data.map { it[navItemsKey] }
+
+    suspend fun setNavItems(serialized: String) {
+        context.appSettingsDataStore.edit { it[navItemsKey] = serialized }
     }
 
     suspend fun setSeriesViewMode(mode: SeriesViewMode) {

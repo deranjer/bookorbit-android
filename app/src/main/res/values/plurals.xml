@@ -1,0 +1,34 @@
+<resources>
+    <plurals name="home_streak_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <plurals name="bookdrop_msg_applied_fetched">
+        <item quantity="one">Applied fetched metadata to %d file</item>
+        <item quantity="other">Applied fetched metadata to %d files</item>
+    </plurals>
+    <plurals name="bookdrop_msg_duplicates">
+        <item quantity="one"> (%d duplicate)</item>
+        <item quantity="other"> (%d duplicates)</item>
+    </plurals>
+    <plurals name="rsearch_first_n">
+        <item quantity="one">First %d match</item>
+        <item quantity="other">First %d matches</item>
+    </plurals>
+    <plurals name="rsearch_n">
+        <item quantity="one">%d match</item>
+        <item quantity="other">%d matches</item>
+    </plurals>
+    <plurals name="lib_book_count">
+        <item quantity="one">%d book</item>
+        <item quantity="other">%d books</item>
+    </plurals>
+    <plurals name="detail_in_collections">
+        <item quantity="one">In %d collection</item>
+        <item quantity="other">In %d collections</item>
+    </plurals>
+    <plurals name="settings_downloads_summary">
+        <item quantity="one">%1$d book, %2$s</item>
+        <item quantity="other">%1$d books, %2$s</item>
+    </plurals>
+</resources>

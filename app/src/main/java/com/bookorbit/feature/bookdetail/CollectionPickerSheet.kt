@@ -1,5 +1,7 @@
 package com.bookorbit.feature.bookdetail
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -33,7 +35,7 @@ fun CollectionPickerSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Text(
-            "Add to Collection",
+            stringResource(R.string.add_to_collection),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(start = 20.dp, bottom = 8.dp),
         )
@@ -46,7 +48,7 @@ fun CollectionPickerSheet(
             ) { CircularProgressIndicator() }
 
             state.items.isEmpty() -> Text(
-                "No collections yet. Create one from the Collections tab.",
+                stringResource(R.string.no_collections_yet_create_one),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(20.dp),
@@ -73,12 +75,12 @@ fun CollectionPickerSheet(
                             CircularProgressIndicator(modifier = Modifier.padding(2.dp))
                         isMember -> Icon(
                             Icons.Filled.CheckCircle,
-                            contentDescription = "In collection",
+                            contentDescription = stringResource(R.string.in_collection),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                         else -> Icon(
                             Icons.Outlined.Circle,
-                            contentDescription = "Not in collection",
+                            contentDescription = stringResource(R.string.not_in_collection),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }

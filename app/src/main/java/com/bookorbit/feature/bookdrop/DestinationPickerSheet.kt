@@ -1,5 +1,7 @@
 package com.bookorbit.feature.bookdrop
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,15 +48,15 @@ fun LibraryFolderSelector(
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         DropdownField(
-            label = "Destination library",
-            value = selectedLibrary?.name ?: "Select a library",
+            label = stringResource(R.string.destination_library),
+            value = selectedLibrary?.name ?: stringResource(R.string.dest_select_library),
             options = libraries,
             optionLabel = { it.name },
             onSelect = { onLibrarySelected(it.id) },
         )
         DropdownField(
-            label = "Destination folder",
-            value = selectedFolder?.path ?: if (folders.isEmpty()) "No folders" else "Select a folder",
+            label = stringResource(R.string.destination_folder),
+            value = selectedFolder?.path ?: stringResource(if (folders.isEmpty()) R.string.dest_no_folders else R.string.dest_select_folder),
             options = folders,
             optionLabel = LibraryFolder::path,
             onSelect = { onFolderSelected(it.id) },
@@ -132,7 +134,7 @@ fun DestinationPickerSheet(
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Set Destination", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.set_destination_2), style = MaterialTheme.typography.titleMedium)
             LibraryFolderSelector(
                 libraries = libraries,
                 selectedLibraryId = libraryId,

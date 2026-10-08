@@ -1,5 +1,7 @@
 package com.bookorbit.feature.bookdrop
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,11 +18,11 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun BookDockStatusBadge(status: String, modifier: Modifier = Modifier) {
     val (color, label) = when (status) {
-        "pending" -> Color(0xFF868E96) to "Pending"
-        "extracting" -> Color(0xFF1971C2) to "Extracting"
-        "fetching" -> Color(0xFF1098AD) to "Fetching"
-        "ready" -> Color(0xFF2F9E44) to "Ready"
-        "error" -> Color(0xFFC92A2A) to "Error"
+        "pending" -> Color(0xFF868E96) to stringResource(R.string.bookdrop_status_pending)
+        "extracting" -> Color(0xFF1971C2) to stringResource(R.string.bookdrop_status_extracting)
+        "fetching" -> Color(0xFF1098AD) to stringResource(R.string.bookdrop_status_fetching)
+        "ready" -> Color(0xFF2F9E44) to stringResource(R.string.bookdrop_status_ready)
+        "error" -> Color(0xFFC92A2A) to stringResource(R.string.bookdrop_status_error)
         else -> Color(0xFF868E96) to status.replaceFirstChar { it.uppercase() }
     }
     Text(

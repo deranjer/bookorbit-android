@@ -1,6 +1,10 @@
 package com.bookorbit.feature.library
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.Badge
+import androidx.compose.material3.Button
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -39,6 +44,7 @@ fun LibrariesScreen(
     vm: LibrariesViewModel = hiltViewModel(),
 ) {
     val libraries by vm.libraries.collectAsStateWithLifecycle()
+    val status by vm.status.collectAsStateWithLifecycle()
     val selectedId by vm.selectedId.collectAsStateWithLifecycle()
     val filters by vm.filters.collectAsStateWithLifecycle()
     val sort by vm.sort.collectAsStateWithLifecycle()
@@ -64,20 +70,20 @@ fun LibrariesScreen(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        selected?.name ?: "Library",
+                        selected?.name ?: stringResource(R.string.lib_default_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                     )
                     selected?.bookCount?.let { count ->
                         Text(
-                            "$count ${if (count == 1) "book" else "books"}",
+                            pluralStringResource(R.plurals.lib_book_count, count, count),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
                 if (libraries.size > 1) {
-                    Icon(Icons.Filled.ArrowDropDown, contentDescription = "Choose library")
+                    Icon(Icons.Filled.ArrowDropDown, contentDescription = stringResource(R.string.choose_library))
                 }
                 DropdownMenu(expanded = pickerOpen, onDismissRequest = { pickerOpen = false }) {
                     libraries.forEach { lib ->
@@ -94,18 +100,44 @@ fun LibrariesScreen(
 
             IconButton(onClick = { sheetOpen = true }, enabled = selectedId != null) {
                 BadgedBox(badge = { if (activeFilterCount > 0) Badge { Text("$activeFilterCount") } }) {
-                    Icon(Icons.Filled.FilterList, contentDescription = "Filter and sort")
+                    Icon(Icons.Filled.FilterList, contentDescription = stringResource(R.string.filter_and_sort))
                 }
             }
         }
         HorizontalDivider()
 
-        BookGrid(
-            items = books,
-            onBookClick = onBookClick,
-            emptyText = "No books in this library.",
-            modifier = Modifier.fillMaxSize(),
-        )
+        when (status) {
+            LibrariesViewModel.Status.ERROR -> Column(
+                modifier = Modifier.fillMaxSize().padding(32.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(stringResource(R.string.couldn_t_load_your_libraries), color = MaterialTheme.colorScheme.error)
+                Text(
+                    stringResource(R.string.check_your_connection_books_you),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                Button(onClick = vm::loadLibraries, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.retry)) }
+            }
+            LibrariesViewModel.Status.EMPTY -> Column(
+                modifier = Modifier.fillMaxSize().padding(32.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    stringResource(R.string.you_don_t_have_access),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            else -> BookGrid(
+                items = books,
+                onBookClick = onBookClick,
+                emptyText = stringResource(R.string.no_books_in_this_library),
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 
     if (sheetOpen) {
