@@ -25,6 +25,7 @@ review against the web client (demo.bookorbit.app) and the server API.
 - **Settings screen** — appearance (system/light/dark, with a real light `ColorScheme`, not just
   system-dark repeated), Wi-Fi-only downloads, image cache / bulk downloads clearing, default
   playback speed, and an About section showing app/server version and update availability
+- **In-book search** — search the open book, results by chapter with matches outlined in the page
 - **Highlights and notes (EPUB, MOBI, AZW3, FB2)** — select text to highlight in five colours, add notes, tap a
   highlight to recolour/delete, browse all highlights from the reader; synced with the web annotations hub
 - **Reading sessions** — reading and listening time reported to the server (`source: android`) so mobile
@@ -53,7 +54,6 @@ Server endpoints available but unused by this app:
 
 - **Reader bookmarks and PDF highlights** — EPUB-family highlights/notes shipped (see below); PDF annotations
   (page rectangles) and bookmarks are still missing. Highlights are online-only; queue them offline like progress.
-- **In-book search** — `search.js` is vendored but not wired to the bridge or UI.
 - **Book detail depth** — files/editions with per-format progress, narrators, tappable author and
   series, review, external ratings.
 - **Fix: synopsis renders raw HTML** (`<br />`, `<i>`), double status-bar inset on detail top bar,

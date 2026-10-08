@@ -4,7 +4,10 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -27,6 +30,9 @@ data class TocItem(
 /** A box in the WebView's own coordinate space; CSS px equal dp, so it can be used as dp directly. */
 data class ViewportRect(val left: Double, val top: Double, val right: Double, val bottom: Double)
 
+/** One in-book search match, with the text around it. */
+data class SearchHit(val cfi: String, val pre: String, val match: String, val post: String)
+
 sealed interface ReaderEvent {
     data object Ready : ReaderEvent
     data class Loaded(val toc: List<TocItem>, val title: String?) : ReaderEvent
@@ -42,6 +48,11 @@ sealed interface ReaderEvent {
     data class Selection(val text: String, val cfi: String?, val rect: ViewportRect?) : ReaderEvent
     data object SelectionCleared : ReaderEvent
     data class AnnotationTap(val cfi: String, val rect: ViewportRect?) : ReaderEvent
+
+    /** A batch of matches from one section ([label] is its chapter). */
+    data class SearchResults(val label: String, val hits: List<SearchHit>) : ReaderEvent
+    data class SearchProgress(val progress: Double) : ReaderEvent
+    data class SearchDone(val total: Int, val capped: Boolean) : ReaderEvent
 }
 
 object ReaderBridge {
@@ -99,6 +110,24 @@ object ReaderBridge {
                 ReaderEvent.Selection(it, obj["cfi"]?.jsonPrimitive?.contentOrNull, parseRect(obj["rect"]))
             }
             "selectionCleared" -> ReaderEvent.SelectionCleared
+            "searchResults" -> {
+                val hits = obj["items"]?.jsonArray?.mapNotNull { el ->
+                    val o = el.jsonObject
+                    val cfi = o["cfi"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                    SearchHit(
+                        cfi = cfi,
+                        pre = o["pre"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                        match = o["match"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                        post = o["post"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                    )
+                }.orEmpty()
+                ReaderEvent.SearchResults(obj["label"]?.jsonPrimitive?.contentOrNull.orEmpty(), hits)
+            }
+            "searchProgress" -> obj["progress"]?.jsonPrimitive?.doubleOrNull?.let { ReaderEvent.SearchProgress(it) }
+            "searchDone" -> ReaderEvent.SearchDone(
+                total = obj["total"]?.jsonPrimitive?.intOrNull ?: 0,
+                capped = obj["capped"]?.jsonPrimitive?.booleanOrNull ?: false,
+            )
             "annotationTap" -> obj["cfi"]?.jsonPrimitive?.contentOrNull?.let {
                 ReaderEvent.AnnotationTap(it, parseRect(obj["rect"]))
             }

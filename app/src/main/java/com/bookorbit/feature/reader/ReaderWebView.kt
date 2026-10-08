@@ -94,6 +94,10 @@ class ReaderController {
         command(buildJsonObject { put("type", "setAnnotations"); put("items", arr) }.toString())
     }
 
+    fun search(query: String) = command(buildJsonObject { put("type", "search"); put("query", query) }.toString())
+
+    fun clearSearch() = command(buildJsonObject { put("type", "clearSearch") }.toString())
+
     fun clearSelection() = command(buildJsonObject { put("type", "clearSelection") }.toString())
 
     fun applyStyles(settings: ReaderSettings) {
