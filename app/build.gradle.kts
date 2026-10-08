@@ -38,6 +38,11 @@ android {
     namespace = "com.bookorbit"
     compileSdk = 36
 
+    testOptions {
+        // Android framework calls such as Log.w are no-ops in JVM unit tests instead of throwing.
+        unitTests.isReturnDefaultValues = true
+    }
+
     defaultConfig {
         applicationId = "com.bookorbit"
         minSdk = 26

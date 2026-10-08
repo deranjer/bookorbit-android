@@ -6,6 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.bookorbit.feature.bookdetail.BookDetailRepository
 import com.bookorbit.feature.player.AudioProgressRepository
+import com.bookorbit.feature.reader.ReaderAnnotationRepository
 import com.bookorbit.feature.reader.ReaderProgressRepository
 import com.bookorbit.feature.sessions.ReadingSessionTracker
 import dagger.assisted.Assisted
@@ -23,12 +24,14 @@ class SyncWorker @AssistedInject constructor(
     private val audioProgressRepository: AudioProgressRepository,
     private val bookDetailRepository: BookDetailRepository,
     private val readingSessionTracker: ReadingSessionTracker,
+    private val annotationRepository: ReaderAnnotationRepository,
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
         // Run every flush (no short-circuiting `||`): one stuck queue must not starve the others.
         val pending = listOf(
             readingSessionTracker.flushPending(),
+            annotationRepository.flushPending(),
             readerProgressRepository.flushPending(),
             audioProgressRepository.flushPending(),
             bookDetailRepository.flushPendingRatings(),
