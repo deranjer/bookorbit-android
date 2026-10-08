@@ -37,40 +37,14 @@ import com.bookorbit.core.model.SeriesSummary
 import com.bookorbit.core.settings.SeriesViewMode
 import com.bookorbit.ui.components.BookGrid
 
+/** Every series; tapping one opens its books ([SeriesBooksScreen]) as its own route. */
 @Composable
 fun SeriesScreen(
-    onBookClick: (Int) -> Unit,
+    onSeriesClick: (id: Int, name: String) -> Unit,
     vm: SeriesViewModel = hiltViewModel(),
 ) {
     val series = vm.series.collectAsLazyPagingItems()
     val viewMode by vm.viewMode.collectAsStateWithLifecycle()
-    var selected by remember { mutableStateOf<SeriesSummary?>(null) }
-
-    val current = selected
-    if (current != null) {
-        val books = remember(current.id) { vm.seriesBooks(current.id) }.collectAsLazyPagingItems()
-        Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = { selected = null }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
-                Text(
-                    current.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            HorizontalDivider()
-            BookGrid(items = books, onBookClick = onBookClick, emptyText = "No books in this series.")
-        }
-        return
-    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -94,11 +68,23 @@ fun SeriesScreen(
                 )
             }
         }
+        val open: (SeriesSummary) -> Unit = { onSeriesClick(it.id, it.name) }
         when (viewMode) {
-            SeriesViewMode.LIST -> SeriesList(series = series, onSelect = { selected = it })
-            SeriesViewMode.GRID -> SeriesGrid(series = series, onSelect = { selected = it })
+            SeriesViewMode.LIST -> SeriesList(series = series, onSelect = open)
+            SeriesViewMode.GRID -> SeriesGrid(series = series, onSelect = open)
         }
     }
+}
+
+/** One series' books, as a grid. */
+@Composable
+fun SeriesBooksScreen(
+    seriesId: Int,
+    onBookClick: (Int) -> Unit,
+    vm: SeriesViewModel = hiltViewModel(),
+) {
+    val books = remember(seriesId) { vm.seriesBooks(seriesId) }.collectAsLazyPagingItems()
+    BookGrid(items = books, onBookClick = onBookClick, emptyText = "No books in this series.")
 }
 
 internal fun seriesSubtitle(series: SeriesSummary): String =

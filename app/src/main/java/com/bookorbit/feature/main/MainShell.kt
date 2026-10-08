@@ -1,5 +1,6 @@
 package com.bookorbit.feature.main
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
@@ -33,6 +34,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.bookorbit.core.model.AuthUser
+import com.bookorbit.feature.authors.AuthorBooksScreen
 import com.bookorbit.feature.bookdetail.BookDetailScreen
 import com.bookorbit.feature.bookdrop.BookDropScreen
 import com.bookorbit.feature.dashboard.DashboardScreen
@@ -40,6 +42,7 @@ import com.bookorbit.feature.downloads.DownloadsScreen
 import com.bookorbit.feature.notes.NotesScreen
 import com.bookorbit.feature.player.MiniPlayer
 import com.bookorbit.feature.search.SearchScreen
+import com.bookorbit.feature.series.SeriesBooksScreen
 import com.bookorbit.feature.settings.SettingsScreen
 import com.bookorbit.feature.stats.StatsScreen
 import com.bookorbit.feature.you.YouScreen
@@ -59,7 +62,11 @@ private object SubRoute {
     const val BOOK_DROP = "bookdrop"
     const val SETTINGS = "settings"
     const val BOOK_DETAIL = "book/{id}"
+    const val AUTHOR = "author/{id}?name={name}"
+    const val SERIES = "series/{id}?name={name}"
     fun bookDetail(id: Int) = "book/$id"
+    fun author(id: Int, name: String) = "author/$id?name=${Uri.encode(name)}"
+    fun series(id: Int, name: String) = "series/$id?name=${Uri.encode(name)}"
 
     val fromYou = setOf(STATS, DOWNLOADS, BOOK_DROP, SETTINGS)
 }
@@ -91,6 +98,8 @@ fun MainShell(
     val currentRoute = backStackEntry?.destination?.route
     val isBookDetail = currentRoute == SubRoute.BOOK_DETAIL
     val onBookClick: (Int) -> Unit = { id -> tabNav.navigate(SubRoute.bookDetail(id)) }
+    val onAuthorClick: (Int, String) -> Unit = { id, name -> tabNav.navigate(SubRoute.author(id, name)) }
+    val onSeriesClick: (Int, String) -> Unit = { id, name -> tabNav.navigate(SubRoute.series(id, name)) }
 
     fun navigateTab(route: String) {
         tabNav.navigate(route) {
@@ -115,6 +124,7 @@ fun MainShell(
         SubRoute.DOWNLOADS -> "Downloads"
         SubRoute.BOOK_DROP -> "Book Drop"
         SubRoute.SETTINGS -> "Settings"
+        SubRoute.AUTHOR, SubRoute.SERIES -> backStackEntry?.arguments?.getString("name").orEmpty()
         else -> "BookOrbit"
     }
 
@@ -127,7 +137,7 @@ fun MainShell(
                 TopAppBar(
                     title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     navigationIcon = {
-                        if (currentRoute in SubRoute.fromYou) {
+                        if (currentRoute in SubRoute.fromYou || currentRoute == SubRoute.AUTHOR || currentRoute == SubRoute.SERIES) {
                             IconButton(onClick = { tabNav.popBackStack() }) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                             }
@@ -166,7 +176,27 @@ fun MainShell(
                     onBookClick = onBookClick,
                 )
             }
-            composable(Tab.LIBRARY.route) { LibraryHubScreen(onBookClick = onBookClick) }
+            composable(Tab.LIBRARY.route) {
+                LibraryHubScreen(onBookClick = onBookClick, onAuthorClick = onAuthorClick, onSeriesClick = onSeriesClick)
+            }
+            composable(
+                route = SubRoute.AUTHOR,
+                arguments = listOf(
+                    navArgument("id") { type = NavType.IntType },
+                    navArgument("name") { type = NavType.StringType; defaultValue = "" },
+                ),
+            ) { entry ->
+                AuthorBooksScreen(authorId = entry.arguments?.getInt("id") ?: 0, onBookClick = onBookClick)
+            }
+            composable(
+                route = SubRoute.SERIES,
+                arguments = listOf(
+                    navArgument("id") { type = NavType.IntType },
+                    navArgument("name") { type = NavType.StringType; defaultValue = "" },
+                ),
+            ) { entry ->
+                SeriesBooksScreen(seriesId = entry.arguments?.getInt("id") ?: 0, onBookClick = onBookClick)
+            }
             composable(Tab.SEARCH.route) { SearchScreen(onBookClick = onBookClick) }
             composable(Tab.NOTES.route) { NotesScreen(onBookClick = onBookClick) }
             composable(Tab.YOU.route) {
@@ -198,6 +228,8 @@ fun MainShell(
                     onReadComic = onOpenComic,
                     onListen = onListen,
                     onBookClick = onBookClick,
+                    onAuthorClick = onAuthorClick,
+                    onSeriesClick = onSeriesClick,
                 )
             }
         }

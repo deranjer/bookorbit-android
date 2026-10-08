@@ -83,6 +83,8 @@ fun BookDetailScreen(
     onReadComic: (Int) -> Unit,
     onListen: (Int) -> Unit,
     onBookClick: (Int) -> Unit,
+    onAuthorClick: (id: Int, name: String) -> Unit,
+    onSeriesClick: (id: Int, name: String) -> Unit,
     vm: BookDetailViewModel = hiltViewModel(),
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
@@ -133,6 +135,8 @@ fun BookDetailScreen(
                     onReadComic = onReadComic,
                     onListen = onListen,
                     onBookClick = onBookClick,
+                    onAuthorClick = onAuthorClick,
+                    onSeriesClick = onSeriesClick,
                     onStartDownload = startDownload,
                     onOpenStatusSheet = { statusSheet = true },
                     onOpenCollectionSheet = { collectionSheet = true },
@@ -173,6 +177,8 @@ private fun BookDetailContent(
     onReadComic: (Int) -> Unit,
     onListen: (Int) -> Unit,
     onBookClick: (Int) -> Unit,
+    onAuthorClick: (id: Int, name: String) -> Unit,
+    onSeriesClick: (id: Int, name: String) -> Unit,
     onStartDownload: () -> Unit,
     onOpenStatusSheet: () -> Unit,
     onOpenCollectionSheet: () -> Unit,
@@ -188,7 +194,7 @@ private fun BookDetailContent(
     val download by vm.downloadState.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-        DetailHero(book)
+        DetailHero(book, onAuthorClick = onAuthorClick, onSeriesClick = onSeriesClick)
 
         // Primary actions side by side; download state sits underneath.
         Column(modifier = Modifier.padding(horizontal = 20.dp).padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -255,7 +261,11 @@ private fun BookDetailContent(
 
 /** Cover on a soft tinted backdrop, with title, authors, narrators and series centred beneath. */
 @Composable
-private fun DetailHero(book: BookDetail) {
+private fun DetailHero(
+    book: BookDetail,
+    onAuthorClick: (id: Int, name: String) -> Unit,
+    onSeriesClick: (id: Int, name: String) -> Unit,
+) {
     val imageUrls = LocalImageUrls.current
     Column(
         modifier = Modifier
@@ -283,13 +293,23 @@ private fun DetailHero(book: BookDetail) {
             Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         }
         if (book.authors.isNotEmpty()) {
-            Text(
-                book.authors.joinToString(", ") { it.name },
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
+            // Each author is its own tap target; a long list wraps onto the next line.
+            @OptIn(ExperimentalLayoutApi::class)
+            FlowRow(
                 modifier = Modifier.padding(top = 4.dp),
-            )
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+            ) {
+                book.authors.forEach { author ->
+                    Text(
+                        author.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable(onClickLabel = "Books by ${author.name}") { onAuthorClick(author.id, author.name) }
+                            .padding(vertical = 4.dp),
+                    )
+                }
+            }
         }
         val narrators = book.audioMetadata?.narrators.orEmpty()
         if (narrators.isNotEmpty()) {
@@ -302,7 +322,13 @@ private fun DetailHero(book: BookDetail) {
             )
         }
         book.seriesName?.let { series ->
-            Chip(series + (book.seriesIndex?.let { " #${it.toInt()}" } ?: ""), modifier = Modifier.padding(top = 10.dp))
+            val seriesId = book.seriesId
+            Chip(
+                series + (book.seriesIndex?.let { " #${it.toInt()}" } ?: ""),
+                modifier = Modifier
+                    .padding(top = 10.dp)
+                    .then(if (seriesId != null) Modifier.clickable(onClickLabel = "Books in $series") { onSeriesClick(seriesId, series) } else Modifier),
+            )
         }
     }
 }

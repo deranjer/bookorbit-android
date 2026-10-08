@@ -27,7 +27,11 @@ private val SECTIONS = listOf("Books", "Series", "Authors", "Collections", "Scop
 
 /** The Library tab: one place for every way to browse the collection, switched with chips. */
 @Composable
-fun LibraryHubScreen(onBookClick: (Int) -> Unit) {
+fun LibraryHubScreen(
+    onBookClick: (Int) -> Unit,
+    onAuthorClick: (id: Int, name: String) -> Unit,
+    onSeriesClick: (id: Int, name: String) -> Unit,
+) {
     var section by rememberSaveable { mutableIntStateOf(0) }
     Column(Modifier.fillMaxSize()) {
         LazyRow(
@@ -41,8 +45,8 @@ fun LibraryHubScreen(onBookClick: (Int) -> Unit) {
         Box(Modifier.weight(1f).fillMaxSize().padding(0.dp)) {
             when (section) {
                 0 -> LibrariesScreen(onBookClick = onBookClick)
-                1 -> SeriesScreen(onBookClick = onBookClick)
-                2 -> AuthorsScreen(onBookClick = onBookClick)
+                1 -> SeriesScreen(onSeriesClick = onSeriesClick)
+                2 -> AuthorsScreen(onAuthorClick = onAuthorClick)
                 3 -> CollectionsScreen(onBookClick = onBookClick)
                 else -> SmartScopesScreen(onBookClick = onBookClick)
             }
