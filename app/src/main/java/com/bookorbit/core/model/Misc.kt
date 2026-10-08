@@ -53,3 +53,32 @@ object ScrollerBooks {
         return json.decodeFromJsonElement(ListSerializer(BookCard.serializer()), books)
     }
 }
+
+/** `GET /user-statistics/summary`. */
+@Serializable
+data class UserStatsSummary(
+    val trackedBooks: Int = 0,
+    val startedBooks: Int = 0,
+    val inProgressBooks: Int = 0,
+    val completedBooks: Int = 0,
+    val meanProgressPercent: Double = 0.0,
+)
+
+/** One day of `GET /user-statistics/daily-reading` (or reading-heatmap). [day] is `yyyy-mm-dd`. */
+@Serializable
+data class UserDailyReading(
+    val day: String,
+    val readingSeconds: Long = 0,
+    val progressDelta: Double = 0.0,
+    val eventsCount: Int = 0,
+)
+
+@Serializable
+data class SourceSlice(val bucket: String, val readingSeconds: Long = 0)
+
+/** `GET /user-statistics/reading-source-distribution`: where your reading time came from. */
+@Serializable
+data class SourceDistribution(
+    val totalSeconds: Long = 0,
+    val slices: List<SourceSlice> = emptyList(),
+)

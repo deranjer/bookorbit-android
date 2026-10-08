@@ -329,6 +329,16 @@ interface ApiService {
         @Query("smartScopeId") smartScopeId: Int? = null,
     ): JsonElement
 
+    // --- Reading statistics ---
+    @GET("user-statistics/summary")
+    suspend fun getUserStatsSummary(): com.bookorbit.core.model.UserStatsSummary
+
+    @GET("user-statistics/daily-reading")
+    suspend fun getDailyReading(@Query("days") days: Int): List<com.bookorbit.core.model.UserDailyReading>
+
+    @GET("user-statistics/reading-source-distribution")
+    suspend fun getReadingSources(@Query("days") days: Int): com.bookorbit.core.model.SourceDistribution
+
     @GET("dashboard/widgets/reading-streak")
     suspend fun getReadingStreak(): com.bookorbit.core.model.ReadingStreakWidget
 

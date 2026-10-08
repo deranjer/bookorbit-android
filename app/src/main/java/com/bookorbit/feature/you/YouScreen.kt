@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Badge
@@ -43,6 +44,7 @@ fun YouScreen(
     updateAvailable: Boolean,
     latestVersion: String?,
     canUseBookDrop: Boolean,
+    onStats: () -> Unit,
     onDownloads: () -> Unit,
     onBookDrop: () -> Unit,
     onSettings: () -> Unit,
@@ -69,6 +71,7 @@ fun YouScreen(
             }
         }
         HorizontalDivider()
+        Row2("Reading stats", Icons.Outlined.BarChart, onStats)
         Row2("Downloads", Icons.Filled.Download, onDownloads)
         if (canUseBookDrop) Row2("Book Drop", Icons.Outlined.Inbox, onBookDrop)
         ListItem(
