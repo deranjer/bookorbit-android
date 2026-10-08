@@ -167,9 +167,23 @@ class ReaderViewModel @Inject constructor(
 
     private fun loadAnnotations() {
         viewModelScope.launch {
-            runCatching { annotationRepo.list(bookId) }
-                .onSuccess { list -> _ui.update { it.copy(annotations = list) } }
+            // Show what we already have straight away (cached server copy + queued changes), then
+            // push anything queued and refresh from the server.
+            _ui.update { it.copy(annotations = annotationRepo.local(bookId)) }
+            syncAnnotations()
         }
+    }
+
+    /** Replay queued changes, then reload so placeholder ids are swapped for the server's. */
+    private fun syncAnnotations() {
+        viewModelScope.launch {
+            annotationRepo.flushPending()
+            _ui.update { it.copy(annotations = annotationRepo.load(bookId)) }
+        }
+    }
+
+    private suspend fun refreshLocalAnnotations() {
+        _ui.update { it.copy(annotations = annotationRepo.local(bookId), toolbar = null) }
     }
 
     fun onSelection(text: String, cfi: String?, rect: ViewportRect?) {
@@ -201,13 +215,11 @@ class ReaderViewModel @Inject constructor(
         val target = _ui.value.toolbar ?: return
         val fileId = _ui.value.resolved?.fileId
         viewModelScope.launch {
-            val result = runCatching {
+            runCatching {
                 when {
                     target.annotationId != null -> {
-                        var updated: BookAnnotation? = null
-                        if (color != null) updated = annotationRepo.setColor(bookId, target.annotationId, color)
-                        if (note != null) updated = annotationRepo.setNote(bookId, target.annotationId, note)
-                        updated
+                        if (color != null) annotationRepo.setColor(bookId, target.annotationId, color)
+                        if (note != null) annotationRepo.setNote(bookId, target.annotationId, note)
                     }
                     target.selection != null && fileId != null -> annotationRepo.create(
                         bookId = bookId,
@@ -218,23 +230,12 @@ class ReaderViewModel @Inject constructor(
                         note = note,
                         chapterTitle = _ui.value.chapterTitle,
                     )
-                    else -> null
                 }
-            }
-            result.onSuccess { saved ->
-                if (saved != null) {
-                    _ui.update { s ->
-                        val exists = s.annotations.any { it.id == saved.id }
-                        s.copy(
-                            annotations = if (exists) s.annotations.map { if (it.id == saved.id) saved else it } else s.annotations + saved,
-                            toolbar = null,
-                        )
-                    }
-                } else {
-                    _ui.update { it.copy(toolbar = null) }
-                }
+            }.onSuccess {
+                refreshLocalAnnotations()
+                syncAnnotations()
             }.onFailure {
-                _ui.update { s -> s.copy(message = "Couldn't save the highlight. Check your connection and try again.") }
+                _ui.update { s -> s.copy(message = "Couldn't save the highlight.") }
             }
         }
     }
@@ -242,7 +243,10 @@ class ReaderViewModel @Inject constructor(
     fun deleteAnnotation(id: Int) {
         viewModelScope.launch {
             runCatching { annotationRepo.delete(bookId, id) }
-                .onSuccess { _ui.update { s -> s.copy(annotations = s.annotations.filterNot { it.id == id }, toolbar = null) } }
+                .onSuccess {
+                    refreshLocalAnnotations()
+                    syncAnnotations()
+                }
                 .onFailure { _ui.update { s -> s.copy(message = "Couldn't delete the highlight.") } }
         }
     }
