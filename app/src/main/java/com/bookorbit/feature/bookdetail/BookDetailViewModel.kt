@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bookorbit.core.auth.SessionManager
 import com.bookorbit.core.db.DownloadEntity
+import com.bookorbit.core.model.BookAnnotation
 import com.bookorbit.core.model.BookDetail
+import com.bookorbit.core.model.BookFiles
 import com.bookorbit.core.model.BookRecommendation
 import com.bookorbit.core.model.CollectionWithMembership
 import com.bookorbit.feature.downloads.DownloadsRepository
@@ -39,6 +41,9 @@ class BookDetailViewModel @Inject constructor(
         val book: BookDetail? = null,
         val authorBooks: List<BookRecommendation> = emptyList(),
         val recommendations: List<BookRecommendation> = emptyList(),
+        val highlights: List<BookAnnotation> = emptyList(),
+        /** File id to reading position (0-100), for the per-format progress chips. */
+        val fileProgress: Map<Int, Double> = emptyMap(),
         val statusUpdating: Boolean = false,
         val ratingUpdating: Boolean = false,
     )
@@ -80,6 +85,17 @@ class BookDetailViewModel @Inject constructor(
             launch {
                 val recs = runCatching { repo.recommendations(bookId) }.getOrDefault(emptyList())
                 _ui.update { it.copy(recommendations = recs) }
+            }
+            launch {
+                val highlights = runCatching { repo.highlights(bookId) }.getOrDefault(emptyList())
+                _ui.update { it.copy(highlights = highlights) }
+            }
+            launch {
+                val progress = book.files
+                    .filter { BookFiles.isOpenableEbook(it.format) }
+                    .mapNotNull { f -> repo.fileProgress(f.id)?.takeIf { it > 0 }?.let { f.id to it } }
+                    .toMap()
+                _ui.update { it.copy(fileProgress = progress) }
             }
         }
     }

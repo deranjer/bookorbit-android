@@ -4,6 +4,7 @@ import com.bookorbit.core.db.PendingRatingDao
 import com.bookorbit.core.db.PendingRatingEntity
 import com.bookorbit.core.db.PendingReadStatusDao
 import com.bookorbit.core.db.PendingReadStatusEntity
+import com.bookorbit.core.model.BookAnnotation
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookRecommendation
 import com.bookorbit.core.model.CollectionBookIds
@@ -29,6 +30,11 @@ class BookDetailRepository @Inject constructor(
     suspend fun authorBooks(id: Int): List<BookRecommendation> = api.getAuthorBooksForBook(id)
 
     suspend fun recommendations(id: Int): List<BookRecommendation> = api.getRecommendations(id)
+
+    suspend fun highlights(id: Int): List<BookAnnotation> = api.getAnnotations(id)
+
+    /** Reading position (0-100) for one file, or null if it has none or the call fails. */
+    suspend fun fileProgress(fileId: Int): Double? = runCatching { api.getFileProgress(fileId)?.percentage }.getOrNull()
 
     /**
      * Writes the pending status locally first so it's never lost offline, then attempts the
