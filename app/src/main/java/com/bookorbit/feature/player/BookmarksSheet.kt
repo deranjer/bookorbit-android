@@ -64,7 +64,7 @@ fun BookmarksSheet(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text(b.title.ifBlank { "Bookmark" }, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(b.title.ifBlank { stringResource(R.string.fallback_bookmark) }, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(
                                 BookmarkTitles.time(b.positionMs / 1000.0),
                                 style = MaterialTheme.typography.bodySmall,

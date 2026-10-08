@@ -1,5 +1,6 @@
 package com.bookorbit.feature.bookdetail
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import android.Manifest
@@ -235,7 +236,11 @@ private fun BookDetailContent(
 
         FormatChips(book, ui.fileProgress)
 
-        val tabs = listOf("Details", "Files", if (ui.highlights.isNotEmpty()) "Highlights ${ui.highlights.size}" else "Highlights")
+        val tabs = listOf(
+            stringResource(R.string.detail_tab_details),
+            stringResource(R.string.detail_tab_files),
+            if (ui.highlights.isNotEmpty()) stringResource(R.string.detail_tab_highlights_n, ui.highlights.size) else stringResource(R.string.detail_tab_highlights),
+        )
         TabRow(selectedTabIndex = tab, modifier = Modifier.padding(top = 8.dp)) {
             tabs.forEachIndexed { i, label ->
                 Tab(selected = tab == i, onClick = { tab = i }, text = { Text(label, maxLines = 1) })
@@ -521,9 +526,9 @@ private fun ShelfCards(
         ) {
             Text(
                 if (book.collections.isNotEmpty()) {
-                    "In ${book.collections.size} collection${if (book.collections.size == 1) "" else "s"}"
+                    pluralStringResource(R.plurals.detail_in_collections, book.collections.size, book.collections.size)
                 } else {
-                    "Add to collection"
+                    stringResource(R.string.detail_add_to_collection)
                 },
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
@@ -638,13 +643,13 @@ private fun formatDuration(seconds: Double): String {
 @Composable
 private fun DetailsSection(book: BookDetail) {
     val rows = buildList {
-        book.pageCount?.let { add("Pages" to it.toString()) }
-        book.language?.let { add("Language" to it.uppercase()) }
-        book.publisher?.let { add("Publisher" to it) }
-        book.publishedYear?.let { add("Published" to it.toString()) }
-        book.isbn13?.let { add("ISBN-13" to it) }
-        book.isbn10?.let { add("ISBN-10" to it) }
-        add("Library" to book.libraryName)
+        book.pageCount?.let { add(stringResource(R.string.detail_row_pages) to it.toString()) }
+        book.language?.let { add(stringResource(R.string.detail_row_language) to it.uppercase()) }
+        book.publisher?.let { add(stringResource(R.string.detail_row_publisher) to it) }
+        book.publishedYear?.let { add(stringResource(R.string.detail_row_published) to it.toString()) }
+        book.isbn13?.let { add(stringResource(R.string.detail_row_isbn13) to it) }
+        book.isbn10?.let { add(stringResource(R.string.detail_row_isbn10) to it) }
+        add(stringResource(R.string.detail_row_library) to book.libraryName)
     }
     if (rows.isEmpty()) return
     Section(stringResource(R.string.details)) {

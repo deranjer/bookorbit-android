@@ -19,4 +19,16 @@
         <item quantity="one">%d match</item>
         <item quantity="other">%d matches</item>
     </plurals>
+    <plurals name="lib_book_count">
+        <item quantity="one">%d book</item>
+        <item quantity="other">%d books</item>
+    </plurals>
+    <plurals name="detail_in_collections">
+        <item quantity="one">In %d collection</item>
+        <item quantity="other">In %d collections</item>
+    </plurals>
+    <plurals name="settings_downloads_summary">
+        <item quantity="one">%1$d book, %2$s</item>
+        <item quantity="other">%1$d books, %2$s</item>
+    </plurals>
 </resources>

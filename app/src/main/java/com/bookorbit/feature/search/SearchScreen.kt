@@ -97,7 +97,7 @@ private fun SearchResultRow(result: SearchResult, onClick: () -> Unit) {
                 .padding(horizontal = 12.dp),
         ) {
             Text(
-                result.title ?: "Unknown Title",
+                result.title ?: stringResource(R.string.card_unknown_title),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,

@@ -24,7 +24,7 @@ object DownloadNotifications {
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setContentTitle(title)
-            .setContentText(percent?.let { "Downloading · $it%" } ?: "Downloading")
+            .setContentText(percent?.let { context.getString(R.string.notif_downloading_percent, it) } ?: context.getString(R.string.notif_downloading))
             .setProgress(100, percent ?: 0, percent == null)
             .setOngoing(true)
             .setOnlyAlertOnce(true)

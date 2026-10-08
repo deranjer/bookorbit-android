@@ -42,7 +42,7 @@ fun PdfReaderSettingsSheet(
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Label("Scroll")
+            Label(stringResource(R.string.rs_label_scroll))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = settings.scrollMode == PdfReaderSettings.ScrollMode.CONTINUOUS,
@@ -56,7 +56,7 @@ fun PdfReaderSettingsSheet(
                 )
             }
 
-            Label("Spread")
+            Label(stringResource(R.string.rs_label_spread))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = settings.spread == PdfReaderSettings.Spread.NONE,
@@ -75,7 +75,7 @@ fun PdfReaderSettingsSheet(
                 )
             }
 
-            Label("Zoom")
+            Label(stringResource(R.string.rs_label_zoom))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = settings.zoomMode == PdfReaderSettings.ZoomMode.FIT_WIDTH,

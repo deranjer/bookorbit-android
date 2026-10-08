@@ -103,7 +103,7 @@ fun ComicReaderScreen(
                 IconButton(onClick = { vm.setRtl(!rtl) }) {
                     Icon(
                         if (rtl) Icons.AutoMirrored.Filled.FormatTextdirectionRToL else Icons.AutoMirrored.Filled.FormatTextdirectionLToR,
-                        contentDescription = if (rtl) "Reading right to left. Switch to left to right" else "Reading left to right. Switch to right to left",
+                        contentDescription = stringResource(if (rtl) R.string.comic_dir_rtl else R.string.comic_dir_ltr),
                         tint = Color.White,
                     )
                 }

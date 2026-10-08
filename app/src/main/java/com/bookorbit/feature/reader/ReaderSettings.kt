@@ -1,5 +1,7 @@
 package com.bookorbit.feature.reader
 
+import androidx.annotation.StringRes
+import com.bookorbit.R
 import kotlinx.serialization.Serializable
 
 /**
@@ -26,13 +28,13 @@ data class ReaderSettings(
 val FONT_SIZE_RANGE = 10..32
 val LINE_HEIGHT_RANGE = 0.8..3.0
 
-data class FontFamilyOption(val label: String, val value: String?)
+data class FontFamilyOption(@StringRes val label: Int, val value: String?)
 
 val FONT_FAMILIES = listOf(
-    FontFamilyOption("Original", null),
-    FontFamilyOption("Serif", "Georgia, \"Times New Roman\", serif"),
-    FontFamilyOption("Sans", "-apple-system, \"Helvetica Neue\", Arial, sans-serif"),
-    FontFamilyOption("Monospace", "Menlo, Consolas, monospace"),
+    FontFamilyOption(R.string.font_original, null),
+    FontFamilyOption(R.string.font_serif, "Georgia, \"Times New Roman\", serif"),
+    FontFamilyOption(R.string.font_sans, "-apple-system, \"Helvetica Neue\", Arial, sans-serif"),
+    FontFamilyOption(R.string.font_monospace, "Menlo, Consolas, monospace"),
 )
 
 fun clampFontSize(v: Int): Int = v.coerceIn(FONT_SIZE_RANGE.first, FONT_SIZE_RANGE.last)

@@ -76,7 +76,7 @@ fun DownloadsScreen(
                         .padding(horizontal = 12.dp),
                 ) {
                     Text(
-                        item.title ?: "Untitled",
+                        item.title ?: stringResource(R.string.fallback_untitled),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,

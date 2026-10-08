@@ -1,5 +1,7 @@
 package com.bookorbit.feature.main
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,7 +25,7 @@ import com.bookorbit.feature.library.LibrariesScreen
 import com.bookorbit.feature.scopes.SmartScopesScreen
 import com.bookorbit.feature.series.SeriesScreen
 
-private val SECTIONS = listOf("Books", "Series", "Authors", "Collections", "Scopes")
+private val SECTIONS = listOf(R.string.lib_chip_books, R.string.lib_chip_series, R.string.lib_chip_authors, R.string.lib_chip_collections, R.string.lib_chip_scopes)
 
 /** The Library tab: one place for every way to browse the collection, switched with chips. */
 @Composable
@@ -38,8 +40,8 @@ fun LibraryHubScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            itemsIndexed(SECTIONS) { index, label ->
-                FilterChip(selected = section == index, onClick = { section = index }, label = { Text(label) })
+            itemsIndexed(SECTIONS) { index, labelRes ->
+                FilterChip(selected = section == index, onClick = { section = index }, label = { Text(stringResource(labelRes)) })
             }
         }
         Box(Modifier.weight(1f).fillMaxSize().padding(0.dp)) {

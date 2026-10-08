@@ -1,6 +1,7 @@
 package com.bookorbit.feature.settings
 
 import com.bookorbit.ui.asString
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -137,7 +138,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Text(
-                        stringResource(R.string.book_s, downloadsSummary.count, formatBytes(downloadsSummary.totalBytes)),
+                        pluralStringResource(R.plurals.settings_downloads_summary, downloadsSummary.count, downloadsSummary.count, formatBytes(downloadsSummary.totalBytes)),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

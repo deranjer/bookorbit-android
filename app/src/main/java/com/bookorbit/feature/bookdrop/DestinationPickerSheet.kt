@@ -49,14 +49,14 @@ fun LibraryFolderSelector(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         DropdownField(
             label = stringResource(R.string.destination_library),
-            value = selectedLibrary?.name ?: "Select a library",
+            value = selectedLibrary?.name ?: stringResource(R.string.dest_select_library),
             options = libraries,
             optionLabel = { it.name },
             onSelect = { onLibrarySelected(it.id) },
         )
         DropdownField(
             label = stringResource(R.string.destination_folder),
-            value = selectedFolder?.path ?: if (folders.isEmpty()) "No folders" else "Select a folder",
+            value = selectedFolder?.path ?: stringResource(if (folders.isEmpty()) R.string.dest_no_folders else R.string.dest_select_folder),
             options = folders,
             optionLabel = LibraryFolder::path,
             onSelect = { onFolderSelected(it.id) },

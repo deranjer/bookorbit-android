@@ -99,6 +99,9 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
+            // en-XA / ar-XB: accented and mirrored English, so any text still hard-coded in code stands
+            // out when the device is switched to one of those locales. Debug builds only.
+            isPseudoLocalesEnabled = true
         }
         release {
             isMinifyEnabled = true

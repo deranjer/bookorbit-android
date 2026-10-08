@@ -1,5 +1,6 @@
 package com.bookorbit.feature.library
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.compose.foundation.clickable
@@ -69,13 +70,13 @@ fun LibrariesScreen(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        selected?.name ?: "Library",
+                        selected?.name ?: stringResource(R.string.lib_default_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                     )
                     selected?.bookCount?.let { count ->
                         Text(
-                            "$count ${if (count == 1) "book" else "books"}",
+                            pluralStringResource(R.plurals.lib_book_count, count, count),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

@@ -240,7 +240,7 @@ private fun BookmarksList(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    b.title.ifBlank { "Bookmark" },
+                    b.title.ifBlank { stringResource(R.string.fallback_bookmark) },
                     style = MaterialTheme.typography.bodyLarge,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,

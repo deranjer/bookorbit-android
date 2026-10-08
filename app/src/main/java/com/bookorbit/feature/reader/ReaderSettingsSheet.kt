@@ -51,7 +51,7 @@ fun ReaderSettingsSheet(
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Label("Theme")
+            Label(stringResource(R.string.rs_label_theme))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 READER_THEMES.forEach { theme ->
                     val bg = Color(if (settings.isDark) theme.darkBg else theme.lightBg)
@@ -75,13 +75,13 @@ fun ReaderSettingsSheet(
                 }
             }
 
-            Label("Mode")
+            Label(stringResource(R.string.rs_label_mode))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(selected = !settings.isDark, onClick = { onChange(settings.copy(isDark = false)) }, label = { Text(stringResource(R.string.light)) })
                 FilterChip(selected = settings.isDark, onClick = { onChange(settings.copy(isDark = true)) }, label = { Text(stringResource(R.string.dark)) })
             }
 
-            Label("Layout")
+            Label(stringResource(R.string.rs_label_layout))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(selected = settings.flow == "paginated", onClick = { onChange(settings.copy(flow = "paginated")) }, label = { Text(stringResource(R.string.paginated)) })
                 FilterChip(selected = settings.flow == "scrolled", onClick = { onChange(settings.copy(flow = "scrolled")) }, label = { Text(stringResource(R.string.scrolled)) })
@@ -100,13 +100,13 @@ fun ReaderSettingsSheet(
                 onIncrement = { onChange(settings.copy(lineHeight = clampLineHeight(settings.lineHeight + 0.1))) },
             )
 
-            Label("Font")
+            Label(stringResource(R.string.rs_label_font))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FONT_FAMILIES.forEach { font ->
                     FilterChip(
                         selected = settings.fontFamily == font.value,
                         onClick = { onChange(settings.copy(fontFamily = font.value)) },
-                        label = { Text(font.label) },
+                        label = { Text(stringResource(font.label)) },
                     )
                 }
             }
