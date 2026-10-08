@@ -18,7 +18,7 @@ class PlayerViewModel @Inject constructor(
     fun skipBack() = manager.skipBack()
     fun skipForward() = manager.skipForward()
     fun seekToAbsolute(absoluteSec: Double) = manager.seekToAbsolute(absoluteSec)
-    fun setSpeed(value: Float) = manager.setSpeed(value)
+    fun setSpeed(value: Float, forThisBook: Boolean = false) = manager.setSpeed(value, forThisBook)
     fun setSleepTimer(minutes: Int) = manager.setSleepTimer(minutes)
     fun setSleepTimerEndOfChapter() = manager.setSleepTimerEndOfChapter()
     fun cancelSleepTimer() = manager.cancelSleepTimer()

@@ -65,6 +65,8 @@ class PlayerManager @Inject constructor(
         val isPlaying: Boolean = false,
         val buffering: Boolean = false,
         val speed: Float = DEFAULT_SPEED,
+        /** True when the current book has its own saved speed rather than following the default. */
+        val speedIsPerBook: Boolean = false,
         val skipBackSeconds: Int = DEFAULT_SKIP_BACK,
         val skipForwardSeconds: Int = DEFAULT_SKIP_FORWARD,
         val sleepTimerRemainingSec: Long? = null,
@@ -179,7 +181,8 @@ class PlayerManager @Inject constructor(
             }
             val c = controller()
             val resume = audioProgress.resolveResume(bookId)
-            applyQueue(c, data, resume, autoPlay = true)
+            val bookSpeed = settingsStore.bookSpeed(bookId)
+            applyQueue(c, data, resume, autoPlay = true, bookSpeed = bookSpeed)
         }
     }
 
@@ -201,11 +204,12 @@ class PlayerManager @Inject constructor(
                     // Downloads resolve locally; a streamed book needs the server, so don't wait long on it.
                     val data = withTimeoutOrNull(RESTORE_RESOLVE_TIMEOUT_MS) { repo.resolve(bookId) } ?: continue
                     settingsLoaded.await()
+                    val bookSpeed = settingsStore.bookSpeed(bookId)
                     if (generation != loadGeneration.get() || _state.value.currentBook != null) return@launch
                     val c = controller()
                     // Re-checked after the last suspension point: from here to applyQueue runs without yielding.
                     if (generation != loadGeneration.get() || _state.value.currentBook != null || c.mediaItemCount > 0) return@launch
-                    applyQueue(c, data, resume, autoPlay = false)
+                    applyQueue(c, data, resume, autoPlay = false, bookSpeed = bookSpeed)
                     return@launch
                 }
             } catch (e: CancellationException) {
@@ -218,11 +222,18 @@ class PlayerManager @Inject constructor(
     }
 
     /** Loads [data] into the session player at [resume]; plays only when [autoPlay]. */
-    private fun applyQueue(c: MediaController, data: PlayerRepository.PlayerData, resume: AudioProgress?, autoPlay: Boolean) {
+    private fun applyQueue(
+        c: MediaController,
+        data: PlayerRepository.PlayerData,
+        resume: AudioProgress?,
+        autoPlay: Boolean,
+        bookSpeed: Float?,
+    ) {
+        val speed = resolveSpeed(settings.speed, bookSpeed)
         val totalDurationSec = PlaybackQueue.totalDurationSec(data.files)
         c.setMediaItems(data.mediaItems)
         c.prepare()
-        c.setPlaybackSpeed(settings.speed)
+        c.setPlaybackSpeed(speed)
         if (resume != null) {
             val idx = data.files.indexOfFirst { it.id == resume.currentFileId }.coerceAtLeast(0)
             c.seekTo(idx, (resume.positionSeconds * 1000).toLong())
@@ -235,6 +246,8 @@ class PlayerManager @Inject constructor(
                 files = data.files,
                 chapters = PlaybackQueue.resolveChapters(data.book, totalDurationSec),
                 totalDurationSec = totalDurationSec,
+                speed = speed,
+                speedIsPerBook = bookSpeed != null,
             )
         }
         startPoller()
@@ -289,11 +302,23 @@ class PlayerManager @Inject constructor(
         c.seekTo(loc.index, (loc.offsetSec * 1000).toLong())
     }
 
-    fun setSpeed(value: Float) = scope.launch {
-        settings = settings.copy(speed = clampSpeed(value))
-        controller().setPlaybackSpeed(settings.speed)
-        settingsStore.saveSpeed(settings.speed)
-        _state.update { it.copy(speed = settings.speed) }
+    /**
+     * Change the playback speed. With [forThisBook] the speed is remembered for the current book only
+     * (and the default is left alone); otherwise it becomes the default and, if this book had its own
+     * speed, that override is dropped so the book follows the new default.
+     */
+    fun setSpeed(value: Float, forThisBook: Boolean = false) = scope.launch {
+        val speed = snapSpeed(value)
+        val bookId = _state.value.currentBook?.id
+        controller().setPlaybackSpeed(speed)
+        if (forThisBook && bookId != null) {
+            settingsStore.saveBookSpeed(bookId, speed)
+        } else {
+            settings = settings.copy(speed = speed)
+            settingsStore.saveSpeed(speed)
+            if (bookId != null) settingsStore.saveBookSpeed(bookId, null)
+        }
+        _state.update { it.copy(speed = speed, speedIsPerBook = forThisBook && bookId != null) }
     }
 
     fun setSkipBack(value: Int) = scope.launch {
