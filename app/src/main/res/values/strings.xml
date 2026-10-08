@@ -422,4 +422,7 @@
     <string name="notif_downloading">Downloading</string>
     <string name="notif_downloading_percent">Downloading · %1$d%%</string>
     <string name="two_pane_select_book">Select a book to see its details here.</string>
+    <string name="auto_continue_listening">Continue listening</string>
+    <string name="auto_downloaded">Downloaded</string>
+    <string name="auto_chapters_of">Chapters · %1$s</string>
 </resources>
