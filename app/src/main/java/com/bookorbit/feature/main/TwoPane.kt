@@ -22,9 +22,9 @@ val TWO_PANE_LIST_WIDTH = 460.dp
 object TwoPane {
     /** The screens whose lists open a book: these show the book beside the list on a wide window. */
     val LIST_ROUTES = setOf(
-        Tab.LIBRARY.route,
-        Tab.SEARCH.route,
-        Tab.NOTES.route,
+        NavItem.LIBRARY.route,
+        NavItem.SEARCH.route,
+        NavItem.NOTES.route,
         SubRoute.AUTHOR,
         SubRoute.SERIES,
         SubRoute.DOWNLOADS,

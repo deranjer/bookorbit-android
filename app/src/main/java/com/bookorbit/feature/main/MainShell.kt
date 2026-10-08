@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
@@ -62,14 +63,6 @@ import com.bookorbit.feature.stats.StatsScreen
 import com.bookorbit.feature.you.YouScreen
 import com.bookorbit.ui.components.CenteredContent
 
-internal enum class Tab(val route: String, @StringRes val label: Int, val icon: ImageVector) {
-    HOME("home", R.string.tab_home, Icons.Outlined.Home),
-    LIBRARY("library", R.string.tab_library, Icons.Outlined.LocalLibrary),
-    SEARCH("search", R.string.tab_search, Icons.Outlined.Search),
-    NOTES("notes", R.string.tab_notes, Icons.Outlined.EditNote),
-    YOU("you", R.string.tab_you, Icons.Outlined.Person),
-}
-
 /** Screens reached from the You tab, plus book detail. They keep the bottom bar and mini-player. */
 internal object SubRoute {
     const val STATS = "stats"
@@ -92,9 +85,6 @@ const val WIDE_BREAKPOINT_DP = 600
 /** Start destination of the book pane: nothing selected yet. */
 private const val PANE_EMPTY = "pane-empty"
 
-/** Server permission required to see / use the Book Dock. */
-private const val BOOK_DOCK_PERMISSION = "book_dock_access"
-
 /**
  * Authenticated shell: a bottom navigation bar (Home, Library, Search, Notes, You) over a nested
  * NavHost, with the mini-player above the bar. There is no drawer; everything it held lives under
@@ -112,6 +102,13 @@ fun MainShell(
     onOpenPlayer: () -> Unit,
     vm: MainShellViewModel = hiltViewModel(),
 ) {
+    val configured by vm.navItems.collectAsStateWithLifecycle()
+    // Wait for the saved bar so the app opens on the user's first item rather than flashing Home.
+    val navItems = configured ?: run { Box(Modifier.fillMaxSize()); return }
+    val canUseBookDrop = user.canUseBookDrop()
+    val bar = NavConfig.visible(navItems, canUseBookDrop)
+    val barRoutes = bar.map { it.route }.toSet()
+    val startRoute = remember { bar.first().route }
     val tabNav = rememberNavController()
     // Tablets, unfolded foldables and landscape phones: a navigation rail beats a bottom bar.
     val widthDp = LocalConfiguration.current.screenWidthDp
@@ -150,16 +147,17 @@ fun MainShell(
     }
 
     // The tab to highlight: the You sub-screens count as You; book detail highlights nothing.
-    val selectedRoute = when (currentRoute) {
-        in SubRoute.fromYou -> Tab.YOU.route
+    val selectedRoute = when {
+        currentRoute in barRoutes -> currentRoute
+        currentRoute in SubRoute.fromYou -> NavItem.YOU.route
         else -> currentRoute
     }
 
     val title = when (currentRoute) {
-        Tab.LIBRARY.route -> stringResource(R.string.title_library)
-        Tab.SEARCH.route -> stringResource(R.string.title_search)
-        Tab.NOTES.route -> stringResource(R.string.title_notes)
-        Tab.YOU.route -> stringResource(R.string.title_you)
+        NavItem.LIBRARY.route -> stringResource(R.string.title_library)
+        NavItem.SEARCH.route -> stringResource(R.string.title_search)
+        NavItem.NOTES.route -> stringResource(R.string.title_notes)
+        NavItem.YOU.route -> stringResource(R.string.title_you)
         SubRoute.STATS -> stringResource(R.string.title_reading_stats)
         SubRoute.DOWNLOADS -> stringResource(R.string.title_downloads)
         SubRoute.BOOK_DROP -> stringResource(R.string.title_book_drop)
@@ -168,16 +166,14 @@ fun MainShell(
         else -> stringResource(R.string.app_name)
     }
 
-    val canUseBookDrop = user.isSuperuser || BOOK_DOCK_PERMISSION in user.permissions
-
     // Home draws its own greeting header and book detail its own bar; the rest share this one. It sits
     // above the list column only, so in two-pane mode the book pane keeps the full height beside it.
     val appBar: @Composable () -> Unit = {
-        if (!isBookDetail && currentRoute != Tab.HOME.route) {
+        if (!isBookDetail && currentRoute != NavItem.HOME.route) {
             TopAppBar(
                 title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
-                    if (currentRoute in SubRoute.fromYou || currentRoute == SubRoute.AUTHOR || currentRoute == SubRoute.SERIES) {
+                    if ((currentRoute in SubRoute.fromYou && currentRoute !in barRoutes) || currentRoute == SubRoute.AUTHOR || currentRoute == SubRoute.SERIES) {
                         IconButton(onClick = { tabNav.popBackStack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
@@ -194,12 +190,12 @@ fun MainShell(
                 // On wide windows the tabs move to a rail on the left instead.
                 if (!wide) {
                     NavigationBar {
-                        Tab.entries.forEach { tab ->
+                        bar.forEach { tab ->
                             NavigationBarItem(
                                 selected = selectedRoute == tab.route,
                                 onClick = { navigateTab(tab.route) },
-                                icon = { Icon(tab.icon, contentDescription = stringResource(tab.label)) },
-                                label = { Text(stringResource(tab.label), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                icon = { Icon(tab.icon(), contentDescription = stringResource(tab.labelRes())) },
+                                label = { Text(stringResource(tab.labelRes()), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             )
                         }
                     }
@@ -232,12 +228,12 @@ fun MainShell(
         if (wide) {
             NavigationRail {
                 Spacer(Modifier.weight(1f))
-                Tab.entries.forEach { tab ->
+                bar.forEach { tab ->
                     NavigationRailItem(
                         selected = selectedRoute == tab.route,
                         onClick = { navigateTab(tab.route) },
-                        icon = { Icon(tab.icon, contentDescription = stringResource(tab.label)) },
-                        label = { Text(stringResource(tab.label), maxLines = 1) },
+                        icon = { Icon(tab.icon(), contentDescription = stringResource(tab.labelRes())) },
+                        label = { Text(stringResource(tab.labelRes()), maxLines = 1) },
                         alwaysShowLabel = true,
                     )
                 }
@@ -248,22 +244,22 @@ fun MainShell(
         appBar()
         NavHost(
             navController = tabNav,
-            startDestination = Tab.HOME.route,
+            startDestination = startRoute,
             // Consume the insets Scaffold already applied, so a nested screen's own TopAppBar
             // (book detail) doesn't add the status-bar inset a second time.
             // Two-pane: a fixed-width list column, with the book pane hosted once below (not per destination).
             modifier = Modifier.weight(1f).fillMaxWidth(),
         ) {
-            composable(Tab.HOME.route) {
+            composable(NavItem.HOME.route) {
                 CenteredContent {
                     DashboardScreen(
                         userName = user.name ?: user.username,
-                        onOpenProfile = { navigateTab(Tab.YOU.route) },
+                        onOpenProfile = { navigateTab(NavItem.YOU.route) },
                         onBookClick = onBookClick,
                     )
                 }
             }
-            composable(Tab.LIBRARY.route) {
+            composable(NavItem.LIBRARY.route) {
                 LibraryHubScreen(onBookClick = onListBookClick, onAuthorClick = onAuthorClick, onSeriesClick = onSeriesClick)
             }
             composable(
@@ -284,12 +280,12 @@ fun MainShell(
             ) { entry ->
                 SeriesBooksScreen(seriesId = entry.arguments?.getInt("id") ?: 0, onBookClick = onListBookClick)
             }
-            composable(Tab.SEARCH.route) { SearchScreen(onBookClick = onListBookClick) }
-            composable(Tab.NOTES.route) {
+            composable(NavItem.SEARCH.route) { SearchScreen(onBookClick = onListBookClick) }
+            composable(NavItem.NOTES.route) {
                 // Two-pane: the list column is already narrow, so don't centre it as well.
                 if (twoPane) NotesScreen(onBookClick = onListBookClick) else CenteredContent { NotesScreen(onBookClick = onBookClick) }
             }
-            composable(Tab.YOU.route) {
+            composable(NavItem.YOU.route) {
                 CenteredContent {
                 YouScreen(
                     user = user,
@@ -297,6 +293,7 @@ fun MainShell(
                     updateAvailable = appInfo?.updateAvailable == true,
                     latestVersion = appInfo?.latestVersion,
                     canUseBookDrop = canUseBookDrop,
+                    pinned = barRoutes,
                     onStats = { tabNav.navigate(SubRoute.STATS) },
                     onDownloads = { tabNav.navigate(SubRoute.DOWNLOADS) },
                     onBookDrop = { tabNav.navigate(SubRoute.BOOK_DROP) },

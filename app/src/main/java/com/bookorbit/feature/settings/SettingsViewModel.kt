@@ -9,6 +9,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.ImageLoader
 import com.bookorbit.core.appinfo.AppInfoRepository
+import com.bookorbit.core.auth.SessionManager
+import com.bookorbit.feature.main.NavConfig
+import com.bookorbit.feature.main.NavItem
+import com.bookorbit.feature.main.canUseBookDrop
 import com.bookorbit.core.model.AppInfo
 import com.bookorbit.core.settings.AppSettingsStore
 import com.bookorbit.core.settings.DownloadLocationStore
@@ -38,9 +42,29 @@ class SettingsViewModel @Inject constructor(
     private val imageLoader: ImageLoader,
     private val locationStore: DownloadLocationStore,
     private val appInfoRepository: AppInfoRepository,
+    private val session: SessionManager,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
     val appInfo: StateFlow<AppInfo?> = appInfoRepository.appInfo
+
+    /** The bottom-bar buttons the user has chosen, in order. */
+    val navItems: StateFlow<List<NavItem>> = appSettings.navItems
+        .map { NavConfig.parse(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NavConfig.DEFAULT)
+
+    val canUseBookDrop: Boolean get() = session.currentUser?.canUseBookDrop() == true
+
+    private fun saveNav(items: List<NavItem>) {
+        viewModelScope.launch { appSettings.setNavItems(NavConfig.serialize(items)) }
+    }
+
+    fun moveNavItem(index: Int, delta: Int) = saveNav(NavConfig.moved(navItems.value, index, delta))
+
+    fun removeNavItem(item: NavItem) = saveNav(NavConfig.removed(navItems.value, item))
+
+    fun addNavItem(item: NavItem) = saveNav(NavConfig.added(navItems.value, item))
+
+    fun resetNavItems() = saveNav(NavConfig.DEFAULT)
 
     val themeMode: StateFlow<ThemeMode> = appSettings.themeMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemeMode.SYSTEM)

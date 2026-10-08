@@ -46,6 +46,8 @@ fun YouScreen(
     updateAvailable: Boolean,
     latestVersion: String?,
     canUseBookDrop: Boolean,
+    /** Routes already in the bottom bar: their rows are hidden here since they're one tap away. */
+    pinned: Set<String> = emptySet(),
     onStats: () -> Unit,
     onDownloads: () -> Unit,
     onBookDrop: () -> Unit,
@@ -73,25 +75,27 @@ fun YouScreen(
             }
         }
         HorizontalDivider()
-        Row2(stringResource(R.string.you_reading_stats), Icons.Outlined.BarChart, onStats)
-        Row2(stringResource(R.string.you_downloads), Icons.Filled.Download, onDownloads)
-        if (canUseBookDrop) Row2(stringResource(R.string.you_book_drop), Icons.Outlined.Inbox, onBookDrop)
-        ListItem(
-            headlineContent = { Text(stringResource(R.string.settings)) },
-            leadingContent = {
-                BadgedBox(badge = { if (updateAvailable) Badge() }) { Icon(Icons.Outlined.Settings, contentDescription = null) }
-            },
-            supportingContent = if (updateAvailable) {
-                {
-                    Text(
-                        if (latestVersion != null) stringResource(R.string.you_update_available_version, latestVersion) else stringResource(R.string.you_update_available),
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            } else null,
-            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background),
-            modifier = Modifier.clickable(onClick = onSettings),
-        )
+        if ("stats" !in pinned) Row2(stringResource(R.string.you_reading_stats), Icons.Outlined.BarChart, onStats)
+        if ("downloads" !in pinned) Row2(stringResource(R.string.you_downloads), Icons.Filled.Download, onDownloads)
+        if (canUseBookDrop && "bookdrop" !in pinned) Row2(stringResource(R.string.you_book_drop), Icons.Outlined.Inbox, onBookDrop)
+        if ("settings" !in pinned) {
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings)) },
+                leadingContent = {
+                    BadgedBox(badge = { if (updateAvailable) Badge() }) { Icon(Icons.Outlined.Settings, contentDescription = null) }
+                },
+                supportingContent = if (updateAvailable) {
+                    {
+                        Text(
+                            if (latestVersion != null) stringResource(R.string.you_update_available_version, latestVersion) else stringResource(R.string.you_update_available),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                } else null,
+                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background),
+                modifier = Modifier.clickable(onClick = onSettings),
+            )
+        }
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
         Row2(stringResource(R.string.you_sign_out), Icons.AutoMirrored.Outlined.Logout, onSignOut)
         Spacer(Modifier.height(16.dp))

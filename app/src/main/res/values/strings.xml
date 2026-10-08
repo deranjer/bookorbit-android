@@ -425,4 +425,14 @@
     <string name="auto_continue_listening">Continue listening</string>
     <string name="auto_downloaded">Downloaded</string>
     <string name="auto_chapters_of">Chapters · %1$s</string>
+    <string name="nav_stats">Stats</string>
+    <string name="settings_nav_bar">Navigation bar</string>
+    <string name="settings_nav_bar_desc">Choose and order the buttons along the bottom (up to %1$d). You is always included.</string>
+    <string name="settings_nav_available">Add to the bar</string>
+    <string name="settings_nav_full">The bar is full: remove something first.</string>
+    <string name="settings_nav_reset">Reset to default</string>
+    <string name="settings_nav_move_up">Move %1$s up</string>
+    <string name="settings_nav_move_down">Move %1$s down</string>
+    <string name="settings_nav_remove">Remove %1$s from the bar</string>
+    <string name="settings_nav_add">Add %1$s to the bar</string>
 </resources>

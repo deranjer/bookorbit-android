@@ -12,6 +12,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import com.bookorbit.feature.main.NavConfig
+import com.bookorbit.feature.main.NavItem
+import com.bookorbit.feature.main.icon
+import com.bookorbit.feature.main.labelRes
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,6 +64,7 @@ import kotlin.math.pow
 @Composable
 fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val themeMode by vm.themeMode.collectAsStateWithLifecycle()
+    val navItems by vm.navItems.collectAsStateWithLifecycle()
     val wifiOnly by vm.wifiOnlyDownloads.collectAsStateWithLifecycle()
     val dynamicColor by vm.dynamicColor.collectAsStateWithLifecycle()
     val downloadsSummary by vm.downloadsSummary.collectAsStateWithLifecycle()
@@ -99,6 +114,67 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                         subtitle = stringResource(R.string.settings_material_you_desc),
                         trailing = { Switch(checked = dynamicColor, onCheckedChange = vm::setDynamicColor) },
                     )
+                }
+            }
+            item { HorizontalDivider() }
+
+            item { SectionHeader(stringResource(R.string.settings_nav_bar)) }
+            item {
+                Text(
+                    stringResource(R.string.settings_nav_bar_desc, NavConfig.MAX_ITEMS),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+            itemsIndexed(navItems) { index, navItem ->
+                val label = stringResource(navItem.labelRes())
+                ListItem(
+                    headlineContent = { Text(label) },
+                    leadingContent = { Icon(navItem.icon(), contentDescription = null) },
+                    trailingContent = {
+                        Row {
+                            IconButton(onClick = { vm.moveNavItem(index, -1) }, enabled = index > 0) {
+                                Icon(Icons.Filled.ArrowUpward, contentDescription = stringResource(R.string.settings_nav_move_up, label))
+                            }
+                            IconButton(onClick = { vm.moveNavItem(index, 1) }, enabled = index < navItems.lastIndex) {
+                                Icon(Icons.Filled.ArrowDownward, contentDescription = stringResource(R.string.settings_nav_move_down, label))
+                            }
+                            IconButton(onClick = { vm.removeNavItem(navItem) }, enabled = navItem != NavItem.YOU) {
+                                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.settings_nav_remove, label))
+                            }
+                        }
+                    },
+                )
+            }
+            val addable = NavConfig.available(navItems, vm.canUseBookDrop)
+            if (addable.isNotEmpty()) {
+                item {
+                    Text(
+                        if (navItems.size >= NavConfig.MAX_ITEMS) stringResource(R.string.settings_nav_full) else stringResource(R.string.settings_nav_available),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
+                    )
+                }
+                items(addable) { navItem ->
+                    val label = stringResource(navItem.labelRes())
+                    ListItem(
+                        headlineContent = { Text(label) },
+                        leadingContent = { Icon(navItem.icon(), contentDescription = null) },
+                        trailingContent = {
+                            IconButton(onClick = { vm.addNavItem(navItem) }, enabled = navItems.size < NavConfig.MAX_ITEMS) {
+                                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.settings_nav_add, label))
+                            }
+                        },
+                    )
+                }
+            }
+            item {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    OutlinedButton(onClick = vm::resetNavItems, enabled = navItems != NavConfig.DEFAULT) {
+                        Text(stringResource(R.string.settings_nav_reset))
+                    }
                 }
             }
             item { HorizontalDivider() }
