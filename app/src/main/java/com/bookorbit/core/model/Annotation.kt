@@ -57,3 +57,16 @@ data class HubAnnotationPage(
     val page: Int = 1,
     val pageSize: Int = 0,
 )
+
+/** An ebook bookmark (`/books/{id}/bookmarks`). Audiobook bookmarks come back from the same call with a null [cfi]. */
+@Serializable
+data class BookBookmark(
+    val id: Int,
+    val bookId: Int,
+    val cfi: String? = null,
+    val title: String = "",
+    val note: String? = null,
+)
+
+@Serializable
+data class CreateBookBookmark(val cfi: String, val title: String)

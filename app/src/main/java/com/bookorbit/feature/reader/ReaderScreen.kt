@@ -163,7 +163,10 @@ fun ReaderScreen(
                 IconButton(onClick = { searchVisible = true }) {
                     Icon(Icons.Filled.Search, contentDescription = "Search in book", tint = Color.White)
                 }
-                IconButton(onClick = { highlightsVisible = true }) {
+                IconButton(onClick = {
+                    vm.loadBookmarks()
+                    highlightsVisible = true
+                }) {
                     Icon(Icons.Filled.FormatQuote, contentDescription = "Highlights", tint = Color.White)
                 }
                 IconButton(onClick = { tocVisible = true }) {
@@ -268,6 +271,13 @@ fun ReaderScreen(
     if (highlightsVisible) {
         HighlightsSheet(
             annotations = ui.annotations,
+            bookmarks = ui.bookmarks,
+            onJumpBookmark = { b ->
+                highlightsVisible = false
+                b.cfi?.let(controller::goTo)
+            },
+            onAddBookmark = vm::addBookmark,
+            onDeleteBookmark = { vm.deleteBookmark(it.id) },
             onJump = { a ->
                 highlightsVisible = false
                 a.cfi?.let(controller::goTo)

@@ -123,6 +123,19 @@ interface ApiService {
     @GET("books/files/{fileId}/progress")
     suspend fun getFileProgress(@Path("fileId") fileId: Int): FileProgress?
 
+    // --- Ebook bookmarks ---
+    @GET("books/{bookId}/bookmarks")
+    suspend fun getBookmarks(@Path("bookId") bookId: Int): List<com.bookorbit.core.model.BookBookmark>
+
+    @POST("books/{bookId}/bookmarks")
+    suspend fun createBookmark(
+        @Path("bookId") bookId: Int,
+        @Body body: com.bookorbit.core.model.CreateBookBookmark,
+    ): com.bookorbit.core.model.BookBookmark
+
+    @DELETE("books/{bookId}/bookmarks/{id}")
+    suspend fun deleteBookmark(@Path("bookId") bookId: Int, @Path("id") id: Int)
+
     // --- Audiobook bookmarks ---
     @GET("audiobooks/{bookId}/bookmarks")
     suspend fun getAudiobookBookmarks(@Path("bookId") bookId: Int): List<com.bookorbit.core.model.AudiobookBookmark>

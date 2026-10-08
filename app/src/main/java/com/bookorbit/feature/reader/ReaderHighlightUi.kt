@@ -20,6 +20,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material3.AlertDialog
+import com.bookorbit.core.model.BookBookmark
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -123,21 +129,29 @@ fun NoteDialog(
     )
 }
 
-/** All highlights and notes in the book; tap one to jump to it. */
+/** Highlights, notes and bookmarks in the book; tap one to jump to it. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HighlightsSheet(
     annotations: List<BookAnnotation>,
+    bookmarks: List<BookBookmark>,
     onJump: (BookAnnotation) -> Unit,
     onDelete: (BookAnnotation) -> Unit,
+    onJumpBookmark: (BookBookmark) -> Unit,
+    onAddBookmark: () -> Unit,
+    onDeleteBookmark: (BookBookmark) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var tab by remember { mutableIntStateOf(0) }
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Text(
-            "Highlights & notes",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        )
+        TabRow(selectedTabIndex = tab) {
+            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Highlights") })
+            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Bookmarks") })
+        }
+        if (tab == 1) {
+            BookmarksList(bookmarks, onJumpBookmark, onAddBookmark, onDeleteBookmark)
+            return@ModalBottomSheet
+        }
         if (annotations.isEmpty()) {
             Text(
                 "No highlights yet. Press and hold text in the page to highlight it.",
@@ -188,6 +202,50 @@ fun HighlightsSheet(
                             Icon(Icons.Filled.Delete, contentDescription = "Delete highlight")
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BookmarksList(
+    bookmarks: List<BookBookmark>,
+    onJump: (BookBookmark) -> Unit,
+    onAdd: () -> Unit,
+    onDelete: (BookBookmark) -> Unit,
+) {
+    Button(onClick = onAdd, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Icon(Icons.Filled.BookmarkAdd, contentDescription = null)
+        Text("Bookmark this page", modifier = Modifier.padding(start = 8.dp))
+    }
+    if (bookmarks.isEmpty()) {
+        Text(
+            "No bookmarks yet.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+        )
+        return
+    }
+    LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp)) {
+        items(bookmarks, key = { it.id }) { b ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onJump(b) }
+                    .padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    b.title.ifBlank { "Bookmark" },
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = { onDelete(b) }) {
+                    Icon(Icons.Filled.Delete, contentDescription = "Delete bookmark")
                 }
             }
         }

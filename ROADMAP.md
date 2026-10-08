@@ -52,8 +52,8 @@ Server endpoints available but unused by this app:
 
 ## P0 — Parity core
 
-- **Reader bookmarks and PDF highlights** — EPUB-family highlights/notes shipped (see below); PDF annotations
-  (page rectangles) and bookmarks are still missing.
+- **PDF highlights and bookmarks** — EPUB-family highlights/notes and bookmarks shipped (see below); PDF annotations
+  (page rectangles) and PDF bookmarks are still missing.
 - **Book detail depth** — files/editions with per-format progress, narrators, tappable author and
   series, review, external ratings.
 - **Fix: synopsis renders raw HTML** (`<br />`, `<i>`), double status-bar inset on detail top bar,
