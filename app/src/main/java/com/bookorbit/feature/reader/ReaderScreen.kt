@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.CircularProgressIndicator
@@ -59,6 +60,7 @@ fun ReaderScreen(
     var tocVisible by remember { mutableStateOf(false) }
     var settingsVisible by remember { mutableStateOf(false) }
     var highlightsVisible by remember { mutableStateOf(false) }
+    var searchVisible by remember { mutableStateOf(false) }
     var noteDialog by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
@@ -90,6 +92,9 @@ fun ReaderScreen(
                 is ReaderEvent.Relocate -> vm.onRelocate(event.cfi, event.fraction, event.chapterTitle)
                 is ReaderEvent.Error -> vm.onError(event.message)
                 is ReaderEvent.Tap -> onTap.value(event.x)
+                is ReaderEvent.SearchResults -> vm.onSearchResults(event.label, event.hits)
+                is ReaderEvent.SearchProgress -> vm.onSearchProgress(event.progress)
+                is ReaderEvent.SearchDone -> vm.onSearchDone(event.total, event.capped)
                 is ReaderEvent.Selection -> vm.onSelection(event.text, event.cfi, event.rect)
                 ReaderEvent.SelectionCleared -> vm.onSelectionCleared()
                 is ReaderEvent.AnnotationTap -> vm.onAnnotationTap(event.cfi, event.rect)
@@ -155,6 +160,9 @@ fun ReaderScreen(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
+                IconButton(onClick = { searchVisible = true }) {
+                    Icon(Icons.Filled.Search, contentDescription = "Search in book", tint = Color.White)
+                }
                 IconButton(onClick = { highlightsVisible = true }) {
                     Icon(Icons.Filled.FormatQuote, contentDescription = "Highlights", tint = Color.White)
                 }
@@ -237,6 +245,24 @@ fun ReaderScreen(
                 vm.saveNote(note)
             },
             onDismiss = { noteDialog = null },
+        )
+    }
+    if (searchVisible) {
+        ReaderSearchSheet(
+            state = ui.search,
+            onSearch = { q ->
+                vm.startSearch(q)
+                controller.search(q)
+            },
+            onClear = {
+                vm.clearSearch()
+                controller.clearSearch()
+            },
+            onJump = { cfi ->
+                searchVisible = false
+                controller.goTo(cfi)
+            },
+            onDismiss = { searchVisible = false },
         )
     }
     if (highlightsVisible) {

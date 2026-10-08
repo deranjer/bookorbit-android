@@ -42,4 +42,21 @@ class ReaderBridgeEventsTest {
         val e = ReaderBridge.parseEvent("""{"type":"selection","text":"x","cfi":"c","rect":{"left":1}}""") as ReaderEvent.Selection
         assertNull(e.rect)
     }
+
+    @Test
+    fun `parses a batch of search results`() {
+        val e = ReaderBridge.parseEvent(
+            """{"type":"searchResults","label":"Chapter 2","items":[{"cfi":"epubcfi(/6/4)","pre":"the ","match":"beadle","post":" said"},{"pre":"no cfi"}]}""",
+        ) as ReaderEvent.SearchResults
+        assertEquals("Chapter 2", e.label)
+        // The item without a cfi can't be jumped to, so it is dropped.
+        assertEquals(listOf(SearchHit("epubcfi(/6/4)", "the ", "beadle", " said")), e.hits)
+    }
+
+    @Test
+    fun `parses search progress and completion`() {
+        assertEquals(ReaderEvent.SearchProgress(0.5), ReaderBridge.parseEvent("""{"type":"searchProgress","progress":0.5}"""))
+        assertEquals(ReaderEvent.SearchDone(3, true), ReaderBridge.parseEvent("""{"type":"searchDone","total":3,"capped":true}"""))
+        assertEquals(ReaderEvent.SearchDone(0, false), ReaderBridge.parseEvent("""{"type":"searchDone"}"""))
+    }
 }

@@ -254,6 +254,60 @@ function setAnnotations(items) {
   }
 }
 
+/* ------------------------------------------------------------ search */
+let searchToken = 0;
+const SEARCH_MAX_RESULTS = 200;
+
+/** Run an in-book search, streaming matches to the host. A newer search (or clear) cancels this one. */
+async function runSearch(query) {
+  const token = ++searchToken;
+  try {
+    view?.clearSearch?.();
+  } catch {
+    /* nothing drawn yet */
+  }
+  if (!view || !query) {
+    post({ type: 'searchDone', total: 0, capped: false });
+    return;
+  }
+  let total = 0;
+  let capped = false;
+  try {
+    for await (const r of view.search({ query })) {
+      if (token !== searchToken) return;
+      if (r === 'done') break;
+      if (r.subitems) {
+        const items = r.subitems.map((s) => ({
+          cfi: s.cfi,
+          pre: s.excerpt?.pre ?? '',
+          match: s.excerpt?.match ?? '',
+          post: s.excerpt?.post ?? '',
+        }));
+        total += items.length;
+        post({ type: 'searchResults', label: r.label ?? '', items });
+        if (total >= SEARCH_MAX_RESULTS) {
+          capped = true;
+          break;
+        }
+      } else if (typeof r.progress === 'number') {
+        post({ type: 'searchProgress', progress: r.progress });
+      }
+    }
+  } catch {
+    /* a section that fails to parse shouldn't sink the search */
+  }
+  if (token === searchToken) post({ type: 'searchDone', total, capped });
+}
+
+function clearSearch() {
+  searchToken++;
+  try {
+    view?.clearSearch?.();
+  } catch {
+    /* ignore */
+  }
+}
+
 /* ------------------------------------------------- taps and selection */
 /** A range's bounding box in the WebView's own viewport coordinates (CSS px == dp). */
 function viewportRect(range) {
@@ -473,7 +527,7 @@ window.__readerCommit = () => {
   void openBook(meta, parts);
 };
 
-// Imperative commands: { type: 'goTo'|'goToFraction'|'prev'|'next'|'applyStyles'|'setAnnotations'|'clearSelection', ... }.
+// Imperative commands: { type: 'goTo'|'goToFraction'|'prev'|'next'|'applyStyles'|'setAnnotations'|'clearSelection'|'search'|'clearSearch', ... }.
 window.__readerCommand = (json) => {
   if (!view) return;
   let cmd;
@@ -503,6 +557,12 @@ window.__readerCommand = (json) => {
       break;
     case 'clearSelection':
       clearSelection();
+      break;
+    case 'search':
+      void runSearch(String(cmd.query ?? ''));
+      break;
+    case 'clearSearch':
+      clearSearch();
       break;
     default:
       break;

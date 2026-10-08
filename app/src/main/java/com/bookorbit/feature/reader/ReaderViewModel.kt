@@ -61,10 +61,24 @@ class ReaderViewModel @Inject constructor(
         val loaded: Boolean = false,
         val showPagingHint: Boolean = false,
         val annotations: List<BookAnnotation> = emptyList(),
+        val search: SearchState? = null,
         val toolbar: ToolbarTarget? = null,
         /** One-shot message for the screen to toast, then clear via [consumeMessage]. */
         val message: String? = null,
     )
+
+    /** In-book search: the query, matches grouped by chapter as they stream in, and progress. */
+    data class SearchState(
+        val query: String = "",
+        val running: Boolean = false,
+        val progress: Double = 0.0,
+        val groups: List<SearchGroup> = emptyList(),
+        val total: Int = 0,
+        val capped: Boolean = false,
+        val done: Boolean = false,
+    )
+
+    data class SearchGroup(val label: String, val hits: List<SearchHit>)
 
     private val _ui = MutableStateFlow(UiState())
     val ui = _ui.asStateFlow()
@@ -123,6 +137,30 @@ class ReaderViewModel @Inject constructor(
             report(cfi, fraction * 100)
             sessions.onReadingProgress(fraction * 100)
         }
+    }
+
+    // --- in-book search ---
+
+    fun startSearch(query: String) {
+        val q = query.trim()
+        _ui.update {
+            it.copy(search = if (q.isEmpty()) null else SearchState(query = q, running = true))
+        }
+    }
+
+    fun clearSearch() = _ui.update { it.copy(search = null) }
+
+    fun onSearchResults(label: String, hits: List<SearchHit>) = _ui.update { s ->
+        val cur = s.search ?: return@update s
+        cur.copy(groups = cur.groups + SearchGroup(label, hits), total = cur.total + hits.size).let { s.copy(search = it) }
+    }
+
+    fun onSearchProgress(progress: Double) = _ui.update { s ->
+        s.search?.let { s.copy(search = it.copy(progress = progress)) } ?: s
+    }
+
+    fun onSearchDone(total: Int, capped: Boolean) = _ui.update { s ->
+        s.search?.let { s.copy(search = it.copy(running = false, done = true, total = total, capped = capped, progress = 1.0)) } ?: s
     }
 
     // --- highlights & notes ---
