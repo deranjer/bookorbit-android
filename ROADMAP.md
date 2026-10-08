@@ -87,8 +87,9 @@ Real requests, but further out — sequence after the inner orbits settle.
 - **Push notifications** — new books added, downloads complete, Book Drop finished processing.
 - **Wear OS companion** — playback controls on the wrist for audiobook listeners.
 - **Multi-server / account switching** — swap between servers without a full sign-out.
-- **Localization** — UI strings aren't externalized (no `stringResource` use); the web client is
-  already translated via Crowdin. Externalizing strings early is cheap.
+- **Translations** — UI text now lives in `res/values/strings.xml` (and `plurals.xml`), so adding a language
+  is a matter of adding a `values-xx/` folder. Android Auto browse titles are still English. The web client
+  is already translated via Crowdin; reusing its translations would need a mapping.
 
 ---
 
