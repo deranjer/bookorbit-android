@@ -123,6 +123,27 @@ interface ApiService {
     @GET("books/files/{fileId}/progress")
     suspend fun getFileProgress(@Path("fileId") fileId: Int): FileProgress?
 
+    // --- Annotations (highlights + notes) ---
+    @GET("books/{bookId}/annotations")
+    suspend fun getAnnotations(@Path("bookId") bookId: Int): List<com.bookorbit.core.model.BookAnnotation>
+
+    @POST("books/{bookId}/annotations")
+    suspend fun createAnnotation(
+        @Path("bookId") bookId: Int,
+        @Body body: com.bookorbit.core.model.CreateAnnotation,
+    ): com.bookorbit.core.model.BookAnnotation
+
+    /** Patch body is a raw object so a note can be cleared with an explicit `null`. */
+    @PATCH("books/{bookId}/annotations/{id}")
+    suspend fun updateAnnotation(
+        @Path("bookId") bookId: Int,
+        @Path("id") id: Int,
+        @Body body: kotlinx.serialization.json.JsonObject,
+    ): com.bookorbit.core.model.BookAnnotation
+
+    @DELETE("books/{bookId}/annotations/{id}")
+    suspend fun deleteAnnotation(@Path("bookId") bookId: Int, @Path("id") id: Int)
+
     @POST("books/files/{fileId}/sessions")
     suspend fun saveReadingSession(
         @Path("fileId") fileId: Int,

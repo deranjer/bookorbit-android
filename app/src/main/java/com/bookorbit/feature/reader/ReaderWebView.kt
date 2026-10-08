@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
+import com.bookorbit.core.model.BookAnnotation
 import com.bookorbit.core.storage.LocalRef
 import com.bookorbit.core.storage.openInputStream
 import kotlinx.serialization.Serializable
@@ -81,6 +82,20 @@ class ReaderController {
     fun next() = command(buildJsonObject { put("type", "next") }.toString())
     fun prev() = command(buildJsonObject { put("type", "prev") }.toString())
 
+    /** Replace the set of highlights drawn in the page. Only CFI-anchored, resolvable ones are drawn. */
+    fun setAnnotations(items: List<BookAnnotation>) {
+        val arr = kotlinx.serialization.json.buildJsonArray {
+            for (a in items) {
+                val cfi = a.cfi ?: continue
+                if (a.positionStatus == "failed") continue
+                add(buildJsonObject { put("cfi", cfi); put("color", a.color); put("style", a.style) })
+            }
+        }
+        command(buildJsonObject { put("type", "setAnnotations"); put("items", arr) }.toString())
+    }
+
+    fun clearSelection() = command(buildJsonObject { put("type", "clearSelection") }.toString())
+
     fun applyStyles(settings: ReaderSettings) {
         val cmd = buildJsonObject {
             put("type", "applyStyles")
@@ -123,6 +138,39 @@ class ReaderController {
     }
 }
 
+/**
+ * WebView that suppresses the system Copy/Select-all toolbar. The page shows its own highlight
+ * toolbar instead; the native selection handles are unaffected.
+ */
+private class ReaderNativeWebView(context: Context) : WebView(context) {
+    override fun startActionMode(callback: android.view.ActionMode.Callback?, type: Int): android.view.ActionMode? =
+        super.startActionMode(callback?.let { EmptyActionModeCallback(it) }, type)
+}
+
+private class EmptyActionModeCallback(private val delegate: android.view.ActionMode.Callback) :
+    android.view.ActionMode.Callback2() {
+    override fun onCreateActionMode(mode: android.view.ActionMode, menu: android.view.Menu): Boolean {
+        delegate.onCreateActionMode(mode, menu)
+        menu.clear()
+        return true
+    }
+
+    override fun onPrepareActionMode(mode: android.view.ActionMode, menu: android.view.Menu): Boolean {
+        delegate.onPrepareActionMode(mode, menu)
+        menu.clear()
+        return true
+    }
+
+    override fun onActionItemClicked(mode: android.view.ActionMode, item: android.view.MenuItem) = false
+
+    override fun onDestroyActionMode(mode: android.view.ActionMode) = delegate.onDestroyActionMode(mode)
+
+    override fun onGetContentRect(mode: android.view.ActionMode, view: android.view.View, outRect: android.graphics.Rect) {
+        if (delegate is android.view.ActionMode.Callback2) delegate.onGetContentRect(mode, view, outRect)
+        else super.onGetContentRect(mode, view, outRect)
+    }
+}
+
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun ReaderWebView(
@@ -136,7 +184,7 @@ fun ReaderWebView(
                 .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
                 .build()
 
-            WebView(context).apply {
+            ReaderNativeWebView(context).apply {
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT,
