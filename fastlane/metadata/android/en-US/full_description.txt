@@ -15,7 +15,5 @@ FEATURES
 • Your data stays on your server — no ads, no tracking, no analytics
 
 REQUIREMENTS
-You need access to a running BookOrbit server to use this app. See
-https://github.com/bookorbit/bookorbit for server setup.
-
-Source code: https://github.com/deranjer/bookorbit-android
+You need access to a running BookOrbit server to use this app. The app
+does not provide or host a server.
