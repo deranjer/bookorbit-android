@@ -135,6 +135,196 @@ function serializeToc(items) {
   }));
 }
 
+/* ------------------------------------------------------- annotations */
+// Highlight drawing mirrors client/src/features/reader/epub/composables/useFoliateAnnotations.ts.
+/** cfi -> { color, style } for every highlight currently drawn. */
+const annotationStyles = new Map();
+/** When foliate last reported a tap on an existing highlight, so the generic tap handler can skip it. */
+let lastAnnotationHitAt = 0;
+
+function createSVG(tag) {
+  return document.createElementNS('http://www.w3.org/2000/svg', tag);
+}
+
+function getDrawFunction(style) {
+  switch (style) {
+    case 'underline':
+      return (rects, { color = 'red' } = {}) => {
+        const g = createSVG('g');
+        g.setAttribute('fill', color);
+        for (const { left, bottom, width } of Array.from(rects)) {
+          const el = createSVG('rect');
+          el.setAttribute('x', String(left));
+          el.setAttribute('y', String(bottom - 2));
+          el.setAttribute('height', '2');
+          el.setAttribute('width', String(width));
+          g.append(el);
+        }
+        return g;
+      };
+    case 'strikethrough':
+      return (rects, { color = 'red' } = {}) => {
+        const g = createSVG('g');
+        g.setAttribute('fill', color);
+        for (const { left, top, bottom, width } of Array.from(rects)) {
+          const el = createSVG('rect');
+          el.setAttribute('x', String(left));
+          el.setAttribute('y', String((top + bottom) / 2));
+          el.setAttribute('height', '2');
+          el.setAttribute('width', String(width));
+          g.append(el);
+        }
+        return g;
+      };
+    case 'invert':
+      return (rects, { color = '#FFFFFF' } = {}) => {
+        const g = createSVG('g');
+        g.setAttribute('fill', color);
+        g.style.mixBlendMode = 'difference';
+        for (const { left, top, height, width } of Array.from(rects)) {
+          const el = createSVG('rect');
+          el.setAttribute('x', String(left));
+          el.setAttribute('y', String(top));
+          el.setAttribute('height', String(height));
+          el.setAttribute('width', String(width));
+          g.append(el);
+        }
+        return g;
+      };
+    case 'squiggly':
+      return (rects, { color = 'red' } = {}) => {
+        const g = createSVG('g');
+        g.setAttribute('fill', 'none');
+        g.setAttribute('stroke', color);
+        g.setAttribute('stroke-width', '2');
+        const block = 3;
+        for (const { left, bottom, width } of Array.from(rects)) {
+          const el = createSVG('path');
+          const n = Math.max(1, Math.round(width / block / 1.5));
+          const inline = width / n;
+          const ls = Array.from({ length: n }, (_, i) => `l${inline} ${i % 2 ? block : -block}`).join('');
+          el.setAttribute('d', `M${left} ${bottom}${ls}`);
+          g.append(el);
+        }
+        return g;
+      };
+    default:
+      return (rects, { color = 'yellow' } = {}) => {
+        const g = createSVG('g');
+        g.setAttribute('fill', color);
+        g.style.opacity = '0.3';
+        g.style.mixBlendMode = 'multiply';
+        for (const { left, top, height, width } of Array.from(rects)) {
+          const el = createSVG('rect');
+          el.setAttribute('x', String(left));
+          el.setAttribute('y', String(top));
+          el.setAttribute('height', String(height));
+          el.setAttribute('width', String(width));
+          g.append(el);
+        }
+        return g;
+      };
+  }
+}
+
+function drawAnnotation(cfi) {
+  return view?.addAnnotation?.({ value: cfi })?.catch?.(() => {});
+}
+
+function eraseAnnotation(cfi) {
+  return view?.deleteAnnotation?.({ value: cfi })?.catch?.(() => {});
+}
+
+/** Replace the full set of drawn highlights: erase removed ones, (re)draw new or changed ones. */
+function setAnnotations(items) {
+  const next = new Map();
+  for (const it of Array.isArray(items) ? items : []) {
+    if (it?.cfi) next.set(it.cfi, { color: it.color, style: it.style });
+  }
+  for (const cfi of Array.from(annotationStyles.keys())) {
+    if (!next.has(cfi)) {
+      annotationStyles.delete(cfi);
+      void eraseAnnotation(cfi);
+    }
+  }
+  for (const [cfi, st] of next) {
+    const prev = annotationStyles.get(cfi);
+    annotationStyles.set(cfi, st);
+    if (!prev || prev.color !== st.color || prev.style !== st.style) void drawAnnotation(cfi);
+  }
+}
+
+/* ------------------------------------------------- taps and selection */
+/** A range's bounding box in the WebView's own viewport coordinates (CSS px == dp). */
+function viewportRect(range) {
+  const r = range.getBoundingClientRect();
+  const frame = range.startContainer?.ownerDocument?.defaultView?.frameElement;
+  const off = frame ? frame.getBoundingClientRect() : { left: 0, top: 0 };
+  return { left: r.left + off.left, top: r.top + off.top, right: r.right + off.left, bottom: r.bottom + off.top };
+}
+
+function clearSelection() {
+  for (const c of view?.renderer?.getContents?.() ?? []) c.doc?.getSelection?.()?.removeAllRanges();
+}
+
+/**
+ * Per-section-document listeners. The host no longer overlays tap zones on the WebView (that
+ * blocked text selection), so taps are detected here and reported with their horizontal position.
+ */
+function attachDocHandlers(doc, index) {
+  let selectionAtPointerDown = false;
+  let selectionTimer = null;
+
+  doc.addEventListener(
+    'pointerdown',
+    () => {
+      const sel = doc.getSelection();
+      selectionAtPointerDown = !!sel && !sel.isCollapsed;
+    },
+    true,
+  );
+
+  doc.addEventListener('click', (e) => {
+    // A tap that merely dismissed an existing selection must not also turn the page.
+    if (selectionAtPointerDown) {
+      selectionAtPointerDown = false;
+      return;
+    }
+    if (e.target?.closest?.('a[href]')) return;
+    const sel = doc.getSelection();
+    if (sel && !sel.isCollapsed) return;
+    const frame = doc.defaultView?.frameElement;
+    const left = frame ? frame.getBoundingClientRect().left : 0;
+    const x = (left + e.clientX) / window.innerWidth;
+    // Foliate's own click listener reports taps on highlights; give it a tick to run first.
+    setTimeout(() => {
+      if (performance.now() - lastAnnotationHitAt < 50) return;
+      post({ type: 'tap', x });
+    }, 0);
+  });
+
+  doc.addEventListener('selectionchange', () => {
+    clearTimeout(selectionTimer);
+    selectionTimer = setTimeout(() => {
+      const sel = doc.getSelection();
+      if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
+        post({ type: 'selectionCleared' });
+        return;
+      }
+      const range = sel.getRangeAt(0);
+      const text = range.toString().trim();
+      if (!text) return;
+      let cfi = null;
+      try {
+        cfi = view.getCFI(index, range);
+      } catch {
+        cfi = null;
+      }
+      post({ type: 'selection', text, cfi, rect: viewportRect(range) });
+    }, 300);
+  });
+}
+
 /* ----------------------------------------------------------- create view */
 function createView() {
   if (view) return view;
@@ -147,6 +337,31 @@ function createView() {
     // The paginator swaps its internal view in a microtask after 'load'; defer so
     // setStyles targets the freshly loaded section (mirrors useFoliate.ts).
     setTimeout(() => applyStyles(currentSettings), 0);
+  });
+
+  view.addEventListener('load', (e) => {
+    const { doc, index } = e.detail ?? {};
+    if (doc) attachDocHandlers(doc, index);
+  });
+
+  view.addEventListener('draw-annotation', (e) => {
+    const { draw, annotation } = e.detail ?? {};
+    const st = annotationStyles.get(annotation?.value);
+    if (!draw || !st) return;
+    draw(getDrawFunction(st.style), { color: st.color });
+  });
+
+  // A section's overlay is rebuilt each time it loads, so redraw everything that belongs to it.
+  view.addEventListener('create-overlay', () => {
+    setTimeout(() => {
+      for (const cfi of annotationStyles.keys()) void drawAnnotation(cfi);
+    }, 100);
+  });
+
+  view.addEventListener('show-annotation', (e) => {
+    lastAnnotationHitAt = performance.now();
+    const range = e.detail?.range;
+    post({ type: 'annotationTap', cfi: e.detail?.value ?? null, rect: range ? viewportRect(range) : null });
   });
 
   view.addEventListener('relocate', (e) => {
@@ -258,7 +473,7 @@ window.__readerCommit = () => {
   void openBook(meta, parts);
 };
 
-// Imperative commands: { type: 'goTo'|'goToFraction'|'prev'|'next'|'applyStyles', ... }.
+// Imperative commands: { type: 'goTo'|'goToFraction'|'prev'|'next'|'applyStyles'|'setAnnotations'|'clearSelection', ... }.
 window.__readerCommand = (json) => {
   if (!view) return;
   let cmd;
@@ -282,6 +497,12 @@ window.__readerCommand = (json) => {
       break;
     case 'applyStyles':
       applyStyles(cmd.settings);
+      break;
+    case 'setAnnotations':
+      setAnnotations(cmd.items);
+      break;
+    case 'clearSelection':
+      clearSelection();
       break;
     default:
       break;

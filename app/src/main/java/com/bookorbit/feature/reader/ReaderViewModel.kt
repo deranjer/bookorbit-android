@@ -3,6 +3,7 @@ package com.bookorbit.feature.reader
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bookorbit.core.model.BookAnnotation
 import com.bookorbit.core.storage.LocalRef
 import com.bookorbit.feature.bookdetail.BookDetailRepository
 import com.bookorbit.feature.downloads.DownloadsRepository
@@ -26,6 +27,7 @@ class ReaderViewModel @Inject constructor(
     private val progress: ReaderProgressRepository,
     private val settingsStore: ReaderSettingsStore,
     private val sessions: ReadingSessionTracker,
+    private val annotationRepo: ReaderAnnotationRepository,
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
@@ -35,6 +37,16 @@ class ReaderViewModel @Inject constructor(
         val format: String,
         val fileId: Int,
         val initial: InitialProgress,
+    )
+
+    /** Text the user has selected in the page, not yet saved as a highlight. */
+    data class PendingSelection(val text: String, val cfi: String)
+
+    /** What the floating highlight toolbar is acting on: a new selection, or an existing highlight. */
+    data class ToolbarTarget(
+        val rect: ViewportRect?,
+        val selection: PendingSelection? = null,
+        val annotationId: Int? = null,
     )
 
     data class UiState(
@@ -48,6 +60,10 @@ class ReaderViewModel @Inject constructor(
         val percentage: Int = 0,
         val loaded: Boolean = false,
         val showPagingHint: Boolean = false,
+        val annotations: List<BookAnnotation> = emptyList(),
+        val toolbar: ToolbarTarget? = null,
+        /** One-shot message for the screen to toast, then clear via [consumeMessage]. */
+        val message: String? = null,
     )
 
     private val _ui = MutableStateFlow(UiState())
@@ -58,6 +74,7 @@ class ReaderViewModel @Inject constructor(
 
     init {
         load()
+        loadAnnotations()
     }
 
     private fun load() {
@@ -105,6 +122,90 @@ class ReaderViewModel @Inject constructor(
         if (cfi != null && fraction != null) {
             report(cfi, fraction * 100)
             sessions.onReadingProgress(fraction * 100)
+        }
+    }
+
+    // --- highlights & notes ---
+
+    private fun loadAnnotations() {
+        viewModelScope.launch {
+            runCatching { annotationRepo.list(bookId) }
+                .onSuccess { list -> _ui.update { it.copy(annotations = list) } }
+        }
+    }
+
+    fun onSelection(text: String, cfi: String?, rect: ViewportRect?) {
+        if (cfi == null) return
+        _ui.update { it.copy(toolbar = ToolbarTarget(rect, selection = PendingSelection(text, cfi))) }
+    }
+
+    fun onSelectionCleared() {
+        // A selection going away dismisses the new-highlight toolbar, but not one opened on an existing highlight.
+        _ui.update { s -> if (s.toolbar?.annotationId == null) s.copy(toolbar = null) else s }
+    }
+
+    fun onAnnotationTap(cfi: String, rect: ViewportRect?) {
+        val ann = _ui.value.annotations.firstOrNull { it.cfi == cfi } ?: return
+        _ui.update { it.copy(toolbar = ToolbarTarget(rect, annotationId = ann.id)) }
+    }
+
+    fun dismissToolbar() = _ui.update { it.copy(toolbar = null) }
+
+    fun consumeMessage() = _ui.update { it.copy(message = null) }
+
+    /** Highlight the selection in [color], or recolour the highlight the toolbar is open on. */
+    fun highlight(color: String) = saveAnnotation(color = color, note = null)
+
+    /** Save a note: on the open highlight, or on the selection as a new (yellow) highlight. */
+    fun saveNote(note: String) = saveAnnotation(color = null, note = note)
+
+    private fun saveAnnotation(color: String?, note: String?) {
+        val target = _ui.value.toolbar ?: return
+        val fileId = _ui.value.resolved?.fileId
+        viewModelScope.launch {
+            val result = runCatching {
+                when {
+                    target.annotationId != null -> {
+                        var updated: BookAnnotation? = null
+                        if (color != null) updated = annotationRepo.setColor(bookId, target.annotationId, color)
+                        if (note != null) updated = annotationRepo.setNote(bookId, target.annotationId, note)
+                        updated
+                    }
+                    target.selection != null && fileId != null -> annotationRepo.create(
+                        bookId = bookId,
+                        fileId = fileId,
+                        cfi = target.selection.cfi,
+                        text = target.selection.text,
+                        color = color ?: ReaderAnnotationRepository.COLORS.first().second,
+                        note = note,
+                        chapterTitle = _ui.value.chapterTitle,
+                    )
+                    else -> null
+                }
+            }
+            result.onSuccess { saved ->
+                if (saved != null) {
+                    _ui.update { s ->
+                        val exists = s.annotations.any { it.id == saved.id }
+                        s.copy(
+                            annotations = if (exists) s.annotations.map { if (it.id == saved.id) saved else it } else s.annotations + saved,
+                            toolbar = null,
+                        )
+                    }
+                } else {
+                    _ui.update { it.copy(toolbar = null) }
+                }
+            }.onFailure {
+                _ui.update { s -> s.copy(message = "Couldn't save the highlight. Check your connection and try again.") }
+            }
+        }
+    }
+
+    fun deleteAnnotation(id: Int) {
+        viewModelScope.launch {
+            runCatching { annotationRepo.delete(bookId, id) }
+                .onSuccess { _ui.update { s -> s.copy(annotations = s.annotations.filterNot { it.id == id }, toolbar = null) } }
+                .onFailure { _ui.update { s -> s.copy(message = "Couldn't delete the highlight.") } }
         }
     }
 

@@ -24,6 +24,9 @@ data class TocItem(
     val subitems: List<TocItem> = emptyList(),
 )
 
+/** A box in the WebView's own coordinate space; CSS px equal dp, so it can be used as dp directly. */
+data class ViewportRect(val left: Double, val top: Double, val right: Double, val bottom: Double)
+
 sealed interface ReaderEvent {
     data object Ready : ReaderEvent
     data class Loaded(val toc: List<TocItem>, val title: String?) : ReaderEvent
@@ -33,6 +36,12 @@ sealed interface ReaderEvent {
         val chapterTitle: String?,
     ) : ReaderEvent
     data class Error(val message: String) : ReaderEvent
+
+    /** A tap on the page body (not on a link or highlight). [x] is 0..1 across the viewport. */
+    data class Tap(val x: Double) : ReaderEvent
+    data class Selection(val text: String, val cfi: String?, val rect: ViewportRect?) : ReaderEvent
+    data object SelectionCleared : ReaderEvent
+    data class AnnotationTap(val cfi: String, val rect: ViewportRect?) : ReaderEvent
 }
 
 object ReaderBridge {
@@ -57,6 +66,16 @@ object ReaderBridge {
     fun jsCommand(commandJson: String): String =
         "window.__readerCommand && window.__readerCommand(${asJsLiteral(commandJson)});true;"
 
+    private fun parseRect(el: kotlinx.serialization.json.JsonElement?): ViewportRect? = runCatching {
+        val o = el?.jsonObject ?: return null
+        ViewportRect(
+            o["left"]!!.jsonPrimitive.doubleOrNull!!,
+            o["top"]!!.jsonPrimitive.doubleOrNull!!,
+            o["right"]!!.jsonPrimitive.doubleOrNull!!,
+            o["bottom"]!!.jsonPrimitive.doubleOrNull!!,
+        )
+    }.getOrNull()
+
     fun parseEvent(data: String): ReaderEvent? = runCatching {
         val obj = json.parseToJsonElement(data).jsonObject
         when (obj["type"]?.jsonPrimitive?.contentOrNull) {
@@ -75,6 +94,14 @@ object ReaderBridge {
                 chapterTitle = obj["chapterTitle"]?.jsonPrimitive?.contentOrNull,
             )
             "error" -> ReaderEvent.Error(obj["message"]?.jsonPrimitive?.contentOrNull ?: "Reader error")
+            "tap" -> obj["x"]?.jsonPrimitive?.doubleOrNull?.let { ReaderEvent.Tap(it) }
+            "selection" -> obj["text"]?.jsonPrimitive?.contentOrNull?.let {
+                ReaderEvent.Selection(it, obj["cfi"]?.jsonPrimitive?.contentOrNull, parseRect(obj["rect"]))
+            }
+            "selectionCleared" -> ReaderEvent.SelectionCleared
+            "annotationTap" -> obj["cfi"]?.jsonPrimitive?.contentOrNull?.let {
+                ReaderEvent.AnnotationTap(it, parseRect(obj["rect"]))
+            }
             else -> null
         }
     }.getOrNull()
