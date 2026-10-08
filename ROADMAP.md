@@ -61,7 +61,7 @@ Server endpoints available but unused by this app:
 
 ## P1 — Targeted refresh
 
-- Dashboard widgets (streak, goal, highlight of the day, discover) using the dashboard endpoints.
+- Dashboard: streak, goal and a Continue card shipped; highlight of the day and discover still to do.
 - "My Reading" statistics screen (heatmap, completion timeline, pace).
 - Navigation: Authors/Series as real routes; promote Annotations and Statistics.
 - Theme: Material You option, AA contrast on primary, tonal surfaces.

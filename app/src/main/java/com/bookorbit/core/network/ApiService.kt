@@ -318,6 +318,12 @@ interface ApiService {
         @Query("smartScopeId") smartScopeId: Int? = null,
     ): JsonElement
 
+    @GET("dashboard/widgets/reading-streak")
+    suspend fun getReadingStreak(): com.bookorbit.core.model.ReadingStreakWidget
+
+    @GET("dashboard/widgets/reading-goal")
+    suspend fun getReadingGoal(): com.bookorbit.core.model.ReadingGoalWidget
+
     // --- Book Dock (staging / ingest review) ---
     @GET("book-dock/files")
     suspend fun getBookDockFiles(
