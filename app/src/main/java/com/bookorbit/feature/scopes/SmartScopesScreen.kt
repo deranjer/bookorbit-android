@@ -1,5 +1,7 @@
 package com.bookorbit.feature.scopes
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -23,8 +25,8 @@ fun SmartScopesScreen(
         onSelect = vm::select,
         books = books,
         onBookClick = onBookClick,
-        emptyTitle = "No Smart Scopes",
-        emptyBody = "Create smart scopes in the web app to automatically group books by rules.",
-        emptyBooksText = "No books match this scope.",
+        emptyTitle = stringResource(R.string.no_smart_scopes),
+        emptyBody = stringResource(R.string.create_smart_scopes_in_the),
+        emptyBooksText = stringResource(R.string.no_books_match_this_scope),
     )
 }

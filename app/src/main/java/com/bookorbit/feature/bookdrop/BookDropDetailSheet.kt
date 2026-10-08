@@ -115,18 +115,18 @@ fun BookDropDetailSheet(
 
             HorizontalDivider()
 
-            Field("Title", form.title) { form.title = it }
-            Field("Subtitle", form.subtitle) { form.subtitle = it }
-            Field("Authors (comma-separated)", form.authors) { form.authors = it }
-            Field("Description", form.description, singleLine = false) { form.description = it }
-            Field("Publisher", form.publisher) { form.publisher = it }
-            Field("Year", form.year, keyboard = KeyboardType.Number) { form.year = it }
-            Field("Language", form.language) { form.language = it }
-            Field("ISBN-13", form.isbn13) { form.isbn13 = it }
-            Field("ISBN-10", form.isbn10) { form.isbn10 = it }
-            Field("Series", form.seriesName) { form.seriesName = it }
-            Field("Series #", form.seriesIndex, keyboard = KeyboardType.Number) { form.seriesIndex = it }
-            Field("Genres (comma-separated)", form.genres) { form.genres = it }
+            Field(stringResource(R.string.title), form.title) { form.title = it }
+            Field(stringResource(R.string.subtitle), form.subtitle) { form.subtitle = it }
+            Field(stringResource(R.string.authors_comma_separated), form.authors) { form.authors = it }
+            Field(stringResource(R.string.description), form.description, singleLine = false) { form.description = it }
+            Field(stringResource(R.string.publisher), form.publisher) { form.publisher = it }
+            Field(stringResource(R.string.year), form.year, keyboard = KeyboardType.Number) { form.year = it }
+            Field(stringResource(R.string.language), form.language) { form.language = it }
+            Field(stringResource(R.string.isbn_13), form.isbn13) { form.isbn13 = it }
+            Field(stringResource(R.string.isbn_10), form.isbn10) { form.isbn10 = it }
+            Field(stringResource(R.string.series), form.seriesName) { form.seriesName = it }
+            Field(stringResource(R.string.series_2), form.seriesIndex, keyboard = KeyboardType.Number) { form.seriesIndex = it }
+            Field(stringResource(R.string.genres_comma_separated), form.genres) { form.genres = it }
 
             HorizontalDivider()
 

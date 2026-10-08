@@ -215,10 +215,10 @@ private fun StatusFilterRow(
     onSelect: (String?) -> Unit,
 ) {
     val tabs = listOf(
-        StatusTab(null, "All ($summary)"),
-        StatusTab("ready", "Ready ($ready)"),
-        StatusTab("pending", "Pending ($pending)"),
-        StatusTab("error", "Error ($error)"),
+        StatusTab(null, stringResource(R.string.all_2, summary)),
+        StatusTab(stringResource(R.string.ready), "Ready ($ready)"),
+        StatusTab(stringResource(R.string.pending), "Pending ($pending)"),
+        StatusTab(stringResource(R.string.error), "Error ($error)"),
     )
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),

@@ -93,7 +93,7 @@ fun PlayerScreen(
     if (book == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
-                state.playerError ?: "Nothing playing",
+                state.playerError ?: stringResource(R.string.player_nothing_playing),
                 color = if (state.playerError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 32.dp),
@@ -159,7 +159,7 @@ fun PlayerScreen(
             IconButton(onClick = { showSleepTimerSheet = true }) {
                 Icon(
                     Icons.Filled.Bedtime,
-                    contentDescription = if (timerActive) "Sleep timer active" else "Sleep timer",
+                    contentDescription = stringResource(if (timerActive) R.string.player_sleep_timer_active else R.string.sleep_timer),
                     tint = if (timerActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -183,7 +183,7 @@ fun PlayerScreen(
                     .background(MaterialTheme.colorScheme.surface),
             )
             Text(
-                book.title ?: "Audiobook",
+                book.title ?: stringResource(R.string.player_audiobook),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -197,7 +197,7 @@ fun PlayerScreen(
             )
             if (state.isCasting) {
                 Text(
-                    "Casting to ${state.castDeviceName ?: "device"}",
+                    stringResource(R.string.player_casting_to, state.castDeviceName ?: stringResource(R.string.player_casting_device)),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp),
@@ -280,7 +280,7 @@ fun PlayerScreen(
                     IconButton(onClick = { vm.togglePlay() }) {
                         Icon(
                             if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                            contentDescription = if (state.isPlaying) "Pause" else "Play",
+                            contentDescription = stringResource(if (state.isPlaying) R.string.player_pause else R.string.player_play),
                             tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(38.dp),
                         )

@@ -1,5 +1,6 @@
 package com.bookorbit.feature.main
 
+import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import android.net.Uri
@@ -56,12 +57,12 @@ import com.bookorbit.feature.stats.StatsScreen
 import com.bookorbit.feature.you.YouScreen
 import com.bookorbit.ui.components.CenteredContent
 
-private enum class Tab(val route: String, val label: String, val icon: ImageVector) {
-    HOME("home", "Home", Icons.Outlined.Home),
-    LIBRARY("library", "Library", Icons.Outlined.LocalLibrary),
-    SEARCH("search", "Search", Icons.Outlined.Search),
-    NOTES("notes", "Notes", Icons.Outlined.EditNote),
-    YOU("you", "You", Icons.Outlined.Person),
+private enum class Tab(val route: String, @StringRes val label: Int, val icon: ImageVector) {
+    HOME("home", R.string.tab_home, Icons.Outlined.Home),
+    LIBRARY("library", R.string.tab_library, Icons.Outlined.LocalLibrary),
+    SEARCH("search", R.string.tab_search, Icons.Outlined.Search),
+    NOTES("notes", R.string.tab_notes, Icons.Outlined.EditNote),
+    YOU("you", R.string.tab_you, Icons.Outlined.Person),
 }
 
 /** Screens reached from the You tab, plus book detail. They keep the bottom bar and mini-player. */
@@ -130,16 +131,16 @@ fun MainShell(
     }
 
     val title = when (currentRoute) {
-        Tab.LIBRARY.route -> "Library"
-        Tab.SEARCH.route -> "Search"
-        Tab.NOTES.route -> "Highlights & notes"
-        Tab.YOU.route -> "You"
-        SubRoute.STATS -> "Reading stats"
-        SubRoute.DOWNLOADS -> "Downloads"
-        SubRoute.BOOK_DROP -> "Book Drop"
-        SubRoute.SETTINGS -> "Settings"
+        Tab.LIBRARY.route -> stringResource(R.string.title_library)
+        Tab.SEARCH.route -> stringResource(R.string.title_search)
+        Tab.NOTES.route -> stringResource(R.string.title_notes)
+        Tab.YOU.route -> stringResource(R.string.title_you)
+        SubRoute.STATS -> stringResource(R.string.title_reading_stats)
+        SubRoute.DOWNLOADS -> stringResource(R.string.title_downloads)
+        SubRoute.BOOK_DROP -> stringResource(R.string.title_book_drop)
+        SubRoute.SETTINGS -> stringResource(R.string.title_settings)
         SubRoute.AUTHOR, SubRoute.SERIES -> backStackEntry?.arguments?.getString("name").orEmpty()
-        else -> "BookOrbit"
+        else -> stringResource(R.string.app_name)
     }
 
     val canUseBookDrop = user.isSuperuser || BOOK_DOCK_PERMISSION in user.permissions
@@ -170,8 +171,8 @@ fun MainShell(
                             NavigationBarItem(
                                 selected = selectedRoute == tab.route,
                                 onClick = { navigateTab(tab.route) },
-                                icon = { Icon(tab.icon, contentDescription = tab.label) },
-                                label = { Text(tab.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                icon = { Icon(tab.icon, contentDescription = stringResource(tab.label)) },
+                                label = { Text(stringResource(tab.label), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             )
                         }
                     }
@@ -187,8 +188,8 @@ fun MainShell(
                     NavigationRailItem(
                         selected = selectedRoute == tab.route,
                         onClick = { navigateTab(tab.route) },
-                        icon = { Icon(tab.icon, contentDescription = tab.label) },
-                        label = { Text(tab.label, maxLines = 1) },
+                        icon = { Icon(tab.icon, contentDescription = stringResource(tab.label)) },
+                        label = { Text(stringResource(tab.label), maxLines = 1) },
                         alwaysShowLabel = true,
                     )
                 }

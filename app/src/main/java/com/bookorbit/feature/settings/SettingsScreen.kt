@@ -74,7 +74,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
 
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         LazyColumn(modifier = Modifier.fillMaxWidth().padding(padding)) {
-            item { SectionHeader("Appearance") }
+            item { SectionHeader(stringResource(R.string.appearance)) }
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
@@ -92,25 +92,25 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                 item {
                     SettingsRow(
-                        title = "Material You colours",
-                        subtitle = "Match your wallpaper instead of BookOrbit blue",
+                        title = stringResource(R.string.settings_material_you),
+                        subtitle = stringResource(R.string.settings_material_you_desc),
                         trailing = { Switch(checked = dynamicColor, onCheckedChange = vm::setDynamicColor) },
                     )
                 }
             }
             item { HorizontalDivider() }
 
-            item { SectionHeader("Downloads") }
+            item { SectionHeader(stringResource(R.string.downloads)) }
             item {
                 SettingsRow(
-                    title = "Wi-Fi only",
-                    subtitle = "Only download books over an unmetered connection",
+                    title = stringResource(R.string.settings_wifi_only),
+                    subtitle = stringResource(R.string.settings_wifi_only_desc),
                     trailing = { Switch(checked = wifiOnly, onCheckedChange = vm::setWifiOnlyDownloads) },
                 )
             }
             item {
                 SettingsRow(
-                    title = "Download location",
+                    title = stringResource(R.string.settings_download_location),
                     subtitle = downloadLocationLabel,
                     trailing = { TextButton(onClick = { folderLauncher.launch(null) }) { Text(stringResource(R.string.change)) } },
                 )
@@ -125,8 +125,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             if (downloadTreeUri != null && !downloadLocationAccessible) {
                 item {
                     Text(
-                        "This folder isn't accessible anymore (permission revoked or the storage was " +
-                            "removed). New downloads will use app storage until you pick a new folder.",
+                        stringResource(R.string.settings_folder_inaccessible),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
@@ -151,7 +150,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             }
             item { HorizontalDivider() }
 
-            item { SectionHeader("Storage") }
+            item { SectionHeader(stringResource(R.string.storage)) }
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     OutlinedButton(onClick = vm::clearImageCache) {
@@ -161,7 +160,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             }
             item { HorizontalDivider() }
 
-            item { SectionHeader("Playback") }
+            item { SectionHeader(stringResource(R.string.playback)) }
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Text(
@@ -192,7 +191,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                         horizontalArrangement = Arrangement.Center,
                     ) {
-                        listOf(ProgressBarMode.BOOK to "Whole book", ProgressBarMode.CHAPTER to "Chapter").forEach { (mode, label) ->
+                        listOf(ProgressBarMode.BOOK to stringResource(R.string.settings_progress_book), ProgressBarMode.CHAPTER to stringResource(R.string.settings_progress_chapter)).forEach { (mode, label) ->
                             FilterChip(
                                 selected = progressBarMode == mode,
                                 onClick = { vm.setProgressBarMode(mode) },
@@ -205,10 +204,10 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             }
 
             item { HorizontalDivider() }
-            item { SectionHeader("About") }
+            item { SectionHeader(stringResource(R.string.about)) }
             item {
                 SettingsRow(
-                    title = "App version",
+                    title = stringResource(R.string.settings_app_version),
                     subtitle = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
                     trailing = {},
                 )
@@ -217,11 +216,12 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                 item {
                     val updateAvailable = appInfo?.updateAvailable == true
                     SettingsRow(
-                        title = if (updateAvailable) "Update available" else "Up to date",
+                        title = stringResource(if (updateAvailable) R.string.settings_update_available else R.string.settings_up_to_date),
                         subtitle = if (updateAvailable) {
-                            "Server is on version ${appInfo?.latestVersion ?: "a newer version"}"
+                            appInfo?.latestVersion?.let { stringResource(R.string.settings_server_newer, it) }
+                                ?: stringResource(R.string.settings_server_newer_unknown)
                         } else {
-                            "Server: ${appInfo?.version}"
+                            stringResource(R.string.settings_server_version, appInfo?.version.orEmpty())
                         },
                         trailing = { if (updateAvailable) Badge() },
                     )
@@ -276,11 +276,14 @@ private fun SettingsRow(title: String, subtitle: String, trailing: @Composable (
     }
 }
 
-private fun ThemeMode.label() = when (this) {
-    ThemeMode.SYSTEM -> "System"
-    ThemeMode.LIGHT -> "Light"
-    ThemeMode.DARK -> "Dark"
-}
+@Composable
+private fun ThemeMode.label() = stringResource(
+    when (this) {
+        ThemeMode.SYSTEM -> R.string.theme_system
+        ThemeMode.LIGHT -> R.string.theme_light
+        ThemeMode.DARK -> R.string.theme_dark
+    },
+)
 
 private fun formatBytes(bytes: Long): String {
     if (bytes <= 0) return "0 MB"

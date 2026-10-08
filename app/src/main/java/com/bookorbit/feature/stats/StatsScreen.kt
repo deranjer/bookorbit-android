@@ -60,12 +60,12 @@ fun StatsScreen(vm: StatsViewModel = hiltViewModel()) {
         else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
             ui.summary?.let { s ->
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Tile("Started", s.startedBooks.toString(), Modifier.weight(1f))
-                    Tile("In progress", s.inProgressBooks.toString(), Modifier.weight(1f))
+                    Tile(stringResource(R.string.started), s.startedBooks.toString(), Modifier.weight(1f))
+                    Tile(stringResource(R.string.in_progress), s.inProgressBooks.toString(), Modifier.weight(1f))
                 }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Tile("Completed", s.completedBooks.toString(), Modifier.weight(1f))
-                    Tile("Avg progress", "${s.meanProgressPercent.toInt()}%", Modifier.weight(1f))
+                    Tile(stringResource(R.string.completed), s.completedBooks.toString(), Modifier.weight(1f))
+                    Tile(stringResource(R.string.avg_progress), "${s.meanProgressPercent.toInt()}%", Modifier.weight(1f))
                 }
             }
 
@@ -74,7 +74,7 @@ fun StatsScreen(vm: StatsViewModel = hiltViewModel()) {
             if (ui.daily.isNotEmpty()) {
                 val last30 = ui.daily.entries.toList().takeLast(30)
                 val total = last30.sumOf { it.value }
-                SectionTitle("Last 30 days")
+                SectionTitle(stringResource(R.string.last_30_days))
                 Text(
                     stringResource(R.string.total_a_day, formatSeconds(total), formatSeconds(total / 30)),
                     style = MaterialTheme.typography.bodyMedium,
@@ -83,12 +83,12 @@ fun StatsScreen(vm: StatsViewModel = hiltViewModel()) {
                 )
                 BarChart(last30.map { it.value }, Modifier.fillMaxWidth().padding(16.dp).height(110.dp))
 
-                SectionTitle("Reading heatmap")
+                SectionTitle(stringResource(R.string.reading_heatmap))
                 Heatmap(ui.daily, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
             }
 
             ui.sources?.takeIf { it.totalSeconds > 0 }?.let {
-                SectionTitle("Where you read")
+                SectionTitle(stringResource(R.string.where_you_read))
                 SourceSplit(it, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
             }
         }

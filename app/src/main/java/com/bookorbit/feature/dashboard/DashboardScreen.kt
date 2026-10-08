@@ -1,5 +1,6 @@
 package com.bookorbit.feature.dashboard
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.compose.foundation.background
@@ -93,16 +94,16 @@ fun DashboardScreen(
                     if (hero != null) {
                         ContinueCard(
                             book = hero,
-                            label = if (heroFromReading != null) "Continue reading" else "Continue listening",
+                            label = stringResource(if (heroFromReading != null) R.string.home_continue_reading else R.string.continue_listening),
                             onClick = { onBookClick(hero.id) },
                         )
                     }
 
                     val moreReading = if (heroFromReading != null) ui.continueReading.drop(1) else ui.continueReading
                     val moreListening = if (heroFromReading != null) ui.continueListening else ui.continueListening.drop(1)
-                    if (moreReading.isNotEmpty()) HorizontalBookScroller("Up next to read", moreReading, onBookClick)
-                    if (moreListening.isNotEmpty()) HorizontalBookScroller("Continue listening", moreListening, onBookClick)
-                    if (ui.recentlyAdded.isNotEmpty()) HorizontalBookScroller("Recently added", ui.recentlyAdded, onBookClick)
+                    if (moreReading.isNotEmpty()) HorizontalBookScroller(stringResource(R.string.up_next_to_read), moreReading, onBookClick)
+                    if (moreListening.isNotEmpty()) HorizontalBookScroller(stringResource(R.string.continue_listening), moreListening, onBookClick)
+                    if (ui.recentlyAdded.isNotEmpty()) HorizontalBookScroller(stringResource(R.string.recently_added), ui.recentlyAdded, onBookClick)
                 }
             }
             Spacer(Modifier.height(24.dp))
@@ -140,11 +141,14 @@ private fun HomeHeader(userName: String, onOpenProfile: () -> Unit) {
     }
 }
 
-private fun greeting(): String = when (LocalTime.now().hour) {
-    in 5..11 -> "Good morning"
-    in 12..17 -> "Good afternoon"
-    else -> "Good evening"
-}
+@Composable
+private fun greeting(): String = stringResource(
+    when (LocalTime.now().hour) {
+        in 5..11 -> R.string.home_good_morning
+        in 12..17 -> R.string.home_good_afternoon
+        else -> R.string.home_good_evening
+    },
+)
 
 /** Streak and yearly goal side by side; each hides itself if the server doesn't provide it. */
 @Composable
@@ -181,10 +185,10 @@ private fun StreakCard(streak: ReadingStreakWidget, modifier: Modifier) {
                 tint = if (streak.currentStreak > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(18.dp),
             )
-            Text(stringResource(R.string.streak), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.streak), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 6.dp))
         }
         Text(
-            if (streak.currentStreak == 1) "1 day" else "${streak.currentStreak} days",
+            pluralStringResource(R.plurals.home_streak_days, streak.currentStreak, streak.currentStreak),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(top = 4.dp),
@@ -209,12 +213,17 @@ private fun GoalCard(goal: ReadingGoalWidget, modifier: Modifier) {
     StatCard(modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.Flag, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-            Text("  ${if (goal.year > 0) goal.year else "Yearly"} goal", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                if (goal.year > 0) stringResource(R.string.home_goal_title, goal.year.toString()) else stringResource(R.string.home_goal_yearly),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 6.dp),
+            )
         }
         val target = goal.goalBooks
         if (target != null && target > 0) {
             Text(
-                "${goal.completedBooks} / $target",
+                stringResource(R.string.home_goal_progress, goal.completedBooks, target),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(top = 4.dp),
@@ -265,7 +274,7 @@ private fun ContinueCard(book: BookCard, label: String, onClick: () -> Unit) {
                     }
                 }
                 Column(Modifier.weight(1f).padding(start = 16.dp)) {
-                    Text(book.title ?: "Untitled", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(book.title ?: stringResource(R.string.home_untitled), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     book.authors.firstOrNull()?.let {
                         Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }

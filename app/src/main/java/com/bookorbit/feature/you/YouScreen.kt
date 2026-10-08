@@ -73,28 +73,34 @@ fun YouScreen(
             }
         }
         HorizontalDivider()
-        Row2("Reading stats", Icons.Outlined.BarChart, onStats)
-        Row2("Downloads", Icons.Filled.Download, onDownloads)
-        if (canUseBookDrop) Row2("Book Drop", Icons.Outlined.Inbox, onBookDrop)
+        Row2(stringResource(R.string.you_reading_stats), Icons.Outlined.BarChart, onStats)
+        Row2(stringResource(R.string.you_downloads), Icons.Filled.Download, onDownloads)
+        if (canUseBookDrop) Row2(stringResource(R.string.you_book_drop), Icons.Outlined.Inbox, onBookDrop)
         ListItem(
             headlineContent = { Text(stringResource(R.string.settings)) },
             leadingContent = {
                 BadgedBox(badge = { if (updateAvailable) Badge() }) { Icon(Icons.Outlined.Settings, contentDescription = null) }
             },
             supportingContent = if (updateAvailable) {
-                { Text("Update available" + (latestVersion?.let { " ($it)" } ?: ""), color = MaterialTheme.colorScheme.primary) }
+                {
+                    Text(
+                        if (latestVersion != null) stringResource(R.string.you_update_available_version, latestVersion) else stringResource(R.string.you_update_available),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             } else null,
             colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background),
             modifier = Modifier.clickable(onClick = onSettings),
         )
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
-        Row2("Sign out", Icons.AutoMirrored.Outlined.Logout, onSignOut)
+        Row2(stringResource(R.string.you_sign_out), Icons.AutoMirrored.Outlined.Logout, onSignOut)
         Spacer(Modifier.height(16.dp))
         Text(
-            buildString {
-                // VERSION_CODE is what changes build-to-build; VERSION_NAME is bumped by hand, so show both.
-                append("App ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
-                serverVersion?.let { append(" · Server $it") }
+            // VERSION_CODE is what changes build-to-build; VERSION_NAME is bumped by hand, so show both.
+            if (serverVersion != null) {
+                stringResource(R.string.you_app_server_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE, serverVersion)
+            } else {
+                stringResource(R.string.you_app_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)
             },
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

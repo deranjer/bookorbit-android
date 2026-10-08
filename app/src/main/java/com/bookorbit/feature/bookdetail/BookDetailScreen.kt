@@ -413,7 +413,7 @@ private fun DetailsTab(
         ShelfCards(book, vm, ui, onOpenStatusSheet, onOpenCollectionSheet)
 
         book.description?.let { description ->
-            Section("Synopsis") {
+            Section(stringResource(R.string.synopsis)) {
                 val annotated = remember(description) { htmlToAnnotatedString(description) }
                 Text(annotated, style = MaterialTheme.typography.bodyMedium)
             }
@@ -422,7 +422,7 @@ private fun DetailsTab(
         DetailsSection(book)
 
         if (goodreadsId != null) {
-            Section("Links") {
+            Section(stringResource(R.string.links)) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -437,17 +437,17 @@ private fun DetailsTab(
         }
 
         if (book.genres.isNotEmpty()) {
-            Section("Genres") { FlowRowChips(book.genres) }
+            Section(stringResource(R.string.genres)) { FlowRowChips(book.genres) }
         }
         if (book.tags.isNotEmpty()) {
-            Section("Tags") { FlowRowChips(book.tags) }
+            Section(stringResource(R.string.tags)) { FlowRowChips(book.tags) }
         }
 
         if (ui.authorBooks.isNotEmpty()) {
-            RecommendationScroller("More by this Author", ui.authorBooks, onBookClick = onBookClick)
+            RecommendationScroller(stringResource(R.string.more_by_this_author), ui.authorBooks, onBookClick = onBookClick)
         }
         if (ui.recommendations.isNotEmpty()) {
-            RecommendationScroller("Similar Books", ui.recommendations, onBookClick = onBookClick)
+            RecommendationScroller(stringResource(R.string.similar_books), ui.recommendations, onBookClick = onBookClick)
         }
     }
 }
@@ -554,7 +554,7 @@ private fun FilesTab(book: BookDetail) {
                         color = MaterialTheme.colorScheme.primary,
                     )
                     if (f.role == "primary") {
-                        Text(stringResource(R.string.primary), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(" · " + stringResource(R.string.primary), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Box(Modifier.weight(1f))
                     val detail = listOfNotNull(
@@ -647,7 +647,7 @@ private fun DetailsSection(book: BookDetail) {
         add("Library" to book.libraryName)
     }
     if (rows.isEmpty()) return
-    Section("Details") {
+    Section(stringResource(R.string.details)) {
         rows.forEach { (label, value) ->
             Row(
                 modifier = Modifier
