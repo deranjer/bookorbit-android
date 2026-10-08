@@ -47,6 +47,7 @@ import kotlin.math.pow
 fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val themeMode by vm.themeMode.collectAsStateWithLifecycle()
     val wifiOnly by vm.wifiOnlyDownloads.collectAsStateWithLifecycle()
+    val dynamicColor by vm.dynamicColor.collectAsStateWithLifecycle()
     val downloadsSummary by vm.downloadsSummary.collectAsStateWithLifecycle()
     val defaultSpeed by vm.defaultSpeed.collectAsStateWithLifecycle()
     val progressBarMode by vm.progressBarMode.collectAsStateWithLifecycle()
@@ -84,6 +85,15 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                             )
                         }
                     }
+                }
+            }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                item {
+                    SettingsRow(
+                        title = "Material You colours",
+                        subtitle = "Match your wallpaper instead of BookOrbit blue",
+                        trailing = { Switch(checked = dynamicColor, onCheckedChange = vm::setDynamicColor) },
+                    )
                 }
             }
             item { HorizontalDivider() }

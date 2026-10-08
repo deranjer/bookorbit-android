@@ -30,6 +30,7 @@ class MainActivity : FragmentActivity() {
         setContent {
             val themeVm: ThemeViewModel = hiltViewModel()
             val mode by themeVm.themeMode.collectAsStateWithLifecycle()
+            val dynamicColor by themeVm.dynamicColor.collectAsStateWithLifecycle()
             val darkTheme = when (mode) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
@@ -49,7 +50,7 @@ class MainActivity : FragmentActivity() {
                     isAppearanceLightNavigationBars = !darkTheme
                 }
             }
-            BookOrbitTheme(darkTheme = darkTheme) {
+            BookOrbitTheme(darkTheme = darkTheme, dynamicColor = dynamicColor) {
                 BookOrbitApp()
             }
         }
