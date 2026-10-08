@@ -14,6 +14,7 @@ import com.bookorbit.core.model.AudioProgress
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFileRef
 import com.bookorbit.feature.cast.CastSessionController
+import com.bookorbit.feature.sessions.ReadingSessionTracker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CancellationException
@@ -53,6 +54,7 @@ class PlayerManager @Inject constructor(
     private val activeBookPlayer: ActiveBookPlayer,
     private val livePrefs: LivePlaybackPrefs,
     private val restoreCandidates: RestoreCandidateFinder,
+    private val sessions: ReadingSessionTracker,
 ) {
     data class UiState(
         val currentBook: BookDetail? = null,
@@ -101,6 +103,7 @@ class PlayerManager @Inject constructor(
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             // A successful resume clears any earlier error - it's no longer the reason nothing is playing.
             _state.update { it.copy(isPlaying = isPlaying, playerError = if (isPlaying) null else it.playerError) }
+            sessions.setListeningActive(isPlaying)
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -375,6 +378,7 @@ class PlayerManager @Inject constructor(
     fun stop() = scope.launch {
         loadGeneration.incrementAndGet()
         report(force = true)
+        sessions.end()
         controller?.run {
             stop()
             clearMediaItems()
@@ -416,6 +420,7 @@ class PlayerManager @Inject constructor(
         val pct = PlaybackQueue.percentageFor(files, loc.index, loc.offsetSec)
         lastReport = System.currentTimeMillis()
         audioProgress.report(book.id, files[loc.index].id, loc.offsetSec, pct)
+        if (c.isPlaying) sessions.onListening(book.id, files.first().id, pct)
     }
 
     /** Friendly text for a Media3 playback failure - falls back to the exception's own message

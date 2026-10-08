@@ -9,6 +9,7 @@ import com.bookorbit.feature.bookdetail.BookDetailRepository
 import com.bookorbit.feature.downloads.DownloadsRepository
 import com.bookorbit.feature.reader.ReaderProgressRepository
 import com.bookorbit.feature.reader.ReaderSource
+import com.bookorbit.feature.sessions.ReadingSessionTracker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Context
@@ -30,6 +31,7 @@ class PdfReaderViewModel @Inject constructor(
     private val source: ReaderSource,
     private val progress: ReaderProgressRepository,
     private val settingsStore: PdfReaderSettingsStore,
+    private val sessions: ReadingSessionTracker,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -91,6 +93,7 @@ class PdfReaderViewModel @Inject constructor(
                 val core = PdfRenderCore.open(context, resolved.ref)
                 val initial = progress.resolveInitial(resolved.fileId)
                 val page = PdfProgress.fractionToPage(initial.fraction, core.pageCount)
+                sessions.beginReading(resolved.fileId, PdfProgress.pageToPercentage(page, core.pageCount))
                 _ui.update {
                     it.copy(
                         loading = false,
@@ -113,6 +116,7 @@ class PdfReaderViewModel @Inject constructor(
         if (clamped == _ui.value.currentPage) return
         _ui.update { it.copy(currentPage = clamped) }
         report(clamped)
+        sessions.onReadingProgress(PdfProgress.pageToPercentage(clamped, total))
     }
 
     fun updateSettings(settings: PdfReaderSettings) {
@@ -180,6 +184,7 @@ class PdfReaderViewModel @Inject constructor(
 
     override fun onCleared() {
         flush()
+        sessions.end()
         _ui.value.core?.close()
         super.onCleared()
     }

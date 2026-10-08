@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.bookorbit.core.storage.LocalRef
 import com.bookorbit.feature.bookdetail.BookDetailRepository
 import com.bookorbit.feature.downloads.DownloadsRepository
+import com.bookorbit.feature.sessions.ReadingSessionTracker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +25,7 @@ class ReaderViewModel @Inject constructor(
     private val source: ReaderSource,
     private val progress: ReaderProgressRepository,
     private val settingsStore: ReaderSettingsStore,
+    private val sessions: ReadingSessionTracker,
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
@@ -76,6 +78,7 @@ class ReaderViewModel @Inject constructor(
             try {
                 val resolved = source.resolve(book)
                 val initial = progress.resolveInitial(resolved.fileId)
+                sessions.beginReading(resolved.fileId, initial.fraction?.let { it * 100 })
                 _ui.update {
                     it.copy(
                         loadingFile = false,
@@ -99,7 +102,10 @@ class ReaderViewModel @Inject constructor(
                 percentage = fraction?.let { f -> (f * 100).roundToInt() } ?: it.percentage,
             )
         }
-        if (cfi != null && fraction != null) report(cfi, fraction * 100)
+        if (cfi != null && fraction != null) {
+            report(cfi, fraction * 100)
+            sessions.onReadingProgress(fraction * 100)
+        }
     }
 
     fun onError(message: String) {
@@ -131,6 +137,7 @@ class ReaderViewModel @Inject constructor(
 
     override fun onCleared() {
         flush()
+        sessions.end()
         super.onCleared()
     }
 }
