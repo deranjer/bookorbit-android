@@ -266,6 +266,7 @@ class BookDropViewModel @Inject constructor(
             append("Approved ${result.succeeded} of ${result.total}")
             if (result.failed > 0) append(", ${result.failed} failed")
             if (dupes > 0) append(" ($dupes duplicate${if (dupes == 1) "" else "s"})")
+            FinalizeErrors.describe(result)?.let { append(". ").append(it) }
         }
     }
 }
