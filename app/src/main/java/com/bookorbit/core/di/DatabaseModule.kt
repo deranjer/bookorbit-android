@@ -5,8 +5,10 @@ import androidx.room.Room
 import com.bookorbit.core.db.AudioProgressDao
 import com.bookorbit.core.db.BookOrbitDatabase
 import com.bookorbit.core.db.DownloadDao
+import com.bookorbit.core.db.MIGRATION_5_6
 import com.bookorbit.core.db.PendingRatingDao
 import com.bookorbit.core.db.PendingReadStatusDao
+import com.bookorbit.core.db.PendingReadingSessionDao
 import com.bookorbit.core.db.ReaderProgressDao
 import dagger.Module
 import dagger.Provides
@@ -22,6 +24,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): BookOrbitDatabase =
         Room.databaseBuilder(context, BookOrbitDatabase::class.java, "bookorbit.db")
+            .addMigrations(MIGRATION_5_6)
             .fallbackToDestructiveMigration()
             .build()
 
@@ -36,6 +39,9 @@ object DatabaseModule {
 
     @Provides
     fun providePendingRatingDao(db: BookOrbitDatabase): PendingRatingDao = db.pendingRatingDao()
+
+    @Provides
+    fun providePendingReadingSessionDao(db: BookOrbitDatabase): PendingReadingSessionDao = db.pendingReadingSessionDao()
 
     @Provides
     fun providePendingReadStatusDao(db: BookOrbitDatabase): PendingReadStatusDao = db.pendingReadStatusDao()

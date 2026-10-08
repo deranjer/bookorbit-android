@@ -25,6 +25,8 @@ review against the web client (demo.bookorbit.app) and the server API.
 - **Settings screen** — appearance (system/light/dark, with a real light `ColorScheme`, not just
   system-dark repeated), Wi-Fi-only downloads, image cache / bulk downloads clearing, default
   playback speed, and an About section showing app/server version and update availability
+- **Reading sessions** — reading and listening time reported to the server (`source: android`) so mobile
+  activity counts toward web streaks, goals and statistics; queued offline in Room and flushed by `SyncWorker`
 - **Update check** — `AppInfo.updateAvailable`/`latestVersion` surfaced via a drawer badge on
   Settings, a drawer footer line, and the Settings About section; refreshed on every app
   foreground while signed in
@@ -38,8 +40,6 @@ already exposes everything the P0/P1 items need, and `android` is an accepted re
 
 Server endpoints available but unused by this app:
 
-- `POST books/files/{fileId}/sessions` — reading/listening sessions (`sessionType` read|tts|listen,
-  `source: "android"`). Without it, mobile reading is invisible in streaks, goals and stats.
 - `books/{bookId}/annotations` (GET/POST/PATCH/DELETE; CFI or PDF rect) — highlights and notes,
   three-way synced with Kobo, KOReader and web.
 - `books/{bookId}/bookmarks` and `audiobooks/{bookId}/bookmarks`.
@@ -49,7 +49,6 @@ Server endpoints available but unused by this app:
 
 ## P0 — Parity core
 
-- **Report reading sessions** from the reader, PDF reader and audio player.
 - **Reader annotations** — text selection, highlights, notes, bookmarks; offline-queued like progress.
   The bridge currently has no selection (`user-select: none`) and only `goTo/prev/next/applyStyles`.
 - **In-book search** — `search.js` is vendored but not wired to the bridge or UI.

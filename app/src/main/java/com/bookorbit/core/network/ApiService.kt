@@ -123,6 +123,12 @@ interface ApiService {
     @GET("books/files/{fileId}/progress")
     suspend fun getFileProgress(@Path("fileId") fileId: Int): FileProgress?
 
+    @POST("books/files/{fileId}/sessions")
+    suspend fun saveReadingSession(
+        @Path("fileId") fileId: Int,
+        @Body body: com.bookorbit.core.model.SaveReadingSession,
+    )
+
     @POST("books/files/{fileId}/progress")
     suspend fun saveFileProgress(
         @Path("fileId") fileId: Int,
