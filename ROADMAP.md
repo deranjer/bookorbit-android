@@ -67,7 +67,7 @@ Server endpoints available but unused by this app:
 - Theme: shipped (AA-contrast blue palette in light and dark, tonal surfaces, optional Material You in Settings).
 - Tablet / foldable two-pane layout (moved up from P2).
 - Player: bookmarks, custom and per-book speed (chapter list and chapter progress already shipped).
-- Comics: dedicated mode (RTL, fit, zoom); verify CBR, which `view.js` appears not to open.
+- Comics: CBR/CB7 now open in a native comic reader (shipped); CBZ still uses the foliate reader without comic controls, and CBR/CB7 need a server connection (no offline).
 
 ## P2 — Medium-term
 

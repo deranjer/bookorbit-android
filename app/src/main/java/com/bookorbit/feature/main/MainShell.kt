@@ -79,6 +79,7 @@ fun MainShell(
     onSignOut: () -> Unit,
     onOpenReader: (Int) -> Unit,
     onOpenPdf: (Int) -> Unit,
+    onOpenComic: (Int) -> Unit,
     onListen: (Int) -> Unit,
     onOpenPlayer: () -> Unit,
     vm: MainShellViewModel = hiltViewModel(),
@@ -194,6 +195,7 @@ fun MainShell(
                     onBack = { tabNav.popBackStack() },
                     onRead = onOpenReader,
                     onReadPdf = onOpenPdf,
+                    onReadComic = onOpenComic,
                     onListen = onListen,
                     onBookClick = onBookClick,
                 )

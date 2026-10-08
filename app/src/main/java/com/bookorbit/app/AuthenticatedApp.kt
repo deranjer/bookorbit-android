@@ -14,6 +14,7 @@ import com.bookorbit.feature.main.MainShell
 import com.bookorbit.feature.player.PlayerScreen
 import com.bookorbit.feature.player.PlayerViewModel
 import com.bookorbit.feature.reader.ReaderScreen
+import com.bookorbit.feature.reader.comic.ComicReaderScreen
 import com.bookorbit.feature.reader.pdf.PdfReaderScreen
 
 /**
@@ -44,6 +45,7 @@ fun AuthenticatedApp(user: AuthUser, onSignOut: () -> Unit) {
                 onSignOut = onSignOut,
                 onOpenReader = { id -> navController.navigate(AppRoutes.reader(id)) },
                 onOpenPdf = { id -> navController.navigate(AppRoutes.pdf(id)) },
+                onOpenComic = { id -> navController.navigate(AppRoutes.comic(id)) },
                 onListen = { id ->
                     playerVm.loadAndPlay(id)
                     navController.navigate(AppRoutes.PLAYER)
@@ -63,6 +65,12 @@ fun AuthenticatedApp(user: AuthUser, onSignOut: () -> Unit) {
         ) {
             PdfReaderScreen(onBack = dropUnlessResumed { navController.popBackStack() })
         }
+        composable(
+            route = AppRoutes.COMIC,
+            arguments = listOf(navArgument("id") { type = NavType.IntType }),
+        ) {
+            ComicReaderScreen(onBack = dropUnlessResumed { navController.popBackStack() })
+        }
         composable(AppRoutes.PLAYER) {
             PlayerScreen(onBack = dropUnlessResumed { navController.popBackStack() })
         }
@@ -73,7 +81,9 @@ object AppRoutes {
     const val MAIN = "main"
     const val READER = "reader/{id}"
     const val PDF = "pdf/{id}"
+    const val COMIC = "comic/{id}"
     const val PLAYER = "player"
     fun reader(id: Int) = "reader/$id"
     fun pdf(id: Int) = "pdf/$id"
+    fun comic(id: Int) = "comic/$id"
 }

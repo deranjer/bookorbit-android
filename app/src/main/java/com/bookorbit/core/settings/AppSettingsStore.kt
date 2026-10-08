@@ -29,6 +29,7 @@ class AppSettingsStore @Inject constructor(
     private val themeModeKey = stringPreferencesKey("theme_mode")
     private val wifiOnlyDownloadsKey = booleanPreferencesKey("wifi_only_downloads")
     private val dynamicColorKey = booleanPreferencesKey("dynamic_color")
+    private val comicRtlKey = booleanPreferencesKey("comic_rtl")
     private val seriesViewModeKey = stringPreferencesKey("series_view_mode")
 
     val themeMode = context.appSettingsDataStore.data.map { prefs ->
@@ -37,6 +38,13 @@ class AppSettingsStore @Inject constructor(
 
     suspend fun setThemeMode(mode: ThemeMode) {
         context.appSettingsDataStore.edit { it[themeModeKey] = mode.name }
+    }
+
+    /** Comic reading direction: true pages right-to-left (manga). */
+    val comicRtl = context.appSettingsDataStore.data.map { it[comicRtlKey] ?: false }
+
+    suspend fun setComicRtl(enabled: Boolean) {
+        context.appSettingsDataStore.edit { it[comicRtlKey] = enabled }
     }
 
     /** Use the wallpaper-derived Material You palette (Android 12+). Off by default: BookOrbit blue. */

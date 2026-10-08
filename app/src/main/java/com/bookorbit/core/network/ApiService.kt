@@ -123,6 +123,9 @@ interface ApiService {
     @GET("books/files/{fileId}/progress")
     suspend fun getFileProgress(@Path("fileId") fileId: Int): FileProgress?
 
+    @GET("cbz/files/{fileId}/pages")
+    suspend fun getComicPageCount(@Path("fileId") fileId: Int): com.bookorbit.core.model.ComicPages
+
     // --- Annotations (highlights + notes) ---
     @GET("annotations")
     suspend fun getAnnotationHub(

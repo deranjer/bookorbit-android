@@ -80,6 +80,7 @@ fun BookDetailScreen(
     onBack: () -> Unit,
     onRead: (Int) -> Unit,
     onReadPdf: (Int) -> Unit,
+    onReadComic: (Int) -> Unit,
     onListen: (Int) -> Unit,
     onBookClick: (Int) -> Unit,
     vm: BookDetailViewModel = hiltViewModel(),
@@ -129,6 +130,7 @@ fun BookDetailScreen(
                     ui = ui,
                     onRead = onRead,
                     onReadPdf = onReadPdf,
+                    onReadComic = onReadComic,
                     onListen = onListen,
                     onBookClick = onBookClick,
                     onStartDownload = startDownload,
@@ -168,6 +170,7 @@ private fun BookDetailContent(
     ui: BookDetailViewModel.UiState,
     onRead: (Int) -> Unit,
     onReadPdf: (Int) -> Unit,
+    onReadComic: (Int) -> Unit,
     onListen: (Int) -> Unit,
     onBookClick: (Int) -> Unit,
     onStartDownload: () -> Unit,
@@ -195,6 +198,7 @@ private fun BookDetailContent(
                         onClick = {
                             when (readingTarget) {
                                 is BookFiles.ReadingTarget.Pdf -> onReadPdf(book.id)
+                                is BookFiles.ReadingTarget.Comic -> onReadComic(book.id)
                                 else -> onRead(book.id)
                             }
                         },
