@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.PlayArrow
@@ -32,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,6 +72,16 @@ fun PlayerScreen(
     var scrubbing by remember { mutableStateOf<Float?>(null) }
     var showSleepTimerSheet by remember { mutableStateOf(false) }
     var showSpeedSheet by remember { mutableStateOf(false) }
+    var showBookmarks by remember { mutableStateOf(false) }
+    val bookmarks by vm.bookmarks.collectAsStateWithLifecycle()
+    val message by vm.message.collectAsStateWithLifecycle()
+    val toastContext = androidx.compose.ui.platform.LocalContext.current
+    message?.let { msg ->
+        LaunchedEffect(msg) {
+            android.widget.Toast.makeText(toastContext, msg, android.widget.Toast.LENGTH_SHORT).show()
+            vm.consumeMessage()
+        }
+    }
 
     // Re-check the server for progress made elsewhere (e.g. web) whenever this screen becomes
     // visible again — covers both navigating in via the mini-player and resuming the app in place.
@@ -133,6 +145,12 @@ fun PlayerScreen(
                 IconButton(onClick = { showChapters = true }) {
                     Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Chapters")
                 }
+            }
+            IconButton(onClick = {
+                vm.loadBookmarks()
+                showBookmarks = true
+            }) {
+                Icon(Icons.Filled.Bookmarks, contentDescription = "Bookmarks")
             }
             CastButton()
             val timerActive = state.sleepTimerRemainingSec != null
@@ -311,6 +329,20 @@ fun PlayerScreen(
             positionSec = state.positionSec,
             onSelect = { vm.seekToAbsolute(it.startSec); showChapters = false },
             onDismiss = { showChapters = false },
+        )
+    }
+
+    if (showBookmarks) {
+        BookmarksSheet(
+            bookmarks = bookmarks,
+            positionSec = state.positionSec,
+            onAdd = vm::addBookmark,
+            onJump = {
+                vm.seekToAbsolute(it.positionMs / 1000.0)
+                showBookmarks = false
+            },
+            onDelete = { vm.deleteBookmark(it.id) },
+            onDismiss = { showBookmarks = false },
         )
     }
 

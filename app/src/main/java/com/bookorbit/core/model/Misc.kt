@@ -82,3 +82,21 @@ data class SourceDistribution(
     val totalSeconds: Long = 0,
     val slices: List<SourceSlice> = emptyList(),
 )
+
+/** An audiobook bookmark (`/audiobooks/{bookId}/bookmarks`). [positionMs] is the position in the whole book. */
+@Serializable
+data class AudiobookBookmark(
+    val id: String,
+    val bookId: Int,
+    val positionMs: Long,
+    val chapterId: String? = null,
+    val title: String = "",
+    val note: String? = null,
+)
+
+@Serializable
+data class CreateAudiobookBookmark(
+    val clientId: String,
+    val positionMs: Long,
+    val title: String,
+)
