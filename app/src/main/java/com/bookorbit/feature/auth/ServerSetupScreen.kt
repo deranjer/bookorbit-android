@@ -1,5 +1,6 @@
 package com.bookorbit.feature.auth
 
+import com.bookorbit.ui.asString
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.compose.foundation.layout.Arrangement
@@ -88,8 +89,7 @@ fun ServerSetupScreen(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "Insecure connection. HTTP traffic — including your login — is sent unencrypted " +
-                        "and can be read by others on the network. Use HTTPS whenever possible.",
+                    stringResource(R.string.server_http_warning),
                     color = WarningOrange,
                     style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
                 )
@@ -99,7 +99,7 @@ fun ServerSetupScreen(
         ui.error?.let {
             Spacer(Modifier.height(12.dp))
             Text(
-                it,
+                it.asString(),
                 color = androidx.compose.material3.MaterialTheme.colorScheme.error,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),

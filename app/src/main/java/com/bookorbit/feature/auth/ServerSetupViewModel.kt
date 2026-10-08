@@ -1,5 +1,7 @@
 package com.bookorbit.feature.auth
 
+import com.bookorbit.R
+import com.bookorbit.ui.UiText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bookorbit.core.auth.SessionManager
@@ -16,7 +18,7 @@ class ServerSetupViewModel @Inject constructor(
     private val repo: AuthRepository,
 ) : ViewModel() {
 
-    data class UiState(val loading: Boolean = false, val error: String? = null)
+    data class UiState(val loading: Boolean = false, val error: UiText? = null)
 
     private val _ui = MutableStateFlow(UiState())
     val ui = _ui.asStateFlow()
@@ -39,7 +41,7 @@ class ServerSetupViewModel @Inject constructor(
             } catch (_: Exception) {
                 session.clearServer()
                 _ui.update {
-                    it.copy(error = "Could not connect. Check the URL (including the port, e.g. :3000) and try again.")
+                    it.copy(error = UiText.of(R.string.server_err_connect))
                 }
             } finally {
                 _ui.update { it.copy(loading = false) }

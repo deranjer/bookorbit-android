@@ -1,5 +1,7 @@
 package com.bookorbit.feature.player
 
+import com.bookorbit.R
+import com.bookorbit.ui.UiText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bookorbit.core.model.AudiobookBookmark
@@ -22,7 +24,7 @@ class PlayerViewModel @Inject constructor(
     val bookmarks = _bookmarks.asStateFlow()
 
     /** One-shot message for the screen to show, cleared with [consumeMessage]. */
-    private val _message = MutableStateFlow<String?>(null)
+    private val _message = MutableStateFlow<UiText?>(null)
     val message = _message.asStateFlow()
 
     fun loadAndPlay(bookId: Int) = manager.loadAndPlay(bookId)
@@ -57,7 +59,7 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { bookmarkRepo.add(bookId, s.positionSec, title) }
                 .onSuccess { created -> _bookmarks.update { (it + created).sortedBy { b -> b.positionMs } } }
-                .onFailure { _message.value = "Couldn't save the bookmark. Check your connection and try again." }
+                .onFailure { _message.value = UiText.of(R.string.player_bookmark_err_save) }
         }
     }
 
@@ -66,7 +68,7 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { bookmarkRepo.delete(bookId, id) }
                 .onSuccess { _bookmarks.update { list -> list.filterNot { it.id == id } } }
-                .onFailure { _message.value = "Couldn't delete the bookmark." }
+                .onFailure { _message.value = UiText.of(R.string.player_bookmark_err_delete) }
         }
     }
 }

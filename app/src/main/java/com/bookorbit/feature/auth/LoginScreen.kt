@@ -1,5 +1,6 @@
 package com.bookorbit.feature.auth
 
+import com.bookorbit.ui.asString
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -124,7 +125,7 @@ fun LoginScreen(
         ui.error?.let {
             Spacer(Modifier.height(12.dp))
             Text(
-                it,
+                it.asString(),
                 color = MaterialTheme.colorScheme.error,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),

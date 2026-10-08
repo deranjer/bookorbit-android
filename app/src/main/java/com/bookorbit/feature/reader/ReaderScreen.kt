@@ -1,5 +1,6 @@
 package com.bookorbit.feature.reader
 
+import com.bookorbit.ui.asString
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.compose.foundation.background
@@ -116,7 +117,7 @@ fun ReaderScreen(
 
     ui.message?.let { msg ->
         LaunchedEffect(msg) {
-            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, msg.resolve(context), Toast.LENGTH_SHORT).show()
             vm.consumeMessage()
         }
     }
@@ -222,7 +223,7 @@ fun ReaderScreen(
 
         ui.error?.let { message ->
             Box(modifier = Modifier.fillMaxSize().background(surface), contentAlignment = Alignment.Center) {
-                Column2(message = message, onBack = onBack, tint = onSurface)
+                Column2(message = message.asString(), onBack = onBack, tint = onSurface)
             }
         }
 

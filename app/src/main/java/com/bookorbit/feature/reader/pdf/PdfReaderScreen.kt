@@ -1,5 +1,6 @@
 package com.bookorbit.feature.reader.pdf
 
+import com.bookorbit.ui.asString
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import android.content.ActivityNotFoundException
@@ -97,11 +98,11 @@ fun PdfReaderScreen(
                         scope.launch {
                             val text = core.pageText(page)
                             if (text.isBlank()) {
-                                Toast.makeText(context, "No selectable text on this page", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.pdf_no_text), Toast.LENGTH_SHORT).show()
                             } else {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(ClipData.newPlainText("Page text", text))
-                                Toast.makeText(context, "Page text copied", Toast.LENGTH_SHORT).show()
+                                clipboard.setPrimaryClip(ClipData.newPlainText(context.getString(R.string.pdf_clip_label), text))
+                                Toast.makeText(context, context.getString(R.string.pdf_text_copied), Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
@@ -115,7 +116,7 @@ fun PdfReaderScreen(
         ui.error?.let { message ->
             Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(message, color = Color.White)
+                    Text(message.asString(), color = Color.White)
                     TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
                 }
             }
@@ -370,7 +371,7 @@ private fun handleLink(context: Context, vm: PdfReaderViewModel, link: PdfLink) 
                 })
             }.onFailure {
                 if (it is ActivityNotFoundException) {
-                    Toast.makeText(context, "No app to open link", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.pdf_no_link_app), Toast.LENGTH_SHORT).show()
                 }
             }
         }

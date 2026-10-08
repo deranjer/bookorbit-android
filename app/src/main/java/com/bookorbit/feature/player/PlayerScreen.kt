@@ -1,5 +1,6 @@
 package com.bookorbit.feature.player
 
+import com.bookorbit.ui.asString
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.compose.foundation.background
@@ -80,7 +81,7 @@ fun PlayerScreen(
     val toastContext = androidx.compose.ui.platform.LocalContext.current
     message?.let { msg ->
         LaunchedEffect(msg) {
-            android.widget.Toast.makeText(toastContext, msg, android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(toastContext, msg.resolve(toastContext), android.widget.Toast.LENGTH_SHORT).show()
             vm.consumeMessage()
         }
     }
@@ -93,7 +94,7 @@ fun PlayerScreen(
     if (book == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
-                state.playerError ?: stringResource(R.string.player_nothing_playing),
+                state.playerError?.asString() ?: stringResource(R.string.player_nothing_playing),
                 color = if (state.playerError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 32.dp),
@@ -215,7 +216,7 @@ fun PlayerScreen(
             }
             state.playerError?.let {
                 Text(
-                    it,
+                    it.asString(),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                     textAlign = TextAlign.Center,

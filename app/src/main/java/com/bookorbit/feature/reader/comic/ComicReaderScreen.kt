@@ -1,5 +1,6 @@
 package com.bookorbit.feature.reader.comic
 
+import com.bookorbit.ui.asString
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.compose.foundation.background
@@ -79,7 +80,7 @@ fun ComicReaderScreen(
         when {
             ui.loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
             ui.error != null -> Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(ui.error.orEmpty(), color = Color.White)
+                Text(ui.error?.asString().orEmpty(), color = Color.White)
                 Row(Modifier.padding(top = 16.dp)) {
                     Button(onClick = vm::load) { Text(stringResource(R.string.retry)) }
                     Button(onClick = onBack, modifier = Modifier.padding(start = 12.dp)) { Text(stringResource(R.string.back)) }
