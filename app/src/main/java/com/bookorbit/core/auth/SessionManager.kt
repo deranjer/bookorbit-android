@@ -55,12 +55,34 @@ class SessionManager @Inject constructor(
         val user = storage.getString(SecureStorage.KEY_USER)
             ?.let { runCatching { json.decodeFromString<AuthUser>(it) }.getOrNull() }
 
+        // Data from before servers were kept apart belongs to whichever server this install already uses.
+        if (!serverUrl.isNullOrBlank() && !accessToken.isNullOrBlank() && storage.getString(SecureStorage.KEY_DATA_OWNER) == null) {
+            storage.putString(SecureStorage.KEY_DATA_OWNER, key(serverUrl!!))
+        }
+
         _state.value = when {
             serverUrl.isNullOrBlank() -> SessionState.NeedsServer
             accessToken.isNullOrBlank() || user == null -> SessionState.SignedOut
             else -> SessionState.SignedIn(user)
         }
     }
+
+    /** Scope the open database was created for (see [dataScope]); null until it is first opened. */
+    @Volatile
+    var activeDataScope: String? = null
+
+    /**
+     * Names the on-device data (database file and download folders) of the configured server. Book ids
+     * are per server, so each server keeps its own. The first server used owns the original data and has
+     * an empty scope, which keeps existing installs and their downloads exactly where they were.
+     */
+    val dataScope: String
+        get() = DataScope.of(storage.getString(SecureStorage.KEY_DATA_OWNER), serverUrl)
+
+    private fun key(url: String) = DataScope.key(url)
+
+    /** True when the configured server's data is not what the open database holds (needs an app restart). */
+    fun dataScopeChanged(): Boolean = activeDataScope?.let { it != dataScope } == true
 
     fun setServerUrl(url: String) {
         serverUrl = url.trimEnd('/')
@@ -78,6 +100,8 @@ class SessionManager @Inject constructor(
     }
 
     fun signIn(token: String, user: AuthUser) {
+        // The first server anyone signs in to owns the original data; later ones get their own.
+        if (storage.getString(SecureStorage.KEY_DATA_OWNER) == null) serverUrl?.let { storage.putString(SecureStorage.KEY_DATA_OWNER, key(it)) }
         accessToken = token
         storage.putString(SecureStorage.KEY_ACCESS_TOKEN, token)
         storage.putString(SecureStorage.KEY_USER, json.encodeToString(AuthUser.serializer(), user))

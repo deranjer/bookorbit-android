@@ -46,5 +46,7 @@ class SecureStorage @Inject constructor(
         const val KEY_SERVER_URL = "server_url"
         const val KEY_USER = "user"
         const val KEY_COOKIES = "auth_cookies"
+        /** The server that owns the original on-device database; other servers get their own. */
+        const val KEY_DATA_OWNER = "data_owner"
     }
 }

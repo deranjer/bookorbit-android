@@ -12,6 +12,7 @@ import com.bookorbit.core.db.PendingAnnotationOpDao
 import com.bookorbit.core.db.PendingRatingDao
 import com.bookorbit.core.db.PendingReadStatusDao
 import com.bookorbit.core.db.PendingReadingSessionDao
+import com.bookorbit.core.auth.SessionManager
 import com.bookorbit.core.db.ReaderProgressDao
 import dagger.Module
 import dagger.Provides
@@ -25,11 +26,16 @@ import javax.inject.Singleton
 object DatabaseModule {
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): BookOrbitDatabase =
-        Room.databaseBuilder(context, BookOrbitDatabase::class.java, "bookorbit.db")
+    fun provideDatabase(@ApplicationContext context: Context, session: SessionManager): BookOrbitDatabase {
+        // One database per server: book and file ids mean different books on different servers.
+        val scope = session.dataScope
+        session.activeDataScope = scope
+        val name = if (scope.isEmpty()) "bookorbit.db" else "bookorbit-$scope.db"
+        return Room.databaseBuilder(context, BookOrbitDatabase::class.java, name)
             .addMigrations(MIGRATION_5_6, MIGRATION_6_7)
             .fallbackToDestructiveMigration()
             .build()
+    }
 
     @Provides
     fun provideReaderProgressDao(db: BookOrbitDatabase): ReaderProgressDao = db.readerProgressDao()

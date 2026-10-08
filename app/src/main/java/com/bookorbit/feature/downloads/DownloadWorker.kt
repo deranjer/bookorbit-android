@@ -10,6 +10,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.bookorbit.core.auth.SessionManager
 import com.bookorbit.core.db.DownloadDao
 import com.bookorbit.core.db.DownloadEntity
 import com.bookorbit.core.model.BookDetail
@@ -56,6 +57,7 @@ class DownloadWorker @AssistedInject constructor(
     private val audiobookAssets: AudiobookAssetResolver,
     private val json: Json,
     private val locationStore: DownloadLocationStore,
+    private val session: SessionManager,
 ) : CoroutineWorker(appContext, params) {
 
     private var notificationTitle: String? = null
@@ -104,7 +106,7 @@ class DownloadWorker @AssistedInject constructor(
             return Result.failure()
         }
 
-        val internalDir = File(applicationContext.filesDir, "downloads/$bookId").apply { mkdirs() }
+        val internalDir = DownloadFolders.internalDir(applicationContext, session.dataScope, bookId).apply { mkdirs() }
 
         // configuredTreeUri (raw preference) vs treeUri (validated) are deliberately distinct: a
         // configured-but-currently-inaccessible tree must still count as a fallback below, whereas
