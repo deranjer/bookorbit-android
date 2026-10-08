@@ -18,7 +18,9 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.SkipNext
@@ -31,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,6 +71,17 @@ fun PlayerScreen(
     val imageUrls = LocalImageUrls.current
     var scrubbing by remember { mutableStateOf<Float?>(null) }
     var showSleepTimerSheet by remember { mutableStateOf(false) }
+    var showSpeedSheet by remember { mutableStateOf(false) }
+    var showBookmarks by remember { mutableStateOf(false) }
+    val bookmarks by vm.bookmarks.collectAsStateWithLifecycle()
+    val message by vm.message.collectAsStateWithLifecycle()
+    val toastContext = androidx.compose.ui.platform.LocalContext.current
+    message?.let { msg ->
+        LaunchedEffect(msg) {
+            android.widget.Toast.makeText(toastContext, msg, android.widget.Toast.LENGTH_SHORT).show()
+            vm.consumeMessage()
+        }
+    }
 
     // Re-check the server for progress made elsewhere (e.g. web) whenever this screen becomes
     // visible again — covers both navigating in via the mini-player and resuming the app in place.
@@ -131,6 +145,12 @@ fun PlayerScreen(
                 IconButton(onClick = { showChapters = true }) {
                     Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Chapters")
                 }
+            }
+            IconButton(onClick = {
+                vm.loadBookmarks()
+                showBookmarks = true
+            }) {
+                Icon(Icons.Filled.Bookmarks, contentDescription = "Bookmarks")
             }
             CastButton()
             val timerActive = state.sleepTimerRemainingSec != null
@@ -280,10 +300,24 @@ fun PlayerScreen(
             SPEED_PRESETS.forEach { preset ->
                 FilterChip(
                     selected = kotlin.math.abs(preset - state.speed) < 0.001f,
-                    onClick = { vm.setSpeed(preset) },
-                    label = { Text("${preset}x") },
-                    modifier = Modifier.padding(horizontal = 4.dp),
+                    onClick = { vm.setSpeed(preset, forThisBook = state.speedIsPerBook) },
+                    label = { Text(speedLabel(preset), style = MaterialTheme.typography.labelMedium, maxLines = 1, softWrap = false) },
+                    modifier = Modifier.padding(horizontal = 2.dp),
                 )
+            }
+            // A custom speed shows as its own selected chip; otherwise a tune button opens the fine control.
+            val custom = SPEED_PRESETS.none { kotlin.math.abs(it - state.speed) < 0.001f }
+            if (custom) {
+                FilterChip(
+                    selected = true,
+                    onClick = { showSpeedSheet = true },
+                    label = { Text(speedLabel(state.speed), style = MaterialTheme.typography.labelMedium, maxLines = 1, softWrap = false) },
+                    modifier = Modifier.padding(horizontal = 2.dp),
+                )
+            } else {
+                IconButton(onClick = { showSpeedSheet = true }) {
+                    Icon(Icons.Filled.Tune, contentDescription = "Custom speed")
+                }
             }
         }
     }
@@ -295,6 +329,29 @@ fun PlayerScreen(
             positionSec = state.positionSec,
             onSelect = { vm.seekToAbsolute(it.startSec); showChapters = false },
             onDismiss = { showChapters = false },
+        )
+    }
+
+    if (showBookmarks) {
+        BookmarksSheet(
+            bookmarks = bookmarks,
+            positionSec = state.positionSec,
+            onAdd = vm::addBookmark,
+            onJump = {
+                vm.seekToAbsolute(it.positionMs / 1000.0)
+                showBookmarks = false
+            },
+            onDelete = { vm.deleteBookmark(it.id) },
+            onDismiss = { showBookmarks = false },
+        )
+    }
+
+    if (showSpeedSheet) {
+        SpeedSheet(
+            speed = state.speed,
+            perBook = state.speedIsPerBook,
+            onChange = { speed, forThisBook -> vm.setSpeed(speed, forThisBook) },
+            onDismiss = { showSpeedSheet = false },
         )
     }
 

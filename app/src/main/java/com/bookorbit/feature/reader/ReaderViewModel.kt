@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bookorbit.core.model.BookAnnotation
+import com.bookorbit.core.model.BookBookmark
 import com.bookorbit.core.storage.LocalRef
 import com.bookorbit.feature.bookdetail.BookDetailRepository
 import com.bookorbit.feature.downloads.DownloadsRepository
@@ -28,6 +29,7 @@ class ReaderViewModel @Inject constructor(
     private val settingsStore: ReaderSettingsStore,
     private val sessions: ReadingSessionTracker,
     private val annotationRepo: ReaderAnnotationRepository,
+    private val bookmarkRepo: ReaderBookmarkRepository,
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
@@ -61,6 +63,7 @@ class ReaderViewModel @Inject constructor(
         val loaded: Boolean = false,
         val showPagingHint: Boolean = false,
         val annotations: List<BookAnnotation> = emptyList(),
+        val bookmarks: List<BookBookmark> = emptyList(),
         val search: SearchState? = null,
         val toolbar: ToolbarTarget? = null,
         /** One-shot message for the screen to toast, then clear via [consumeMessage]. */
@@ -85,6 +88,9 @@ class ReaderViewModel @Inject constructor(
 
     private var lastSaved = 0L
     private var pending: Pair<String?, Double>? = null
+
+    /** Where the reader is now, so a bookmark can be dropped there. */
+    private var currentCfi: String? = null
 
     init {
         load()
@@ -133,6 +139,7 @@ class ReaderViewModel @Inject constructor(
                 percentage = fraction?.let { f -> (f * 100).roundToInt() } ?: it.percentage,
             )
         }
+        if (cfi != null) currentCfi = cfi
         if (cfi != null && fraction != null) {
             report(cfi, fraction * 100)
             sessions.onReadingProgress(fraction * 100)
@@ -161,6 +168,34 @@ class ReaderViewModel @Inject constructor(
 
     fun onSearchDone(total: Int, capped: Boolean) = _ui.update { s ->
         s.search?.let { s.copy(search = it.copy(running = false, done = true, total = total, capped = capped, progress = 1.0)) } ?: s
+    }
+
+    // --- bookmarks ---
+
+    fun loadBookmarks() {
+        viewModelScope.launch {
+            runCatching { bookmarkRepo.list(bookId) }.onSuccess { list -> _ui.update { it.copy(bookmarks = list) } }
+        }
+    }
+
+    /** Bookmark the current page, named after the chapter and how far through the book it is. */
+    fun addBookmark() {
+        val cfi = currentCfi ?: return
+        val s = _ui.value
+        val title = BookmarkNames.default(s.chapterTitle, s.percentage)
+        viewModelScope.launch {
+            runCatching { bookmarkRepo.add(bookId, cfi, title) }
+                .onSuccess { created -> _ui.update { it.copy(bookmarks = it.bookmarks + created) } }
+                .onFailure { _ui.update { it.copy(message = "Couldn't save the bookmark. Check your connection and try again.") } }
+        }
+    }
+
+    fun deleteBookmark(id: Int) {
+        viewModelScope.launch {
+            runCatching { bookmarkRepo.delete(bookId, id) }
+                .onSuccess { _ui.update { s -> s.copy(bookmarks = s.bookmarks.filterNot { it.id == id }) } }
+                .onFailure { _ui.update { it.copy(message = "Couldn't delete the bookmark.") } }
+        }
     }
 
     // --- highlights & notes ---

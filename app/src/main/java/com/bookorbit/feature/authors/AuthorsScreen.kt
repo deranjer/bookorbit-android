@@ -40,41 +40,25 @@ import com.bookorbit.core.model.AuthorSummary
 import com.bookorbit.ui.LocalImageUrls
 import com.bookorbit.ui.components.BookGrid
 
+/** Every author; tapping one opens that author's books ([AuthorBooksScreen]) as its own route. */
 @Composable
 fun AuthorsScreen(
-    onBookClick: (Int) -> Unit,
+    onAuthorClick: (id: Int, name: String) -> Unit,
     vm: AuthorsViewModel = hiltViewModel(),
 ) {
     val authors = vm.authors.collectAsLazyPagingItems()
-    var selected by remember { mutableStateOf<AuthorSummary?>(null) }
+    AuthorList(authors = authors, onSelect = { onAuthorClick(it.id, it.name) })
+}
 
-    val current = selected
-    if (current != null) {
-        val books = remember(current.id) { vm.authorBooks(current.id) }.collectAsLazyPagingItems()
-        Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = { selected = null }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
-                Text(
-                    current.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            HorizontalDivider()
-            BookGrid(items = books, onBookClick = onBookClick, emptyText = "No books for this author.")
-        }
-        return
-    }
-
-    AuthorList(authors = authors, onSelect = { selected = it })
+/** One author's books, as a grid. */
+@Composable
+fun AuthorBooksScreen(
+    authorId: Int,
+    onBookClick: (Int) -> Unit,
+    vm: AuthorsViewModel = hiltViewModel(),
+) {
+    val books = remember(authorId) { vm.authorBooks(authorId) }.collectAsLazyPagingItems()
+    BookGrid(items = books, onBookClick = onBookClick, emptyText = "No books for this author.")
 }
 
 @Composable

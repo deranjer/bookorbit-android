@@ -158,6 +158,10 @@ data class SaveFileProgress(
     val pageNumber: Int? = null,
 )
 
+/** `GET /cbz/files/{fileId}/pages`. */
+@Serializable
+data class ComicPages(val pageCount: Int = 0)
+
 // --- Mutation request bodies ---
 
 @Serializable

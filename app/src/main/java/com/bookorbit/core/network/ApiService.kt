@@ -123,6 +123,35 @@ interface ApiService {
     @GET("books/files/{fileId}/progress")
     suspend fun getFileProgress(@Path("fileId") fileId: Int): FileProgress?
 
+    // --- Ebook bookmarks ---
+    @GET("books/{bookId}/bookmarks")
+    suspend fun getBookmarks(@Path("bookId") bookId: Int): List<com.bookorbit.core.model.BookBookmark>
+
+    @POST("books/{bookId}/bookmarks")
+    suspend fun createBookmark(
+        @Path("bookId") bookId: Int,
+        @Body body: com.bookorbit.core.model.CreateBookBookmark,
+    ): com.bookorbit.core.model.BookBookmark
+
+    @DELETE("books/{bookId}/bookmarks/{id}")
+    suspend fun deleteBookmark(@Path("bookId") bookId: Int, @Path("id") id: Int)
+
+    // --- Audiobook bookmarks ---
+    @GET("audiobooks/{bookId}/bookmarks")
+    suspend fun getAudiobookBookmarks(@Path("bookId") bookId: Int): List<com.bookorbit.core.model.AudiobookBookmark>
+
+    @POST("audiobooks/{bookId}/bookmarks")
+    suspend fun createAudiobookBookmark(
+        @Path("bookId") bookId: Int,
+        @Body body: com.bookorbit.core.model.CreateAudiobookBookmark,
+    ): com.bookorbit.core.model.AudiobookBookmark
+
+    @DELETE("audiobooks/{bookId}/bookmarks/{bookmarkId}")
+    suspend fun deleteAudiobookBookmark(@Path("bookId") bookId: Int, @Path("bookmarkId") bookmarkId: String)
+
+    @GET("cbz/files/{fileId}/pages")
+    suspend fun getComicPageCount(@Path("fileId") fileId: Int): com.bookorbit.core.model.ComicPages
+
     // --- Annotations (highlights + notes) ---
     @GET("annotations")
     suspend fun getAnnotationHub(

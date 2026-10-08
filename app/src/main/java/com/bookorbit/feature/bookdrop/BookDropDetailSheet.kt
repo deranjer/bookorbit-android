@@ -72,6 +72,7 @@ fun BookDropDetailSheet(
     }
 
     val busy = action.inProgress
+    var approveError by remember { mutableStateOf<String?>(null) }
     val hasDestination = libraryId != null && folderId != null
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
@@ -138,6 +139,10 @@ fun BookDropDetailSheet(
                 onFolderSelected = { folderId = it },
             )
 
+            approveError?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+            }
+
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     onClick = { scope.launch { vm.saveMetadata(current.id, form.toMetadata())?.let { current = it } } },
@@ -150,8 +155,10 @@ fun BookDropDetailSheet(
                     onClick = {
                         scope.launch {
                             vm.saveMetadata(current.id, form.toMetadata())
+                            approveError = null
                             val result = vm.approveSingle(current.id, libraryId, folderId)
-                            if (result != null && result.failed == 0) onDismiss()
+                            approveError = FinalizeErrors.describe(result)
+                            if (approveError == null) onDismiss()
                         }
                     },
                     enabled = !busy && hasDestination,

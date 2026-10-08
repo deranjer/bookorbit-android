@@ -52,8 +52,8 @@ Server endpoints available but unused by this app:
 
 ## P0 — Parity core
 
-- **Reader bookmarks and PDF highlights** — EPUB-family highlights/notes shipped (see below); PDF annotations
-  (page rectangles) and bookmarks are still missing.
+- **PDF highlights and bookmarks** — EPUB-family highlights/notes and bookmarks shipped (see below); PDF annotations
+  (page rectangles) and PDF bookmarks are still missing.
 - **Book detail depth** — files/editions with per-format progress, narrators, tappable author and
   series, review, external ratings.
 - **Fix: synopsis renders raw HTML** (`<br />`, `<i>`), double status-bar inset on detail top bar,
@@ -65,9 +65,9 @@ Server endpoints available but unused by this app:
 - Reading stats: shipped under You (totals, streak/goal, 30-day chart, 12-week heatmap, source split). Completion timeline and pace charts still to do.
 - Navigation: shipped (Home/Library/Search/Notes/You, no drawer). Statistics screen under You still to do.
 - Theme: shipped (AA-contrast blue palette in light and dark, tonal surfaces, optional Material You in Settings).
-- Tablet / foldable two-pane layout (moved up from P2).
-- Player: bookmarks, custom and per-book speed (chapter list and chapter progress already shipped).
-- Comics: dedicated mode (RTL, fit, zoom); verify CBR, which `view.js` appears not to open.
+- Tablet / foldable: navigation rail and readable-width content shipped; a true two-pane list + detail (library next to the open book) is still to do.
+- Player: chapter list, chapter progress, custom and per-book speed and bookmarks shipped (bookmarks are online-only).
+- Comics: CBR/CB7 now open in a native comic reader (shipped); CBZ still uses the foliate reader without comic controls, and CBR/CB7 need a server connection (no offline).
 
 ## P2 — Medium-term
 

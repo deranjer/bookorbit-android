@@ -23,6 +23,19 @@ const val DEFAULT_SKIP_FORWARD = 30
 
 fun clampSpeed(v: Float): Float = v.coerceIn(MIN_SPEED, MAX_SPEED)
 
+/** Snap a slider value to the 0.05x steps the speed control uses, so it never shows 1.2999999x. */
+fun snapSpeed(v: Float): Float = clampSpeed((Math.round(v * 20f) / 20f))
+
+/** Display text for a speed: "1x", "1.25x", "1.3x". */
+fun speedLabel(v: Float): String {
+    val snapped = snapSpeed(v)
+    val text = if (snapped % 1f == 0f) snapped.toInt().toString() else "%.2f".format(snapped).trimEnd('0').trimEnd('.')
+    return "${text}x"
+}
+
+/** The speed a book plays at: its own saved speed if it has one, else the default for every book. */
+fun resolveSpeed(globalSpeed: Float, bookSpeed: Float?): Float = clampSpeed(bookSpeed ?: globalSpeed)
+
 /** What the progress bar (in-app and on every media-session surface) measures. */
 enum class ProgressBarMode {
     CHAPTER, BOOK;
@@ -61,6 +74,19 @@ class AudioSettingsStore @Inject constructor(
             skipForwardSeconds = this[skipForwardKey] ?: DEFAULT_SKIP_FORWARD,
             progressBarMode = ProgressBarMode.parse(this[progressBarModeKey]),
         )
+    }
+
+    private fun bookSpeedKey(bookId: Int) = doublePreferencesKey("book_speed_$bookId")
+
+    /** This book's own speed, or null if it just follows the default. */
+    suspend fun bookSpeed(bookId: Int): Float? =
+        context.audioDataStore.data.first()[bookSpeedKey(bookId)]?.let { clampSpeed(it.toFloat()) }
+
+    /** Remember [speed] for one book, or pass null to make it follow the default again. */
+    suspend fun saveBookSpeed(bookId: Int, speed: Float?) {
+        context.audioDataStore.edit {
+            if (speed == null) it.remove(bookSpeedKey(bookId)) else it[bookSpeedKey(bookId)] = clampSpeed(speed).toDouble()
+        }
     }
 
     suspend fun load(): AudioSettings {

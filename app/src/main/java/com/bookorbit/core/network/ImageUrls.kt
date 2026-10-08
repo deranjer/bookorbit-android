@@ -20,5 +20,8 @@ class ImageUrls @Inject constructor(
 
     fun authorThumbnail(authorId: Int): String = "${base()}/authors/$authorId/thumbnail"
 
+    /** One page of a comic file, rendered by the server (works for CBZ, CBR and CB7). */
+    fun comicPage(fileId: Int, index: Int): String = "${base()}/cbz/files/$fileId/pages/$index"
+
     fun bookDockCover(fileId: Int): String = "${base()}/book-dock/files/$fileId/cover"
 }
