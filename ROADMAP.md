@@ -64,7 +64,7 @@ Server endpoints available but unused by this app:
 - Dashboard: streak, goal and a Continue card shipped; highlight of the day and discover still to do.
 - Reading stats: shipped under You (totals, streak/goal, 30-day chart, 12-week heatmap, source split). Completion timeline and pace charts still to do.
 - Navigation: shipped (Home/Library/Search/Notes/You, no drawer). Statistics screen under You still to do.
-- Theme: Material You option, AA contrast on primary, tonal surfaces.
+- Theme: shipped (AA-contrast blue palette in light and dark, tonal surfaces, optional Material You in Settings).
 - Tablet / foldable two-pane layout (moved up from P2).
 - Player: bookmarks, custom and per-book speed (chapter list and chapter progress already shipped).
 - Comics: dedicated mode (RTL, fit, zoom); verify CBR, which `view.js` appears not to open.

@@ -43,6 +43,9 @@ class SettingsViewModel @Inject constructor(
     val themeMode: StateFlow<ThemeMode> = appSettings.themeMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemeMode.SYSTEM)
 
+    val dynamicColor: StateFlow<Boolean> = appSettings.dynamicColor
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
     val wifiOnlyDownloads: StateFlow<Boolean> = appSettings.wifiOnlyDownloads
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
@@ -73,6 +76,10 @@ class SettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { _defaultSpeed.value = audioSettingsStore.load().speed }
+    }
+
+    fun setDynamicColor(enabled: Boolean) {
+        viewModelScope.launch { appSettings.setDynamicColor(enabled) }
     }
 
     fun setThemeMode(mode: ThemeMode) {
