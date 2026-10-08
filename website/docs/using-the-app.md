@@ -16,7 +16,7 @@ The library screen lists the books available on your server. From there you can:
 ## Reading ebooks
 
 BookOrbit's reader is built on [foliate.js](https://github.com/johnfactotum/foliate-js) and
-supports EPUB. It syncs reading progress (via CFI) back to your server, so you can pick up where
+supports EPUB, MOBI, AZW3, FB2 and CBZ ebooks, plus a separate native PDF reader. It syncs reading progress (via CFI) back to your server, so you can pick up where
 you left off on another device or in the web client. The reader includes adjustable themes, font
 size, and layout settings.
 

@@ -3,7 +3,8 @@
 A read of the current client against its own docs and code, turned into a priority list.
 Tiers are "orbits" — P0 sits closest to today, P3 furthest out. Originally drafted 10 Jul 2026,
 updated 11 Jul 2026 after Chromecast support shipped, updated 29 Jul 2026 after the
-download-location and update-check items shipped.
+download-location and update-check items shipped, re-prioritised 8 Oct 2026 after a feature-parity
+review against the web client (demo.bookorbit.app) and the server API.
 
 ## Already in orbit (shipped)
 
@@ -14,7 +15,8 @@ download-location and update-check items shipped.
 - **EPUB reader** — foliate.js, CFI progress sync, themes, font settings
 - **PDF reader** — separate renderer with its own layout/zoom settings
 - **Audiobook player** — Media3/ExoPlayer, background playback, notification controls,
-  sleep timer (5–60 min presets + "end of chapter"), Chromecast support, Android Auto browse tree
+  sleep timer (5–60 min presets + "end of chapter"), Chromecast support, Android Auto browse tree, chapter list and
+  chapter progress bar, reopens the last audiobook on launch
 - **Downloads** — offline files via WorkManager, cached book detail fallback, user-chosen local
   storage folder via Storage Access Framework (falls back to app-private storage)
 - **Book Drop** — upload, server-side metadata fetch, review-and-finalize into library
@@ -27,16 +29,52 @@ download-location and update-check items shipped.
   Settings, a drawer footer line, and the Settings About section; refreshed on every app
   foreground while signed in
 
+## Parity review (8 Oct 2026)
+
+The remaining items below were originally chosen from this app's own docs. Comparing against the web
+client and the server (`bookorbit/bookorbit`) shows the largest gaps are not listed there. The server
+already exposes everything the P0/P1 items need, and `android` is an accepted reading-session source
+(`CLIENT_READING_SESSION_SOURCES = ios | watchos | android`).
+
+Server endpoints available but unused by this app:
+
+- `POST books/files/{fileId}/sessions` — reading/listening sessions (`sessionType` read|tts|listen,
+  `source: "android"`). Without it, mobile reading is invisible in streaks, goals and stats.
+- `books/{bookId}/annotations` (GET/POST/PATCH/DELETE; CFI or PDF rect) — highlights and notes,
+  three-way synced with Kobo, KOReader and web.
+- `books/{bookId}/bookmarks` and `audiobooks/{bookId}/bookmarks`.
+- `user-statistics/*` and `dashboard/widgets/*` (streak, goal, highlight of the day, Reading DNA,
+  neglected gems, monthly challenge, …).
+- `books/{id}/series-books` (declared in `ApiService` but not called).
+
+## P0 — Parity core
+
+- **Report reading sessions** from the reader, PDF reader and audio player.
+- **Reader annotations** — text selection, highlights, notes, bookmarks; offline-queued like progress.
+  The bridge currently has no selection (`user-select: none`) and only `goTo/prev/next/applyStyles`.
+- **In-book search** — `search.js` is vendored but not wired to the bridge or UI.
+- **Book detail depth** — files/editions with per-format progress, narrators, tappable author and
+  series, review, external ratings.
+- **Fix: synopsis renders raw HTML** (`<br />`, `<i>`), double status-bar inset on detail top bar,
+  no retry UI on paging errors, 3-column grid hard-coded.
+
+## P1 — Targeted refresh
+
+- Dashboard widgets (streak, goal, highlight of the day, discover) using the dashboard endpoints.
+- "My Reading" statistics screen (heatmap, completion timeline, pace).
+- Navigation: Authors/Series as real routes; promote Annotations and Statistics.
+- Theme: Material You option, AA contrast on primary, tonal surfaces.
+- Tablet / foldable two-pane layout (moved up from P2).
+- Player: bookmarks, custom and per-book speed (chapter list and chapter progress already shipped).
+- Comics: dedicated mode (RTL, fit, zoom); verify CBR, which `view.js` appears not to open.
+
 ## P2 — Medium-term
 
 Real value, larger lift — worth scoping once P0/P1 land.
 
-- **Reading & listening statistics** — time read/listened, books finished, streaks — if the
-  server's progress data supports aggregation, this is a natural dashboard companion.
+- **TTS and dictionary in the reader** — `tts.js` / `dict.js` are vendored but unwired.
 - **App lock (PIN / biometric)** — relevant given this is a self-hosted personal library that may
   include shared devices.
-- **Tablet / foldable layout** — two-pane list + detail for the library, authors, series, and
-  collections screens.
 - **Barcode / ISBN scan-to-search** — fits naturally next to the existing search screen and Book
   Drop's metadata fetch.
 
@@ -48,7 +86,8 @@ Real requests, but further out — sequence after the inner orbits settle.
 - **Push notifications** — new books added, downloads complete, Book Drop finished processing.
 - **Wear OS companion** — playback controls on the wrist for audiobook listeners.
 - **Multi-server / account switching** — swap between servers without a full sign-out.
-- **Localization** — UI strings aren't currently externalized for translation.
+- **Localization** — UI strings aren't externalized (no `stringResource` use); the web client is
+  already translated via Crowdin. Externalizing strings early is cheap.
 
 ---
 
