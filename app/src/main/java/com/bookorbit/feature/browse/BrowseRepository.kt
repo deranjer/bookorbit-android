@@ -55,6 +55,10 @@ class BrowseRepository @Inject constructor(
     suspend fun scroller(type: String, limit: Int = 20, smartScopeId: Int? = null): List<BookCard> =
         ScrollerBooks.decode(json, api.getScroller(type, limit, smartScopeId))
 
+    suspend fun readingStreak() = api.getReadingStreak()
+
+    suspend fun readingGoal() = api.getReadingGoal()
+
     /** Catalog typeahead for the filter sheet (authors/genres/tags/languages). */
     suspend fun searchCatalog(kind: String, q: String): List<String> =
         if (q.isBlank()) emptyList()

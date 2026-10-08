@@ -18,6 +18,22 @@ data class AppInfo(
 @Serializable
 data class NamedResult(val name: String? = null)
 
+/** `GET /dashboard/widgets/reading-streak`. */
+@Serializable
+data class ReadingStreakWidget(
+    val currentStreak: Int = 0,
+    val longestStreak: Int = 0,
+    val lastSevenDays: List<Boolean> = emptyList(),
+)
+
+/** `GET /dashboard/widgets/reading-goal`. [goalBooks] is null until the user sets a yearly goal. */
+@Serializable
+data class ReadingGoalWidget(
+    val goalBooks: Int? = null,
+    val completedBooks: Int = 0,
+    val year: Int = 0,
+)
+
 /** Scroller types accepted by `GET /dashboard/scrollers/:type`. */
 object ScrollerType {
     const val RECENTLY_ADDED = "recently-added"

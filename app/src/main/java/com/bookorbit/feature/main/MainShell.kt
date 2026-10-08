@@ -157,7 +157,8 @@ fun MainShell(
             topBar = {
                 // Book detail renders its own top bar (with a back arrow); hide the shell's here so
                 // there aren't two stacked app bars.
-                if (!isBookDetail) {
+                // Home draws its own greeting header, so it skips the generic bar too.
+                if (!isBookDetail && currentRoute != Tab.DASHBOARD.route) {
                     TopAppBar(
                         title = { Text(title) },
                         navigationIcon = {
@@ -191,7 +192,13 @@ fun MainShell(
                 // (book detail) doesn't add the status-bar inset a second time.
                 modifier = Modifier.padding(padding).consumeWindowInsets(padding),
             ) {
-                composable(Tab.DASHBOARD.route) { DashboardScreen(onBookClick = onBookClick) }
+                composable(Tab.DASHBOARD.route) {
+                    DashboardScreen(
+                        userName = user.name ?: user.username,
+                        onOpenMenu = { scope.launch { drawerState.open() } },
+                        onBookClick = onBookClick,
+                    )
+                }
                 composable(Tab.LIBRARIES.route) { LibrariesScreen(onBookClick = onBookClick) }
                 composable(Tab.SEARCH.route) { SearchScreen(onBookClick = onBookClick) }
                 composable(Tab.SCOPES.route) { SmartScopesScreen(onBookClick = onBookClick) }
