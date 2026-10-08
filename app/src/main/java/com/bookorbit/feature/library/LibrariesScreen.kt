@@ -1,6 +1,7 @@
 package com.bookorbit.feature.library
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.Badge
+import androidx.compose.material3.Button
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -39,6 +41,7 @@ fun LibrariesScreen(
     vm: LibrariesViewModel = hiltViewModel(),
 ) {
     val libraries by vm.libraries.collectAsStateWithLifecycle()
+    val status by vm.status.collectAsStateWithLifecycle()
     val selectedId by vm.selectedId.collectAsStateWithLifecycle()
     val filters by vm.filters.collectAsStateWithLifecycle()
     val sort by vm.sort.collectAsStateWithLifecycle()
@@ -100,12 +103,38 @@ fun LibrariesScreen(
         }
         HorizontalDivider()
 
-        BookGrid(
-            items = books,
-            onBookClick = onBookClick,
-            emptyText = "No books in this library.",
-            modifier = Modifier.fillMaxSize(),
-        )
+        when (status) {
+            LibrariesViewModel.Status.ERROR -> Column(
+                modifier = Modifier.fillMaxSize().padding(32.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text("Couldn't load your libraries", color = MaterialTheme.colorScheme.error)
+                Text(
+                    "Check your connection. Books you've downloaded are still available under You > Downloads.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                Button(onClick = vm::loadLibraries, modifier = Modifier.padding(top = 12.dp)) { Text("Retry") }
+            }
+            LibrariesViewModel.Status.EMPTY -> Column(
+                modifier = Modifier.fillMaxSize().padding(32.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    "You don't have access to any libraries yet.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            else -> BookGrid(
+                items = books,
+                onBookClick = onBookClick,
+                emptyText = "No books in this library.",
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 
     if (sheetOpen) {

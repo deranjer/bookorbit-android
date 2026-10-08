@@ -46,7 +46,7 @@ fun CollectionPickerSheet(
             ) { CircularProgressIndicator() }
 
             state.items.isEmpty() -> Text(
-                "No collections yet. Create one from the Collections tab.",
+                "No collections yet. Create one in the BookOrbit web app.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(20.dp),
