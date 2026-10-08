@@ -5,9 +5,13 @@ import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import android.net.Uri
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.ui.platform.LocalConfiguration
@@ -84,6 +88,9 @@ private object SubRoute {
 /** At and above this width the shell uses a navigation rail and caps single-column content. */
 const val WIDE_BREAKPOINT_DP = 600
 
+/** Start destination of the book pane: nothing selected yet. */
+private const val PANE_EMPTY = "pane-empty"
+
 /** Server permission required to see / use the Book Dock. */
 private const val BOOK_DOCK_PERMISSION = "book_dock_access"
 
@@ -106,13 +113,30 @@ fun MainShell(
 ) {
     val tabNav = rememberNavController()
     // Tablets, unfolded foldables and landscape phones: a navigation rail beats a bottom bar.
-    val wide = LocalConfiguration.current.screenWidthDp >= WIDE_BREAKPOINT_DP
+    val widthDp = LocalConfiguration.current.screenWidthDp
+    val wide = widthDp >= WIDE_BREAKPOINT_DP
+    // The book pane beside a list (see TwoPane). It has its own back stack, so each book keeps its own
+    // saved state and BookDetailViewModel finds its id exactly as it does in the full-screen route.
+    val detailNav = rememberNavController()
     val appInfo by vm.appInfo.collectAsStateWithLifecycle()
 
     val backStackEntry by tabNav.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val isBookDetail = currentRoute == SubRoute.BOOK_DETAIL
+    val twoPane = TwoPane.isActive(widthDp, currentRoute)
     val onBookClick: (Int) -> Unit = { id -> tabNav.navigate(SubRoute.bookDetail(id)) }
+    // In two-pane mode a tap on a list row opens the book in the right-hand pane instead of a new screen.
+    val onListBookClick: (Int) -> Unit = { id ->
+        if (twoPane) {
+            detailNav.navigate(SubRoute.bookDetail(id)) {
+                // Re-tapping or switching books replaces the one shown, so Back in the pane just closes it.
+                popUpTo(PANE_EMPTY) { inclusive = false }
+                launchSingleTop = true
+            }
+        } else {
+            onBookClick(id)
+        }
+    }
     val onAuthorClick: (Int, String) -> Unit = { id, name -> tabNav.navigate(SubRoute.author(id, name)) }
     val onSeriesClick: (Int, String) -> Unit = { id, name -> tabNav.navigate(SubRoute.series(id, name)) }
 
@@ -180,6 +204,27 @@ fun MainShell(
             }
         },
     ) { padding ->
+      val detailPane: @Composable () -> Unit = {
+          NavHost(navController = detailNav, startDestination = PANE_EMPTY, modifier = Modifier.fillMaxSize()) {
+              composable(PANE_EMPTY) { EmptyDetailPane() }
+              composable(
+                  route = SubRoute.BOOK_DETAIL,
+                  arguments = listOf(navArgument("id") { type = NavType.IntType }),
+              ) {
+                  BookDetailScreen(
+                      onBack = { detailNav.popBackStack() },
+                      onRead = onOpenReader,
+                      onReadPdf = onOpenPdf,
+                      onReadComic = onOpenComic,
+                      onListen = onListen,
+                      // "More by this author" / "Similar books" stay in the pane.
+                      onBookClick = onListBookClick,
+                      onAuthorClick = onAuthorClick,
+                      onSeriesClick = onSeriesClick,
+                  )
+              }
+          }
+      }
       Row(Modifier.padding(padding).consumeWindowInsets(padding)) {
         if (wide) {
             NavigationRail {
@@ -201,7 +246,8 @@ fun MainShell(
             startDestination = Tab.HOME.route,
             // Consume the insets Scaffold already applied, so a nested screen's own TopAppBar
             // (book detail) doesn't add the status-bar inset a second time.
-            modifier = Modifier.weight(1f).fillMaxHeight(),
+            // Two-pane: a fixed-width list column, with the book pane hosted once below (not per destination).
+            modifier = if (twoPane) Modifier.width(TWO_PANE_LIST_WIDTH).fillMaxHeight() else Modifier.weight(1f).fillMaxHeight(),
         ) {
             composable(Tab.HOME.route) {
                 CenteredContent {
@@ -213,7 +259,7 @@ fun MainShell(
                 }
             }
             composable(Tab.LIBRARY.route) {
-                LibraryHubScreen(onBookClick = onBookClick, onAuthorClick = onAuthorClick, onSeriesClick = onSeriesClick)
+                LibraryHubScreen(onBookClick = onListBookClick, onAuthorClick = onAuthorClick, onSeriesClick = onSeriesClick)
             }
             composable(
                 route = SubRoute.AUTHOR,
@@ -233,8 +279,11 @@ fun MainShell(
             ) { entry ->
                 SeriesBooksScreen(seriesId = entry.arguments?.getInt("id") ?: 0, onBookClick = onBookClick)
             }
-            composable(Tab.SEARCH.route) { SearchScreen(onBookClick = onBookClick) }
-            composable(Tab.NOTES.route) { CenteredContent { NotesScreen(onBookClick = onBookClick) } }
+            composable(Tab.SEARCH.route) { SearchScreen(onBookClick = onListBookClick) }
+            composable(Tab.NOTES.route) {
+                // Two-pane: the list column is already narrow, so don't centre it as well.
+                if (twoPane) NotesScreen(onBookClick = onListBookClick) else CenteredContent { NotesScreen(onBookClick = onBookClick) }
+            }
             composable(Tab.YOU.route) {
                 CenteredContent {
                 YouScreen(
@@ -272,6 +321,10 @@ fun MainShell(
                 )
                 }
             }
+        }
+        if (twoPane) {
+            VerticalDivider()
+            Box(Modifier.weight(1f).fillMaxHeight()) { detailPane() }
         }
       }
     }

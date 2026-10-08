@@ -421,4 +421,5 @@
     <string name="reader_theme_amoled">AMOLED</string>
     <string name="notif_downloading">Downloading</string>
     <string name="notif_downloading_percent">Downloading · %1$d%%</string>
+    <string name="two_pane_select_book">Select a book to see its details here.</string>
 </resources>
