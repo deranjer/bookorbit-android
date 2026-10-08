@@ -37,21 +37,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material3.ListItemDefaults
 import com.bookorbit.BuildConfig
 import com.bookorbit.core.model.AuthUser
+import com.bookorbit.feature.main.NavItem
+import com.bookorbit.feature.main.icon
+import com.bookorbit.feature.main.labelRes
 
-/** The You tab: who's signed in, plus Downloads, Book Drop, Settings and sign out (formerly the drawer). */
+/** The You tab: who's signed in, every screen that isn't in the bottom bar, and sign out. */
 @Composable
 fun YouScreen(
     user: AuthUser,
     serverVersion: String?,
     updateAvailable: Boolean,
     latestVersion: String?,
-    canUseBookDrop: Boolean,
-    /** Routes already in the bottom bar: their rows are hidden here since they're one tap away. */
-    pinned: Set<String> = emptySet(),
-    onStats: () -> Unit,
-    onDownloads: () -> Unit,
-    onBookDrop: () -> Unit,
-    onSettings: () -> Unit,
+    /** The screens that aren't in the bottom bar, so they can still be opened from here. */
+    unpinned: List<NavItem>,
+    onOpen: (NavItem) -> Unit,
     onSignOut: () -> Unit,
 ) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -75,26 +74,29 @@ fun YouScreen(
             }
         }
         HorizontalDivider()
-        if ("stats" !in pinned) Row2(stringResource(R.string.you_reading_stats), Icons.Outlined.BarChart, onStats)
-        if ("downloads" !in pinned) Row2(stringResource(R.string.you_downloads), Icons.Filled.Download, onDownloads)
-        if (canUseBookDrop && "bookdrop" !in pinned) Row2(stringResource(R.string.you_book_drop), Icons.Outlined.Inbox, onBookDrop)
-        if ("settings" !in pinned) {
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings)) },
-                leadingContent = {
-                    BadgedBox(badge = { if (updateAvailable) Badge() }) { Icon(Icons.Outlined.Settings, contentDescription = null) }
-                },
-                supportingContent = if (updateAvailable) {
-                    {
-                        Text(
-                            if (latestVersion != null) stringResource(R.string.you_update_available_version, latestVersion) else stringResource(R.string.you_update_available),
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                } else null,
-                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background),
-                modifier = Modifier.clickable(onClick = onSettings),
-            )
+        // Everything that isn't in the bottom bar is reached from here.
+        unpinned.forEach { item ->
+            if (item == NavItem.SETTINGS) {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.settings)) },
+                    leadingContent = {
+                        BadgedBox(badge = { if (updateAvailable) Badge() }) { Icon(item.icon(), contentDescription = null) }
+                    },
+                    supportingContent = if (updateAvailable) {
+                        {
+                            Text(
+                                if (latestVersion != null) stringResource(R.string.you_update_available_version, latestVersion) else stringResource(R.string.you_update_available),
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    } else null,
+                    colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background),
+                    modifier = Modifier.clickable { onOpen(item) },
+                )
+            } else {
+                val label = if (item == NavItem.STATS) R.string.you_reading_stats else item.labelRes()
+                Row2(stringResource(label), item.icon()) { onOpen(item) }
+            }
         }
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
         Row2(stringResource(R.string.you_sign_out), Icons.AutoMirrored.Outlined.Logout, onSignOut)

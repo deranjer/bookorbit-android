@@ -76,7 +76,6 @@ internal object SubRoute {
     fun author(id: Int, name: String) = "author/$id?name=${Uri.encode(name)}"
     fun series(id: Int, name: String) = "series/$id?name=${Uri.encode(name)}"
 
-    val fromYou = setOf(STATS, DOWNLOADS, BOOK_DROP, SETTINGS)
 }
 
 /** At and above this width the shell uses a navigation rail and caps single-column content. */
@@ -108,6 +107,7 @@ fun MainShell(
     val canUseBookDrop = user.canUseBookDrop()
     val bar = NavConfig.visible(navItems, canUseBookDrop)
     val barRoutes = bar.map { it.route }.toSet()
+    val unpinned = NavConfig.available(bar, canUseBookDrop).filter { it != NavItem.YOU }
     val startRoute = remember { bar.first().route }
     val tabNav = rememberNavController()
     // Tablets, unfolded foldables and landscape phones: a navigation rail beats a bottom bar.
@@ -147,13 +147,16 @@ fun MainShell(
     }
 
     // The tab to highlight: the You sub-screens count as You; book detail highlights nothing.
+    // A screen that isn't in the bar is opened from You: it counts as You and gets a back button.
+    val openedFromYou = currentRoute != null && currentRoute !in barRoutes && unpinned.any { it.route == currentRoute }
     val selectedRoute = when {
         currentRoute in barRoutes -> currentRoute
-        currentRoute in SubRoute.fromYou -> NavItem.YOU.route
+        openedFromYou -> NavItem.YOU.route
         else -> currentRoute
     }
 
     val title = when (currentRoute) {
+        NavItem.HOME.route -> stringResource(R.string.tab_home)
         NavItem.LIBRARY.route -> stringResource(R.string.title_library)
         NavItem.SEARCH.route -> stringResource(R.string.title_search)
         NavItem.NOTES.route -> stringResource(R.string.title_notes)
@@ -169,11 +172,11 @@ fun MainShell(
     // Home draws its own greeting header and book detail its own bar; the rest share this one. It sits
     // above the list column only, so in two-pane mode the book pane keeps the full height beside it.
     val appBar: @Composable () -> Unit = {
-        if (!isBookDetail && currentRoute != NavItem.HOME.route) {
+        if (!isBookDetail && (currentRoute != NavItem.HOME.route || openedFromYou)) {
             TopAppBar(
                 title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
-                    if ((currentRoute in SubRoute.fromYou && currentRoute !in barRoutes) || currentRoute == SubRoute.AUTHOR || currentRoute == SubRoute.SERIES) {
+                    if (openedFromYou || currentRoute == SubRoute.AUTHOR || currentRoute == SubRoute.SERIES) {
                         IconButton(onClick = { tabNav.popBackStack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
@@ -292,12 +295,8 @@ fun MainShell(
                     serverVersion = appInfo?.version,
                     updateAvailable = appInfo?.updateAvailable == true,
                     latestVersion = appInfo?.latestVersion,
-                    canUseBookDrop = canUseBookDrop,
-                    pinned = barRoutes,
-                    onStats = { tabNav.navigate(SubRoute.STATS) },
-                    onDownloads = { tabNav.navigate(SubRoute.DOWNLOADS) },
-                    onBookDrop = { tabNav.navigate(SubRoute.BOOK_DROP) },
-                    onSettings = { tabNav.navigate(SubRoute.SETTINGS) },
+                    unpinned = unpinned,
+                    onOpen = { item -> tabNav.navigate(item.route) },
                     onSignOut = onSignOut,
                 )
                 }
