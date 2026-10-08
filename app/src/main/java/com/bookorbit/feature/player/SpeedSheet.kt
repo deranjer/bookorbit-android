@@ -72,7 +72,7 @@ fun SpeedSheet(
                 Column(Modifier.weight(1f)) {
                     Text(stringResource(R.string.remember_for_this_book), style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        if (forThisBook) "Other books keep your default speed." else "Applies to every book.",
+                        stringResource(if (forThisBook) R.string.speed_scope_book else R.string.speed_scope_all),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

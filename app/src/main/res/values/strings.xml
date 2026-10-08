@@ -345,4 +345,26 @@
     <string name="player_err_unknown">Playback failed unexpectedly.</string>
     <string name="player_bookmark_err_save">Couldn\'t save the bookmark. Check your connection and try again.</string>
     <string name="player_bookmark_err_delete">Couldn\'t delete the bookmark.</string>
+    <string name="search_hint">Type to search your library</string>
+    <string name="search_no_results">No results for \"%1$s\"</string>
+    <string name="notes_empty_filtered">No highlights match.</string>
+    <string name="notes_empty">Highlights you make while reading show up here, from every book and device.</string>
+    <string name="sleep_pausing_end_of_chapter">Pausing at the end of this chapter</string>
+    <string name="sleep_pausing_in">Pausing in %1$s</string>
+    <string name="speed_scope_book">Other books keep your default speed.</string>
+    <string name="speed_scope_all">Applies to every book.</string>
+    <string name="rsearch_searching">Searching… %1$d so far</string>
+    <string name="rsearch_none">No matches</string>
+    <string name="download_failed">Download failed</string>
+    <string name="detail_narrated_by">Narrated by %1$s</string>
+    <string name="detail_book_details">Book Details</string>
+    <string name="notif_channel_downloads">Downloads</string>
+    <string name="notif_channel_downloads_desc">Progress of books downloading for offline use</string>
+    <string name="notif_downloading_book">Downloading book</string>
+    <string name="stats_src_bookorbit">BookOrbit web</string>
+    <string name="stats_src_android">Android app</string>
+    <string name="stats_src_ios">iOS app</string>
+    <string name="stats_src_watchos">Apple Watch</string>
+    <string name="stats_src_koreader">KOReader</string>
+    <string name="stats_src_kobo">Kobo</string>
 </resources>

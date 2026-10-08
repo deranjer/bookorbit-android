@@ -1,5 +1,6 @@
 package com.bookorbit.feature.downloads
 
+import com.bookorbit.R
 import android.content.Context
 import android.net.Uri
 import android.util.Log
@@ -57,19 +58,19 @@ class DownloadWorker @AssistedInject constructor(
     private val locationStore: DownloadLocationStore,
 ) : CoroutineWorker(appContext, params) {
 
-    private var notificationTitle = "Downloading book"
+    private var notificationTitle: String? = null
     private var lastNotifiedPercent = -1
     private var lastNotifiedAtMs = 0L
 
     override suspend fun getForegroundInfo(): ForegroundInfo =
-        DownloadNotifications.foregroundInfo(applicationContext, inputData.getInt(KEY_BOOK_ID, -1), notificationTitle, null)
+        DownloadNotifications.foregroundInfo(applicationContext, inputData.getInt(KEY_BOOK_ID, -1), notificationTitle ?: applicationContext.getString(R.string.notif_downloading_book), null)
 
     /** Promotes this job to a foreground service. Android 12+ refuses when the app is in the
      * background (e.g. a retry that starts after the user left); the download then continues as a
      * plain job and relies on resuming if it gets stopped. */
     private suspend fun goForeground(progress: Float?) {
         try {
-            setForeground(DownloadNotifications.foregroundInfo(applicationContext, inputData.getInt(KEY_BOOK_ID, -1), notificationTitle, progress))
+            setForeground(DownloadNotifications.foregroundInfo(applicationContext, inputData.getInt(KEY_BOOK_ID, -1), notificationTitle ?: applicationContext.getString(R.string.notif_downloading_book), progress))
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {

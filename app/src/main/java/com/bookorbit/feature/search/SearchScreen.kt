@@ -53,9 +53,9 @@ fun SearchScreen(
         )
 
         when {
-            state.showHint -> CenteredHint("Type to search your library")
+            state.showHint -> CenteredHint(stringResource(R.string.search_hint))
             state.results.isEmpty() && !state.loading ->
-                CenteredHint("No results for \"${query.trim()}\"")
+                CenteredHint(stringResource(R.string.search_no_results, query.trim()))
             else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(state.results, key = { it.id }) { result ->
                     SearchResultRow(result = result, onClick = { onBookClick(result.id) })

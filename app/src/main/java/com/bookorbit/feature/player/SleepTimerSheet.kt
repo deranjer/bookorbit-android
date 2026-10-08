@@ -44,7 +44,7 @@ fun SleepTimerSheet(
             Text(stringResource(R.string.sleep_timer), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
 
             if (remainingSec != null) {
-                val label = if (endOfChapter) "Pausing at the end of this chapter" else "Pausing in ${formatTime(remainingSec.toDouble())}"
+                val label = if (endOfChapter) stringResource(R.string.sleep_pausing_end_of_chapter) else stringResource(R.string.sleep_pausing_in, formatTime(remainingSec.toDouble()))
                 Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedButton(onClick = { onCancel(); onDismiss() }) { Text(stringResource(R.string.cancel_timer)) }
             }

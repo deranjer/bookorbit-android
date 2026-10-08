@@ -1,5 +1,7 @@
 package com.bookorbit.feature.player
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -76,7 +78,7 @@ fun MiniPlayer(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                if (state.isCasting) "Casting to ${state.castDeviceName ?: "device"}" else PlaybackQueue.performerLabel(book),
+                if (state.isCasting) stringResource(R.string.player_casting_to, state.castDeviceName ?: stringResource(R.string.player_casting_device)) else PlaybackQueue.performerLabel(book),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,

@@ -110,7 +110,7 @@ fun BookDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(ui.book?.title ?: "Book Details", maxLines = 1) },
+                title = { Text(ui.book?.title ?: stringResource(R.string.detail_book_details), maxLines = 1) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
@@ -285,7 +285,7 @@ private fun DetailHero(
                 .clip(RoundedCornerShape(10.dp)),
         )
         Text(
-            book.title ?: "Unknown title",
+            book.title ?: stringResource(R.string.card_unknown_title),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -316,7 +316,7 @@ private fun DetailHero(
         val narrators = book.audioMetadata?.narrators.orEmpty()
         if (narrators.isNotEmpty()) {
             Text(
-                "Narrated by " + narrators.joinToString(", ") { it.name },
+                stringResource(R.string.detail_narrated_by, narrators.joinToString(", ") { it.name }),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -361,7 +361,7 @@ private fun DownloadControl(
         }
         "FAILED" -> Column(modifier = Modifier.fillMaxWidth()) {
             Text(
-                download.lastError ?: "Download failed",
+                download.lastError ?: stringResource(R.string.download_failed),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
             )

@@ -1,5 +1,6 @@
 package com.bookorbit.feature.downloads
 
+import com.bookorbit.R
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -41,8 +42,8 @@ object DownloadNotifications {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         if (manager.getNotificationChannel(CHANNEL_ID) != null) return
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Downloads", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Progress of books downloading for offline use"
+            NotificationChannel(CHANNEL_ID, context.getString(R.string.notif_channel_downloads), NotificationManager.IMPORTANCE_LOW).apply {
+                description = context.getString(R.string.notif_channel_downloads_desc)
             },
         )
     }

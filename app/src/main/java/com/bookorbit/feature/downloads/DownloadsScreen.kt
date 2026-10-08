@@ -108,7 +108,7 @@ fun DownloadsScreen(
                     }
                     if (item.status == DownloadStatus.FAILED.name) {
                         Text(
-                            item.lastError ?: "Download failed",
+                            item.lastError ?: stringResource(R.string.download_failed),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                             maxLines = 2,

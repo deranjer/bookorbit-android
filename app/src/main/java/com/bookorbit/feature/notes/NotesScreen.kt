@@ -89,7 +89,7 @@ fun NotesScreen(
             }
             ui.items.isEmpty() -> Box(Modifier.fillMaxSize().padding(32.dp), Alignment.Center) {
                 Text(
-                    if (ui.query.isNotBlank() || ui.onlyWithNotes) "No highlights match." else "Highlights you make while reading show up here, from every book and device.",
+                    stringResource(if (ui.query.isNotBlank() || ui.onlyWithNotes) R.string.notes_empty_filtered else R.string.notes_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

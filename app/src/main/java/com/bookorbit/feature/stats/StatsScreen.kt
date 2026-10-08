@@ -181,12 +181,12 @@ private fun shade(seconds: Long, base: Color, none: Color): Color = when {
 }
 
 private val SOURCE_LABELS = mapOf(
-    "bookorbit" to "BookOrbit web",
-    "android" to "Android app",
-    "ios" to "iOS app",
-    "watchos" to "Apple Watch",
-    "koreader" to "KOReader",
-    "kobo" to "Kobo",
+    "bookorbit" to R.string.stats_src_bookorbit,
+    "android" to R.string.stats_src_android,
+    "ios" to R.string.stats_src_ios,
+    "watchos" to R.string.stats_src_watchos,
+    "koreader" to R.string.stats_src_koreader,
+    "kobo" to R.string.stats_src_kobo,
 )
 
 private val SOURCE_COLORS = listOf(Color(0xFF4A9EFF), Color(0xFF4ADE80), Color(0xFFFB923C), Color(0xFFF472B6), Color(0xFFC084FC), Color(0xFF22D3EE))
@@ -209,7 +209,7 @@ private fun SourceSplit(dist: SourceDistribution, modifier: Modifier) {
             Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(10.dp).clip(CircleShape).background(SOURCE_COLORS[i % SOURCE_COLORS.size]))
                 Text(
-                    SOURCE_LABELS[s.bucket] ?: s.bucket.replaceFirstChar { it.uppercase() },
+                    SOURCE_LABELS[s.bucket]?.let { stringResource(it) } ?: s.bucket.replaceFirstChar { it.uppercase() },
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 8.dp).weight(1f),
                 )

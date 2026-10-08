@@ -1,5 +1,6 @@
 package com.bookorbit.feature.reader
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.compose.foundation.clickable
@@ -75,10 +76,10 @@ fun ReaderSearchSheet(
                 )
             }
             val summary = when {
-                state.running -> "Searching… ${state.total} so far"
-                state.total == 0 -> "No matches"
-                state.capped -> "First ${state.total} matches"
-                else -> "${state.total} match${if (state.total == 1) "" else "es"}"
+                state.running -> stringResource(R.string.rsearch_searching, state.total)
+                state.total == 0 -> stringResource(R.string.rsearch_none)
+                state.capped -> pluralStringResource(R.plurals.rsearch_first_n, state.total, state.total)
+                else -> pluralStringResource(R.plurals.rsearch_n, state.total, state.total)
             }
             Text(
                 summary,
