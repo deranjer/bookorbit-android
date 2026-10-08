@@ -124,6 +124,17 @@ interface ApiService {
     suspend fun getFileProgress(@Path("fileId") fileId: Int): FileProgress?
 
     // --- Annotations (highlights + notes) ---
+    @GET("annotations")
+    suspend fun getAnnotationHub(
+        @Query("page") page: Int,
+        @Query("pageSize") pageSize: Int,
+        @Query("search") search: String? = null,
+        @Query("hasNote") hasNote: Boolean? = null,
+        @Query("status") status: String = "active",
+        @Query("sortBy") sortBy: String = "createdAt",
+        @Query("sortDir") sortDir: String = "desc",
+    ): com.bookorbit.core.model.HubAnnotationPage
+
     @GET("books/{bookId}/annotations")
     suspend fun getAnnotations(@Path("bookId") bookId: Int): List<com.bookorbit.core.model.BookAnnotation>
 

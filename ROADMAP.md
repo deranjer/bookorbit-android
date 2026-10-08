@@ -63,7 +63,7 @@ Server endpoints available but unused by this app:
 
 - Dashboard: streak, goal and a Continue card shipped; highlight of the day and discover still to do.
 - "My Reading" statistics screen (heatmap, completion timeline, pace).
-- Navigation: Authors/Series as real routes; promote Annotations and Statistics.
+- Navigation: shipped (Home/Library/Search/Notes/You, no drawer). Statistics screen under You still to do.
 - Theme: Material You option, AA contrast on primary, tonal surfaces.
 - Tablet / foldable two-pane layout (moved up from P2).
 - Player: bookmarks, custom and per-book speed (chapter list and chapter progress already shipped).

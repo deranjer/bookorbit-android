@@ -21,13 +21,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -56,7 +54,7 @@ import java.time.LocalTime
 @Composable
 fun DashboardScreen(
     userName: String,
-    onOpenMenu: () -> Unit,
+    onOpenProfile: () -> Unit,
     onBookClick: (Int) -> Unit,
     vm: DashboardViewModel = hiltViewModel(),
 ) {
@@ -69,7 +67,7 @@ fun DashboardScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            HomeHeader(userName = userName, onOpenMenu = onOpenMenu)
+            HomeHeader(userName = userName, onOpenProfile = onOpenProfile)
 
             when {
                 ui.error -> Box(Modifier.fillMaxWidth().padding(vertical = 64.dp), Alignment.Center) {
@@ -111,23 +109,24 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun HomeHeader(userName: String, onOpenMenu: () -> Unit) {
+private fun HomeHeader(userName: String, onOpenProfile: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onOpenMenu) {
-            Icon(Icons.Filled.Menu, contentDescription = "Menu")
-        }
-        Column(Modifier.weight(1f).padding(start = 4.dp)) {
+        Column(Modifier.weight(1f)) {
             Text(greeting(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(userName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Box(
-            modifier = Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .clickable(onClickLabel = "Open profile", onClick = onOpenProfile),
             contentAlignment = Alignment.Center,
         ) {
             Text(
