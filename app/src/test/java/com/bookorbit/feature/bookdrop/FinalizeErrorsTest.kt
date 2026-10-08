@@ -1,12 +1,14 @@
 package com.bookorbit.feature.bookdrop
 
+import com.bookorbit.R
 import com.bookorbit.core.model.BookDockFinalizeFileResult
 import com.bookorbit.core.model.BookDockFinalizeResult
+import com.bookorbit.ui.UiText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/** Messages are [UiText], so these assert on which resource is chosen (and its arguments), not on English wording. */
 class FinalizeErrorsTest {
     private fun result(failed: Int, message: String?) = BookDockFinalizeResult(
         total = 1,
@@ -22,28 +24,31 @@ class FinalizeErrorsTest {
 
     @Test
     fun `a missing result means the server was unreachable`() {
-        assertTrue(FinalizeErrors.describe(null)!!.contains("reach the server"))
+        assertEquals(UiText.of(R.string.finalize_err_unreachable), FinalizeErrors.describe(null))
     }
 
     @Test
     fun `EACCES is explained as a folder permission problem`() {
-        val text = FinalizeErrors.describe(result(1, "EACCES"))!!
-        assertTrue(text.contains("permission denied"))
-        assertTrue(text.contains("permissions on the server"))
+        assertEquals(UiText.of(R.string.finalize_err_permission), FinalizeErrors.describe(result(1, "EACCES")))
+    }
+
+    @Test
+    fun `permission denied wording is recognised too`() {
+        assertEquals(UiText.of(R.string.finalize_err_permission), FinalizeErrors.describe(result(1, "Permission denied")))
     }
 
     @Test
     fun `out of disk space is named`() {
-        assertEquals("The server is out of disk space.", FinalizeErrors.describe(result(1, "ENOSPC: no space left")))
+        assertEquals(UiText.of(R.string.finalize_err_disk_full), FinalizeErrors.describe(result(1, "ENOSPC: no space left")))
     }
 
     @Test
-    fun `an unknown server message is passed through`() {
-        assertEquals("Couldn't add this book to the library: Unsupported format", FinalizeErrors.describe(result(1, "Unsupported format")))
+    fun `an unknown server message is passed through as an argument`() {
+        assertEquals(UiText.of(R.string.finalize_err_reason, "Unsupported format"), FinalizeErrors.describe(result(1, "Unsupported format")))
     }
 
     @Test
     fun `a failure without a message still says something useful`() {
-        assertTrue(FinalizeErrors.describe(result(1, null))!!.contains("server logs"))
+        assertEquals(UiText.of(R.string.finalize_err_generic), FinalizeErrors.describe(result(1, null)))
     }
 }

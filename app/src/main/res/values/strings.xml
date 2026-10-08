@@ -302,4 +302,22 @@
     <string name="bookdrop_status_fetching">Fetching</string>
     <string name="bookdrop_status_ready">Ready</string>
     <string name="bookdrop_status_error">Error</string>
+    <string name="settings_msg_image_cache_cleared">Image cache cleared</string>
+    <string name="settings_msg_downloads_removed">All downloads removed</string>
+    <string name="settings_msg_location_set">Downloads will now be saved to %1$s</string>
+    <string name="settings_msg_location_reset">Downloads will be saved to app storage</string>
+    <string name="settings_location_default">App storage (default)</string>
+    <string name="settings_location_selected_folder">the selected folder</string>
+    <string name="bookdrop_msg_destination_set">Destination set</string>
+    <string name="bookdrop_msg_discarded">Discarded</string>
+    <string name="bookdrop_msg_uploaded">Uploaded</string>
+    <string name="bookdrop_msg_error_generic">Something went wrong</string>
+    <string name="bookdrop_msg_approved">Approved %1$d of %2$d</string>
+    <string name="bookdrop_msg_failed_suffix">, %1$d failed</string>
+    <string name="bookdrop_msg_with_reason">%1$s. %2$s</string>
+    <string name="finalize_err_unreachable">Couldn\'t reach the server. Check your connection and try again.</string>
+    <string name="finalize_err_permission">The server can\'t write to that library folder (permission denied). Check the folder\'s permissions on the server, then try again.</string>
+    <string name="finalize_err_disk_full">The server is out of disk space.</string>
+    <string name="finalize_err_reason">Couldn\'t add this book to the library: %1$s</string>
+    <string name="finalize_err_generic">Couldn\'t add this book to the library. Check the server logs for details.</string>
 </resources>

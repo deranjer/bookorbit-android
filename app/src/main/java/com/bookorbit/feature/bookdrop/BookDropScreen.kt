@@ -78,6 +78,7 @@ fun BookDropScreen(vm: BookDropViewModel = hiltViewModel()) {
     val imageUrls = LocalImageUrls.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val appContext = androidx.compose.ui.platform.LocalContext.current
 
     var detailFile by remember { mutableStateOf<BookDockFile?>(null) }
     var pickerLibraries by remember { mutableStateOf<List<Library>?>(null) }
@@ -89,13 +90,13 @@ fun BookDropScreen(vm: BookDropViewModel = hiltViewModel()) {
     // Surface action results / errors as a snackbar, then clear them.
     LaunchedEffect(action.message) {
         action.message?.let {
-            snackbarHostState.showSnackbar(it)
+            snackbarHostState.showSnackbar(it.resolve(appContext))
             vm.consumeMessage()
         }
     }
     LaunchedEffect(action.error) {
         action.error?.let {
-            snackbarHostState.showSnackbar(it)
+            snackbarHostState.showSnackbar(it.resolve(appContext))
             vm.consumeError()
         }
     }

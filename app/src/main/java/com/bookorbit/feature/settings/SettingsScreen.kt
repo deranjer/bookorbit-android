@@ -1,5 +1,6 @@
 package com.bookorbit.feature.settings
 
+import com.bookorbit.ui.asString
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -56,6 +57,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val message by vm.message.collectAsStateWithLifecycle()
     val downloadTreeUri by vm.downloadTreeUri.collectAsStateWithLifecycle()
     val downloadLocationLabel by vm.downloadLocationLabel.collectAsStateWithLifecycle()
+    val appContext = androidx.compose.ui.platform.LocalContext.current
     val downloadLocationAccessible by vm.downloadLocationAccessible.collectAsStateWithLifecycle()
     val appInfo by vm.appInfo.collectAsStateWithLifecycle()
 
@@ -67,7 +69,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
 
     LaunchedEffect(message) {
         message?.let {
-            snackbarHostState.showSnackbar(it)
+            snackbarHostState.showSnackbar(it.resolve(appContext))
             vm.consumeMessage()
         }
     }
@@ -111,7 +113,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             item {
                 SettingsRow(
                     title = stringResource(R.string.settings_download_location),
-                    subtitle = downloadLocationLabel,
+                    subtitle = downloadLocationLabel.asString(),
                     trailing = { TextButton(onClick = { folderLauncher.launch(null) }) { Text(stringResource(R.string.change)) } },
                 )
             }

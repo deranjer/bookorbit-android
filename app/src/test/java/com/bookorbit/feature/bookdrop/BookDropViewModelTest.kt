@@ -18,6 +18,8 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import com.bookorbit.R
+import com.bookorbit.ui.UiText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -96,7 +98,7 @@ class BookDropViewModelTest {
         assertNull(slot.captured.selectAll)
         // selection is cleared and a result message is surfaced
         assertFalse(vm.selection.value.active)
-        assertTrue(vm.action.value.message!!.contains("2"))
+        assertEquals(UiText.plural(R.plurals.bookdrop_msg_applied_fetched, 2), vm.action.value.message)
     }
 
     @Test
@@ -130,7 +132,7 @@ class BookDropViewModelTest {
         assertEquals(listOf(1, 2), req.fileIds)
         assertEquals(3, req.defaultLibraryId)
         assertEquals(9, req.defaultFolderId)
-        assertTrue(vm.action.value.message!!.contains("Approved 2 of 2"))
+        assertEquals(UiText.Composite(listOf(UiText.of(R.string.bookdrop_msg_approved, 2, 2))), vm.action.value.message)
     }
 
     @Test
@@ -176,7 +178,7 @@ class BookDropViewModelTest {
         vm.startSelection(1)
         vm.applyFetchedSelection()
 
-        assertEquals("boom", vm.action.value.error)
+        assertEquals(UiText.raw("boom"), vm.action.value.error)
         assertTrue(vm.selection.value.active)
     }
 

@@ -1,5 +1,7 @@
 package com.bookorbit.feature.settings
 
+import com.bookorbit.R
+import com.bookorbit.ui.UiText
 import android.content.Context
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
@@ -63,16 +65,16 @@ class SettingsViewModel @Inject constructor(
     val downloadTreeUri: StateFlow<Uri?> = locationStore.treeUri
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    val downloadLocationLabel: StateFlow<String> = downloadTreeUri
-        .map { it?.let(::labelFor) ?: "App storage (default)" }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "App storage (default)")
+    val downloadLocationLabel: StateFlow<UiText> = downloadTreeUri
+        .map { it?.let(::labelFor) ?: UiText.of(R.string.settings_location_default) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiText.of(R.string.settings_location_default))
 
     val downloadLocationAccessible: StateFlow<Boolean> = downloadTreeUri
         .map { it == null || locationStore.isAccessible(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
 
-    private val _message = MutableStateFlow<String?>(null)
-    val message: StateFlow<String?> = _message.asStateFlow()
+    private val _message = MutableStateFlow<UiText?>(null)
+    val message: StateFlow<UiText?> = _message.asStateFlow()
 
     init {
         viewModelScope.launch { _defaultSpeed.value = audioSettingsStore.load().speed }
@@ -102,32 +104,33 @@ class SettingsViewModel @Inject constructor(
     fun clearImageCache() {
         imageLoader.diskCache?.clear()
         imageLoader.memoryCache?.clear()
-        _message.value = "Image cache cleared"
+        _message.value = UiText.of(R.string.settings_msg_image_cache_cleared)
     }
 
     fun clearAllDownloads() {
         viewModelScope.launch {
             downloadsRepo.deleteAll()
-            _message.value = "All downloads removed"
+            _message.value = UiText.of(R.string.settings_msg_downloads_removed)
         }
     }
 
     fun setDownloadLocation(uri: Uri) {
         viewModelScope.launch {
             locationStore.setTreeUri(uri)
-            _message.value = "Downloads will now be saved to ${labelFor(uri)}"
+            _message.value = UiText.of(R.string.settings_msg_location_set, labelFor(uri).resolve(context))
         }
     }
 
     fun resetDownloadLocation() {
         viewModelScope.launch {
             locationStore.clear()
-            _message.value = "Downloads will be saved to app storage"
+            _message.value = UiText.of(R.string.settings_msg_location_reset)
         }
     }
 
-    private fun labelFor(uri: Uri): String =
-        runCatching { DocumentFile.fromTreeUri(context, uri)?.name }.getOrNull() ?: "the selected folder"
+    private fun labelFor(uri: Uri): UiText =
+        runCatching { DocumentFile.fromTreeUri(context, uri)?.name }.getOrNull()?.let { UiText.raw(it) }
+            ?: UiText.of(R.string.settings_location_selected_folder)
 
     fun consumeMessage() {
         _message.value = null

@@ -1,5 +1,7 @@
 package com.bookorbit.feature.bookdrop
 
+import com.bookorbit.ui.UiText
+import com.bookorbit.ui.asString
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.compose.foundation.layout.Arrangement
@@ -74,7 +76,7 @@ fun BookDropDetailSheet(
     }
 
     val busy = action.inProgress
-    var approveError by remember { mutableStateOf<String?>(null) }
+    var approveError by remember { mutableStateOf<UiText?>(null) }
     val hasDestination = libraryId != null && folderId != null
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
@@ -142,7 +144,7 @@ fun BookDropDetailSheet(
             )
 
             approveError?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                Text(it.asString(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

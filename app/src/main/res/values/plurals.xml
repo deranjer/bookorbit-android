@@ -3,4 +3,12 @@
         <item quantity="one">%d day</item>
         <item quantity="other">%d days</item>
     </plurals>
+    <plurals name="bookdrop_msg_applied_fetched">
+        <item quantity="one">Applied fetched metadata to %d file</item>
+        <item quantity="other">Applied fetched metadata to %d files</item>
+    </plurals>
+    <plurals name="bookdrop_msg_duplicates">
+        <item quantity="one"> (%d duplicate)</item>
+        <item quantity="other"> (%d duplicates)</item>
+    </plurals>
 </resources>

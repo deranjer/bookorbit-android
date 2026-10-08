@@ -1,5 +1,7 @@
 package com.bookorbit.feature.bookdrop
 
+import com.bookorbit.R
+import com.bookorbit.ui.UiText
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -152,7 +154,7 @@ class BookDropViewModel @Inject constructor(
 
     fun applyFetchedSelection() = runAction {
         val counts = repo.applyFetched(currentSelection())
-        "Applied fetched metadata to ${counts.applied} file(s)"
+        UiText.plural(R.plurals.bookdrop_msg_applied_fetched, counts.applied)
     }
 
     fun setTargetSelection(libraryId: Int, folderId: Int) = runAction {
@@ -167,7 +169,7 @@ class BookDropViewModel @Inject constructor(
                 targetFolderId = folderId,
             ),
         )
-        "Destination set"
+        UiText.of(R.string.bookdrop_msg_destination_set)
     }
 
     fun finalizeSelection(libraryId: Int?, folderId: Int?) = runAction {
@@ -187,12 +189,12 @@ class BookDropViewModel @Inject constructor(
 
     fun discardSelection() = runAction {
         repo.bulkDiscard(currentSelection())
-        "Discarded"
+        UiText.of(R.string.bookdrop_msg_discarded)
     }
 
     fun upload(uri: Uri) = runAction(exitSelection = false) {
         repo.upload(uri)
-        "Uploaded"
+        UiText.of(R.string.bookdrop_msg_uploaded)
     }
 
     // --- Single-file actions (used by the detail sheet) ----------------------
@@ -233,11 +235,11 @@ class BookDropViewModel @Inject constructor(
 
     data class ActionState(
         val inProgress: Boolean = false,
-        val message: String? = null,
-        val error: String? = null,
+        val message: UiText? = null,
+        val error: UiText? = null,
     )
 
-    private fun runAction(exitSelection: Boolean = true, block: suspend () -> String?) {
+    private fun runAction(exitSelection: Boolean = true, block: suspend () -> UiText?) {
         if (_action.value.inProgress) return
         _action.update { it.copy(inProgress = true, error = null) }
         viewModelScope.launch {
@@ -248,7 +250,7 @@ class BookDropViewModel @Inject constructor(
                     refresh()
                 },
                 onFailure = { e ->
-                    _action.update { it.copy(inProgress = false, error = e.message ?: "Something went wrong") }
+                    _action.update { it.copy(inProgress = false, error = e.message?.let { UiText.raw(it) } ?: UiText.of(R.string.bookdrop_msg_error_generic)) }
                 },
             )
         }
@@ -260,13 +262,19 @@ class BookDropViewModel @Inject constructor(
         return updated
     }
 
-    private fun messageFor(result: BookDockFinalizeResult): String {
+    /**
+     * "Approved 2 of 3, 1 failed (1 duplicate). <reason>". Built as a [UiText.Composite] of resources so
+     * each fragment is translated on its own.
+     */
+    private fun messageFor(result: BookDockFinalizeResult): UiText {
         val dupes = result.results.count { it.isDuplicate == true }
-        return buildString {
-            append("Approved ${result.succeeded} of ${result.total}")
-            if (result.failed > 0) append(", ${result.failed} failed")
-            if (dupes > 0) append(" ($dupes duplicate${if (dupes == 1) "" else "s"})")
-            FinalizeErrors.describe(result)?.let { append(". ").append(it) }
+        val parts = buildList {
+            add(UiText.of(R.string.bookdrop_msg_approved, result.succeeded, result.total))
+            if (result.failed > 0) add(UiText.of(R.string.bookdrop_msg_failed_suffix, result.failed))
+            if (dupes > 0) add(UiText.plural(R.plurals.bookdrop_msg_duplicates, dupes))
         }
+        val summary = UiText.Composite(parts)
+        val reason = FinalizeErrors.describe(result) ?: return summary
+        return UiText.of(R.string.bookdrop_msg_with_reason, summary, reason)
     }
 }
