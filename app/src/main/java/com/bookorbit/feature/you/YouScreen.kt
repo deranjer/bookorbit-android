@@ -1,5 +1,7 @@
 package com.bookorbit.feature.you
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -75,7 +77,7 @@ fun YouScreen(
         Row2("Downloads", Icons.Filled.Download, onDownloads)
         if (canUseBookDrop) Row2("Book Drop", Icons.Outlined.Inbox, onBookDrop)
         ListItem(
-            headlineContent = { Text("Settings") },
+            headlineContent = { Text(stringResource(R.string.settings)) },
             leadingContent = {
                 BadgedBox(badge = { if (updateAvailable) Badge() }) { Icon(Icons.Outlined.Settings, contentDescription = null) }
             },

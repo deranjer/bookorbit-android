@@ -1,5 +1,7 @@
 package com.bookorbit.feature.library
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -80,12 +82,12 @@ fun FilterSortSheet(
                 FilterChip(
                     selected = sort.dir == "asc",
                     onClick = { sort = sort.copy(dir = "asc") },
-                    label = { Text("Ascending") },
+                    label = { Text(stringResource(R.string.ascending)) },
                 )
                 FilterChip(
                     selected = sort.dir == "desc",
                     onClick = { sort = sort.copy(dir = "desc") },
-                    label = { Text("Descending") },
+                    label = { Text(stringResource(R.string.descending)) },
                 )
             }
 
@@ -140,25 +142,25 @@ fun FilterSortSheet(
 
             HorizontalDivider()
             TypeaheadMultiSelect(
-                label = "Authors",
+                label = stringResource(R.string.authors),
                 selected = filters.authors,
                 onSelectedChange = { filters = filters.copy(authors = it) },
                 search = { searchCatalog(CatalogKind.AUTHORS, it) },
             )
             TypeaheadMultiSelect(
-                label = "Genres",
+                label = stringResource(R.string.genres),
                 selected = filters.genres,
                 onSelectedChange = { filters = filters.copy(genres = it) },
                 search = { searchCatalog(CatalogKind.GENRES, it) },
             )
             TypeaheadMultiSelect(
-                label = "Tags",
+                label = stringResource(R.string.tags),
                 selected = filters.tags,
                 onSelectedChange = { filters = filters.copy(tags = it) },
                 search = { searchCatalog(CatalogKind.TAGS, it) },
             )
             TypeaheadMultiSelect(
-                label = "Languages",
+                label = stringResource(R.string.languages),
                 selected = filters.languages,
                 onSelectedChange = { filters = filters.copy(languages = it) },
                 search = { searchCatalog(CatalogKind.LANGUAGES, it) },
@@ -183,7 +185,7 @@ fun FilterSortSheet(
                 OutlinedTextField(
                     value = filters.yearFrom?.toString() ?: "",
                     onValueChange = { filters = filters.copy(yearFrom = it.toIntOrNull()) },
-                    label = { Text("From") },
+                    label = { Text(stringResource(R.string.from)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.width(140.dp),
@@ -191,7 +193,7 @@ fun FilterSortSheet(
                 OutlinedTextField(
                     value = filters.yearTo?.toString() ?: "",
                     onValueChange = { filters = filters.copy(yearTo = it.toIntOrNull()) },
-                    label = { Text("To") },
+                    label = { Text(stringResource(R.string.to)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.width(140.dp),
@@ -209,11 +211,11 @@ fun FilterSortSheet(
                         sort = DEFAULT_SORT
                     },
                     modifier = Modifier.weight(1f),
-                ) { Text("Reset") }
+                ) { Text(stringResource(R.string.reset)) }
                 Button(
                     onClick = { onApply(filters, sort) },
                     modifier = Modifier.weight(1f),
-                ) { Text("Apply") }
+                ) { Text(stringResource(R.string.apply)) }
             }
         }
     }

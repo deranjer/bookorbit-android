@@ -1,5 +1,7 @@
 package com.bookorbit.ui.components
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -60,7 +62,7 @@ fun TypeaheadMultiSelect(
                         selected = true,
                         onClick = { onSelectedChange(selected - value) },
                         label = { Text(value) },
-                        trailingIcon = { Icon(Icons.Filled.Close, contentDescription = "Remove") },
+                        trailingIcon = { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.remove)) },
                         modifier = Modifier.padding(end = 6.dp),
                     )
                 }
@@ -72,7 +74,7 @@ fun TypeaheadMultiSelect(
             onValueChange = { query = it },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            placeholder = { Text("Add $label…") },
+            placeholder = { Text(stringResource(R.string.add, label)) },
         )
 
         suggestions.take(8).forEach { suggestion ->

@@ -1,5 +1,7 @@
 package com.bookorbit.ui.components
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
@@ -37,7 +39,7 @@ fun StarRating(
             val tint = if (current >= star - 0.5) Accent else TextMuted
             Icon(
                 imageVector = icon,
-                contentDescription = "$star stars",
+                contentDescription = stringResource(R.string.stars, star),
                 tint = tint,
                 modifier = Modifier
                     .size(size)

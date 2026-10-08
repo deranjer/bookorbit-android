@@ -1,5 +1,7 @@
 package com.bookorbit.feature.reader
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -51,14 +53,14 @@ fun ReaderSearchSheet(
             onValueChange = { text = it },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             singleLine = true,
-            placeholder = { Text("Search in this book") },
+            placeholder = { Text(stringResource(R.string.search_in_this_book)) },
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
             trailingIcon = {
                 if (text.isNotEmpty()) {
                     IconButton(onClick = {
                         text = ""
                         onClear()
-                    }) { Icon(Icons.Filled.Clear, contentDescription = "Clear search") }
+                    }) { Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.clear_search)) }
                 }
             },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),

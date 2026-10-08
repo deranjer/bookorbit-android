@@ -1,5 +1,7 @@
 package com.bookorbit.feature.player
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -39,12 +41,12 @@ fun SleepTimerSheet(
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Sleep timer", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.sleep_timer), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
 
             if (remainingSec != null) {
                 val label = if (endOfChapter) "Pausing at the end of this chapter" else "Pausing in ${formatTime(remainingSec.toDouble())}"
                 Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                OutlinedButton(onClick = { onCancel(); onDismiss() }) { Text("Cancel timer") }
+                OutlinedButton(onClick = { onCancel(); onDismiss() }) { Text(stringResource(R.string.cancel_timer)) }
             }
 
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -52,14 +54,14 @@ fun SleepTimerSheet(
                     FilterChip(
                         selected = false,
                         onClick = { onSetMinutes(minutes); onDismiss() },
-                        label = { Text("$minutes min") },
+                        label = { Text(stringResource(R.string.min, minutes)) },
                     )
                 }
                 FilterChip(
                     selected = endOfChapter,
                     enabled = hasChapters,
                     onClick = { onSetEndOfChapter(); onDismiss() },
-                    label = { Text("End of chapter") },
+                    label = { Text(stringResource(R.string.end_of_chapter)) },
                 )
             }
         }

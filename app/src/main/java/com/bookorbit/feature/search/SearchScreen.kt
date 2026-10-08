@@ -1,5 +1,7 @@
 package com.bookorbit.feature.search
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,7 +49,7 @@ fun SearchScreen(
                 .fillMaxWidth()
                 .padding(12.dp),
             singleLine = true,
-            placeholder = { Text("Search books…") },
+            placeholder = { Text(stringResource(R.string.search_books)) },
         )
 
         when {

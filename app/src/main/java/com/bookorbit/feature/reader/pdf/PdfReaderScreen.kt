@@ -1,5 +1,7 @@
 package com.bookorbit.feature.reader.pdf
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -114,7 +116,7 @@ fun PdfReaderScreen(
             Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(message, color = Color.White)
-                    TextButton(onClick = onBack) { Text("Back") }
+                    TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
                 }
             }
         }
@@ -129,7 +131,7 @@ fun PdfReaderScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = Color.White)
                 }
                 Text(
                     ui.title ?: "",
@@ -140,11 +142,11 @@ fun PdfReaderScreen(
                 )
                 if (ui.hasTextLayer) {
                     IconButton(onClick = { searchVisible = !searchVisible }) {
-                        Icon(Icons.Filled.Search, contentDescription = "Search", tint = Color.White)
+                        Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.search), tint = Color.White)
                     }
                 }
                 IconButton(onClick = { settingsVisible = true }) {
-                    Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Color.White)
+                    Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings), tint = Color.White)
                 }
             }
 
@@ -339,7 +341,7 @@ private fun JumpToPageDialog(
     var text by remember { mutableStateOf("${current + 1}") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Go to page") },
+        title = { Text(stringResource(R.string.go_to_page)) },
         text = {
             OutlinedTextField(
                 value = text,
@@ -352,9 +354,9 @@ private fun JumpToPageDialog(
             TextButton(onClick = {
                 val page = (text.toIntOrNull() ?: (current + 1)).coerceIn(1, pageCount) - 1
                 onGo(page)
-            }) { Text("Go") }
+            }) { Text(stringResource(R.string.go)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }
 

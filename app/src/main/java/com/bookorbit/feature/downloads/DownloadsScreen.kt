@@ -1,5 +1,7 @@
 package com.bookorbit.feature.downloads
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -44,7 +46,7 @@ fun DownloadsScreen(
 
     if (downloads.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No downloads yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.no_downloads_yet), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         return
     }
@@ -89,7 +91,7 @@ fun DownloadsScreen(
                     )
                     if (item.status == DownloadStatus.COMPLETE_FALLBACK.name) {
                         Text(
-                            "Saved to app storage (chosen folder was unavailable)",
+                            stringResource(R.string.saved_to_app_storage_chosen),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                             maxLines = 1,
@@ -115,11 +117,11 @@ fun DownloadsScreen(
                         androidx.compose.material3.TextButton(
                             onClick = { vm.retry(item.bookId) },
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
-                        ) { Text("Retry") }
+                        ) { Text(stringResource(R.string.retry)) }
                     }
                 }
                 IconButton(onClick = { vm.delete(item.bookId) }) {
-                    Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
                 }
             }
             HorizontalDivider()

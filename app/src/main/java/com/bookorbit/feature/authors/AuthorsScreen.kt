@@ -1,5 +1,7 @@
 package com.bookorbit.feature.authors
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -58,7 +60,7 @@ fun AuthorBooksScreen(
     vm: AuthorsViewModel = hiltViewModel(),
 ) {
     val books = remember(authorId) { vm.authorBooks(authorId) }.collectAsLazyPagingItems()
-    BookGrid(items = books, onBookClick = onBookClick, emptyText = "No books for this author.")
+    BookGrid(items = books, onBookClick = onBookClick, emptyText = stringResource(R.string.no_books_for_this_author))
 }
 
 @Composable

@@ -1,5 +1,6 @@
 package com.bookorbit.ui.components
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
@@ -33,7 +34,7 @@ fun BrandLogo(modifier: Modifier = Modifier, size: Int = 72) {
     ) {
         Icon(
             painter = painterResource(R.drawable.ic_orbit),
-            contentDescription = "BookOrbit",
+            contentDescription = stringResource(R.string.bookorbit),
             tint = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier
                 .padding(size.dp * 0.22f)

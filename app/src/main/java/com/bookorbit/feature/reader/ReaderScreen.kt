@@ -1,5 +1,7 @@
 package com.bookorbit.feature.reader
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -151,7 +153,7 @@ fun ReaderScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = Color.White)
                 }
                 Text(
                     ui.chapterTitle ?: ui.title ?: "",
@@ -161,19 +163,19 @@ fun ReaderScreen(
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = { searchVisible = true }) {
-                    Icon(Icons.Filled.Search, contentDescription = "Search in book", tint = Color.White)
+                    Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.search_in_book), tint = Color.White)
                 }
                 IconButton(onClick = {
                     vm.loadBookmarks()
                     highlightsVisible = true
                 }) {
-                    Icon(Icons.Filled.FormatQuote, contentDescription = "Highlights", tint = Color.White)
+                    Icon(Icons.Filled.FormatQuote, contentDescription = stringResource(R.string.highlights), tint = Color.White)
                 }
                 IconButton(onClick = { tocVisible = true }) {
-                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Contents", tint = Color.White)
+                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = stringResource(R.string.contents), tint = Color.White)
                 }
                 IconButton(onClick = { settingsVisible = true }) {
-                    Icon(Icons.Filled.TextFields, contentDescription = "Settings", tint = Color.White)
+                    Icon(Icons.Filled.TextFields, contentDescription = stringResource(R.string.settings), tint = Color.White)
                 }
             }
 
@@ -307,9 +309,9 @@ private fun PagingHintOverlay(onDismiss: () -> Unit) {
             .background(Color(0xE60A0A0A))
             .clickable(interactionSource = interaction, indication = null, onClick = onDismiss),
     ) {
-        HintZone(weight = 0.3f, icon = Icons.Filled.ChevronLeft, label = "Previous page")
-        HintZone(weight = 0.4f, icon = Icons.Filled.TouchApp, label = "Tap for menu")
-        HintZone(weight = 0.3f, icon = Icons.Filled.ChevronRight, label = "Next page")
+        HintZone(weight = 0.3f, icon = Icons.Filled.ChevronLeft, label = stringResource(R.string.previous_page))
+        HintZone(weight = 0.4f, icon = Icons.Filled.TouchApp, label = stringResource(R.string.tap_for_menu))
+        HintZone(weight = 0.3f, icon = Icons.Filled.ChevronRight, label = stringResource(R.string.next_page))
     }
 }
 
@@ -357,7 +359,7 @@ private fun Column2(message: String, onBack: () -> Unit, tint: Color) {
     ) {
         Text(message, color = tint)
         IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = tint)
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = tint)
         }
     }
 }

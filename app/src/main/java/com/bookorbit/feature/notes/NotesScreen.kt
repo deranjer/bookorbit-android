@@ -1,5 +1,7 @@
 package com.bookorbit.feature.notes
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -64,25 +66,25 @@ fun NotesScreen(
             onValueChange = vm::setQuery,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             singleLine = true,
-            placeholder = { Text("Search your highlights") },
+            placeholder = { Text(stringResource(R.string.search_your_highlights)) },
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
             trailingIcon = {
                 if (ui.query.isNotEmpty()) {
-                    IconButton(onClick = { vm.setQuery("") }) { Icon(Icons.Filled.Clear, contentDescription = "Clear search") }
+                    IconButton(onClick = { vm.setQuery("") }) { Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.clear_search)) }
                 }
             },
         )
         Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = !ui.onlyWithNotes, onClick = { vm.setOnlyWithNotes(false) }, label = { Text("All") })
-            FilterChip(selected = ui.onlyWithNotes, onClick = { vm.setOnlyWithNotes(true) }, label = { Text("With notes") })
+            FilterChip(selected = !ui.onlyWithNotes, onClick = { vm.setOnlyWithNotes(false) }, label = { Text(stringResource(R.string.all)) })
+            FilterChip(selected = ui.onlyWithNotes, onClick = { vm.setOnlyWithNotes(true) }, label = { Text(stringResource(R.string.with_notes)) })
         }
 
         when {
             ui.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
             ui.error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Couldn't load your highlights", color = MaterialTheme.colorScheme.error)
-                    Button(onClick = { vm.reload() }, modifier = Modifier.padding(top = 12.dp)) { Text("Retry") }
+                    Text(stringResource(R.string.couldn_t_load_your_highlights), color = MaterialTheme.colorScheme.error)
+                    Button(onClick = { vm.reload() }, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.retry)) }
                 }
             }
             ui.items.isEmpty() -> Box(Modifier.fillMaxSize().padding(32.dp), Alignment.Center) {

@@ -1,5 +1,7 @@
 package com.bookorbit.feature.series
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -56,14 +58,14 @@ fun SeriesScreen(
             IconButton(onClick = { vm.setViewMode(SeriesViewMode.LIST) }) {
                 Icon(
                     Icons.AutoMirrored.Filled.List,
-                    contentDescription = "List view",
+                    contentDescription = stringResource(R.string.list_view),
                     tint = if (viewMode == SeriesViewMode.LIST) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             IconButton(onClick = { vm.setViewMode(SeriesViewMode.GRID) }) {
                 Icon(
                     Icons.Filled.GridView,
-                    contentDescription = "Grid view",
+                    contentDescription = stringResource(R.string.grid_view),
                     tint = if (viewMode == SeriesViewMode.GRID) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -84,7 +86,7 @@ fun SeriesBooksScreen(
     vm: SeriesViewModel = hiltViewModel(),
 ) {
     val books = remember(seriesId) { vm.seriesBooks(seriesId) }.collectAsLazyPagingItems()
-    BookGrid(items = books, onBookClick = onBookClick, emptyText = "No books in this series.")
+    BookGrid(items = books, onBookClick = onBookClick, emptyText = stringResource(R.string.no_books_in_this_series))
 }
 
 internal fun seriesSubtitle(series: SeriesSummary): String =

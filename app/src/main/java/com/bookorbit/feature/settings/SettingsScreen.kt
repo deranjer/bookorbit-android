@@ -1,5 +1,7 @@
 package com.bookorbit.feature.settings
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -110,13 +112,13 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                 SettingsRow(
                     title = "Download location",
                     subtitle = downloadLocationLabel,
-                    trailing = { TextButton(onClick = { folderLauncher.launch(null) }) { Text("Change") } },
+                    trailing = { TextButton(onClick = { folderLauncher.launch(null) }) { Text(stringResource(R.string.change)) } },
                 )
             }
             if (downloadTreeUri != null) {
                 item {
                     Row(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        TextButton(onClick = vm::resetDownloadLocation) { Text("Use app storage instead") }
+                        TextButton(onClick = vm::resetDownloadLocation) { Text(stringResource(R.string.use_app_storage_instead)) }
                     }
                 }
             }
@@ -134,7 +136,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Text(
-                        "${downloadsSummary.count} book(s), ${formatBytes(downloadsSummary.totalBytes)}",
+                        stringResource(R.string.book_s, downloadsSummary.count, formatBytes(downloadsSummary.totalBytes)),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -143,7 +145,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                         enabled = downloadsSummary.count > 0,
                         modifier = Modifier.padding(top = 8.dp),
                     ) {
-                        Text("Clear all downloads")
+                        Text(stringResource(R.string.clear_all_downloads))
                     }
                 }
             }
@@ -153,7 +155,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     OutlinedButton(onClick = vm::clearImageCache) {
-                        Text("Clear image cache")
+                        Text(stringResource(R.string.clear_image_cache))
                     }
                 }
             }
@@ -163,7 +165,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Text(
-                        "Default speed",
+                        stringResource(R.string.default_speed),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -175,13 +177,13 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                             FilterChip(
                                 selected = abs(preset - defaultSpeed) < 0.001f,
                                 onClick = { vm.setDefaultSpeed(preset) },
-                                label = { Text("${preset}x") },
+                                label = { Text(stringResource(R.string.x, preset)) },
                                 modifier = Modifier.padding(horizontal = 4.dp),
                             )
                         }
                     }
                     Text(
-                        "Progress bar",
+                        stringResource(R.string.progress_bar),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 16.dp),
@@ -231,16 +233,16 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     if (confirmClearDownloads) {
         AlertDialog(
             onDismissRequest = { confirmClearDownloads = false },
-            title = { Text("Clear all downloads?") },
-            text = { Text("This removes every downloaded file from this device. You can download books again later.") },
+            title = { Text(stringResource(R.string.clear_all_downloads_2)) },
+            text = { Text(stringResource(R.string.this_removes_every_downloaded_file)) },
             confirmButton = {
                 TextButton(onClick = {
                     vm.clearAllDownloads()
                     confirmClearDownloads = false
-                }) { Text("Clear") }
+                }) { Text(stringResource(R.string.clear)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmClearDownloads = false }) { Text("Cancel") }
+                TextButton(onClick = { confirmClearDownloads = false }) { Text(stringResource(R.string.cancel)) }
             },
         )
     }

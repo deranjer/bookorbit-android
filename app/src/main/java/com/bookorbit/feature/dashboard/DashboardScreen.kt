@@ -1,5 +1,7 @@
 package com.bookorbit.feature.dashboard
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -72,13 +74,13 @@ fun DashboardScreen(
             when {
                 ui.error -> Box(Modifier.fillMaxWidth().padding(vertical = 64.dp), Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Couldn't load your dashboard", color = MaterialTheme.colorScheme.error)
-                        Button(onClick = { vm.refresh() }, modifier = Modifier.padding(top = 12.dp)) { Text("Retry") }
+                        Text(stringResource(R.string.couldn_t_load_your_dashboard), color = MaterialTheme.colorScheme.error)
+                        Button(onClick = { vm.refresh() }, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.retry)) }
                     }
                 }
                 isEmpty -> Box(Modifier.fillMaxWidth().padding(vertical = 64.dp), Alignment.Center) {
                     Text(
-                        "Nothing here yet. Add books on the server.",
+                        stringResource(R.string.nothing_here_yet_add_books),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -126,7 +128,7 @@ private fun HomeHeader(userName: String, onOpenProfile: () -> Unit) {
                 .size(36.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primaryContainer)
-                .clickable(onClickLabel = "Open profile", onClick = onOpenProfile),
+                .clickable(onClickLabel = stringResource(R.string.open_profile), onClick = onOpenProfile),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -179,7 +181,7 @@ private fun StreakCard(streak: ReadingStreakWidget, modifier: Modifier) {
                 tint = if (streak.currentStreak > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(18.dp),
             )
-            Text("  Streak", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.streak), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Text(
             if (streak.currentStreak == 1) "1 day" else "${streak.currentStreak} days",
@@ -223,12 +225,12 @@ private fun GoalCard(goal: ReadingGoalWidget, modifier: Modifier) {
             )
         } else {
             Text(
-                "${goal.completedBooks} read",
+                stringResource(R.string.read_2, goal.completedBooks),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(top = 4.dp),
             )
-            Text("No goal set", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+            Text(stringResource(R.string.no_goal_set), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
         }
     }
 }
@@ -275,7 +277,7 @@ private fun ContinueCard(book: BookCard, label: String, onClick: () -> Unit) {
                     )
                     Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("${progress.toInt()}%", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("Open", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.open), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }

@@ -1,5 +1,7 @@
 package com.bookorbit.feature.library
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -80,7 +82,7 @@ fun LibrariesScreen(
                     }
                 }
                 if (libraries.size > 1) {
-                    Icon(Icons.Filled.ArrowDropDown, contentDescription = "Choose library")
+                    Icon(Icons.Filled.ArrowDropDown, contentDescription = stringResource(R.string.choose_library))
                 }
                 DropdownMenu(expanded = pickerOpen, onDismissRequest = { pickerOpen = false }) {
                     libraries.forEach { lib ->
@@ -97,7 +99,7 @@ fun LibrariesScreen(
 
             IconButton(onClick = { sheetOpen = true }, enabled = selectedId != null) {
                 BadgedBox(badge = { if (activeFilterCount > 0) Badge { Text("$activeFilterCount") } }) {
-                    Icon(Icons.Filled.FilterList, contentDescription = "Filter and sort")
+                    Icon(Icons.Filled.FilterList, contentDescription = stringResource(R.string.filter_and_sort))
                 }
             }
         }
@@ -109,14 +111,14 @@ fun LibrariesScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("Couldn't load your libraries", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.couldn_t_load_your_libraries), color = MaterialTheme.colorScheme.error)
                 Text(
-                    "Check your connection. Books you've downloaded are still available under You > Downloads.",
+                    stringResource(R.string.check_your_connection_books_you),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp),
                 )
-                Button(onClick = vm::loadLibraries, modifier = Modifier.padding(top = 12.dp)) { Text("Retry") }
+                Button(onClick = vm::loadLibraries, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.retry)) }
             }
             LibrariesViewModel.Status.EMPTY -> Column(
                 modifier = Modifier.fillMaxSize().padding(32.dp),
@@ -124,14 +126,14 @@ fun LibrariesScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    "You don't have access to any libraries yet.",
+                    stringResource(R.string.you_don_t_have_access),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             else -> BookGrid(
                 items = books,
                 onBookClick = onBookClick,
-                emptyText = "No books in this library.",
+                emptyText = stringResource(R.string.no_books_in_this_library),
                 modifier = Modifier.fillMaxSize(),
             )
         }

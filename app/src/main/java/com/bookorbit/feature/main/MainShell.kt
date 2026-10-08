@@ -1,5 +1,7 @@
 package com.bookorbit.feature.main
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import android.net.Uri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -151,7 +153,7 @@ fun MainShell(
                     navigationIcon = {
                         if (currentRoute in SubRoute.fromYou || currentRoute == SubRoute.AUTHOR || currentRoute == SubRoute.SERIES) {
                             IconButton(onClick = { tabNav.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                             }
                         }
                     },

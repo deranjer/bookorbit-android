@@ -1,5 +1,7 @@
 package com.bookorbit.feature.player
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -38,15 +40,15 @@ fun BookmarksSheet(
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(horizontal = 20.dp)) {
-            Text("Bookmarks", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
+            Text(stringResource(R.string.bookmarks), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
             Button(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Filled.BookmarkAdd, contentDescription = null)
-                Text("Bookmark ${BookmarkTitles.time(positionSec)}", modifier = Modifier.padding(start = 8.dp))
+                Text(stringResource(R.string.bookmark, BookmarkTitles.time(positionSec)), modifier = Modifier.padding(start = 8.dp))
             }
         }
         if (bookmarks.isEmpty()) {
             Text(
-                "No bookmarks yet.",
+                stringResource(R.string.no_bookmarks_yet),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
@@ -70,7 +72,7 @@ fun BookmarksSheet(
                             )
                         }
                         IconButton(onClick = { onDelete(b) }) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Delete bookmark")
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.delete_bookmark))
                         }
                     }
                 }

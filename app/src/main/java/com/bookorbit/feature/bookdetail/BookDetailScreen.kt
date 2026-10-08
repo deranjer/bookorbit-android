@@ -1,5 +1,7 @@
 package com.bookorbit.feature.bookdetail
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -111,7 +113,7 @@ fun BookDetailScreen(
                 title = { Text(ui.book?.title ?: "Book Details", maxLines = 1) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
             )
@@ -122,8 +124,8 @@ fun BookDetailScreen(
                 ui.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
                 ui.error || ui.book == null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Failed to load book details", color = MaterialTheme.colorScheme.error)
-                        Button(onClick = vm::load, modifier = Modifier.padding(top = 12.dp)) { Text("Retry") }
+                        Text(stringResource(R.string.failed_to_load_book_details), color = MaterialTheme.colorScheme.error)
+                        Button(onClick = vm::load, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.retry)) }
                     }
                 }
                 else -> BookDetailContent(
@@ -211,19 +213,19 @@ private fun BookDetailContent(
                         modifier = Modifier.weight(1f),
                     ) {
                         Icon(Icons.Filled.Book, contentDescription = null)
-                        Text("Read", modifier = Modifier.padding(start = 8.dp))
+                        Text(stringResource(R.string.read), modifier = Modifier.padding(start = 8.dp))
                     }
                 }
                 if (canListen) {
                     if (canRead) {
                         androidx.compose.material3.OutlinedButton(onClick = { onListen(book.id) }, modifier = Modifier.weight(1f)) {
                             Icon(Icons.Filled.Headset, contentDescription = null)
-                            Text("Listen", modifier = Modifier.padding(start = 8.dp))
+                            Text(stringResource(R.string.listen), modifier = Modifier.padding(start = 8.dp))
                         }
                     } else {
                         Button(onClick = { onListen(book.id) }, modifier = Modifier.weight(1f)) {
                             Icon(Icons.Filled.Headset, contentDescription = null)
-                            Text("Listen", modifier = Modifier.padding(start = 8.dp))
+                            Text(stringResource(R.string.listen), modifier = Modifier.padding(start = 8.dp))
                         }
                     }
                 }
@@ -305,7 +307,7 @@ private fun DetailHero(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
-                            .clickable(onClickLabel = "Books by ${author.name}") { onAuthorClick(author.id, author.name) }
+                            .clickable(onClickLabel = stringResource(R.string.books_by, author.name)) { onAuthorClick(author.id, author.name) }
                             .padding(vertical = 4.dp),
                     )
                 }
@@ -327,7 +329,7 @@ private fun DetailHero(
                 series + (book.seriesIndex?.let { " #${it.toInt()}" } ?: ""),
                 modifier = Modifier
                     .padding(top = 10.dp)
-                    .then(if (seriesId != null) Modifier.clickable(onClickLabel = "Books in $series") { onSeriesClick(seriesId, series) } else Modifier),
+                    .then(if (seriesId != null) Modifier.clickable(onClickLabel = stringResource(R.string.books_in, series)) { onSeriesClick(seriesId, series) } else Modifier),
             )
         }
     }
@@ -346,8 +348,8 @@ private fun DownloadControl(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = com.bookorbit.ui.theme.SuccessGreen)
-            Text("Downloaded", color = com.bookorbit.ui.theme.SuccessGreen, modifier = Modifier.weight(1f))
-            androidx.compose.material3.TextButton(onClick = onRemove) { Text("Remove") }
+            Text(stringResource(R.string.downloaded), color = com.bookorbit.ui.theme.SuccessGreen, modifier = Modifier.weight(1f))
+            androidx.compose.material3.TextButton(onClick = onRemove) { Text(stringResource(R.string.remove)) }
         }
         "DOWNLOADING" -> Row(
             modifier = Modifier.fillMaxWidth(),
@@ -355,7 +357,7 @@ private fun DownloadControl(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-            Text("Downloading ${((download.progress) * 100).toInt()}%")
+            Text(stringResource(R.string.downloading, ((download.progress) * 100).toInt()))
         }
         "FAILED" -> Column(modifier = Modifier.fillMaxWidth()) {
             Text(
@@ -368,12 +370,12 @@ private fun DownloadControl(
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             ) {
                 Icon(Icons.Filled.Download, contentDescription = null)
-                Text("Retry download", modifier = Modifier.padding(start = 8.dp))
+                Text(stringResource(R.string.retry_download), modifier = Modifier.padding(start = 8.dp))
             }
         }
         else -> androidx.compose.material3.OutlinedButton(onClick = onStartDownload, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Filled.Download, contentDescription = null)
-            Text("Download", modifier = Modifier.padding(start = 8.dp))
+            Text(stringResource(R.string.download), modifier = Modifier.padding(start = 8.dp))
         }
     }
 }
@@ -429,7 +431,7 @@ private fun DetailsTab(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Text("View on Goodreads", modifier = Modifier.padding(start = 10.dp))
+                    Text(stringResource(R.string.view_on_goodreads), modifier = Modifier.padding(start = 10.dp))
                 }
             }
         }
@@ -502,7 +504,7 @@ private fun ShelfCards(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("Rating", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.rating), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     StarRating(
                         value = book.rating,
                         onChange = if (vm.canRate) vm::setRating else null,
@@ -540,7 +542,7 @@ private fun ShelfCards(
 private fun FilesTab(book: BookDetail) {
     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
         if (book.files.isEmpty()) {
-            Text("No files.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.no_files), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         book.files.forEach { f ->
             Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
@@ -552,7 +554,7 @@ private fun FilesTab(book: BookDetail) {
                         color = MaterialTheme.colorScheme.primary,
                     )
                     if (f.role == "primary") {
-                        Text("  ·  Primary", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.primary), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Box(Modifier.weight(1f))
                     val detail = listOfNotNull(
@@ -577,7 +579,7 @@ private fun HighlightsTab(highlights: List<BookAnnotation>) {
     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
         if (highlights.isEmpty()) {
             Text(
-                "No highlights yet. Press and hold text while reading to highlight it.",
+                stringResource(R.string.no_highlights_yet_press_and),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

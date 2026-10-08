@@ -1,5 +1,7 @@
 package com.bookorbit.feature.reader
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -33,13 +35,13 @@ fun ReaderTocSheet(
     val flat = flatten(toc)
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Text(
-            "Contents",
+            stringResource(R.string.contents),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(start = 20.dp, bottom = 8.dp),
         )
         if (flat.isEmpty()) {
             Text(
-                "No table of contents.",
+                stringResource(R.string.no_table_of_contents),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(20.dp),

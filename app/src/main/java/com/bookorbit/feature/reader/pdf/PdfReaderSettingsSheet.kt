@@ -1,5 +1,7 @@
 package com.bookorbit.feature.reader.pdf
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,12 +47,12 @@ fun PdfReaderSettingsSheet(
                 FilterChip(
                     selected = settings.scrollMode == PdfReaderSettings.ScrollMode.CONTINUOUS,
                     onClick = { onChange(settings.copy(scrollMode = PdfReaderSettings.ScrollMode.CONTINUOUS)) },
-                    label = { Text("Continuous") },
+                    label = { Text(stringResource(R.string.continuous)) },
                 )
                 FilterChip(
                     selected = settings.scrollMode == PdfReaderSettings.ScrollMode.PAGINATED,
                     onClick = { onChange(settings.copy(scrollMode = PdfReaderSettings.ScrollMode.PAGINATED)) },
-                    label = { Text("Paginated") },
+                    label = { Text(stringResource(R.string.paginated)) },
                 )
             }
 
@@ -59,17 +61,17 @@ fun PdfReaderSettingsSheet(
                 FilterChip(
                     selected = settings.spread == PdfReaderSettings.Spread.NONE,
                     onClick = { onChange(settings.copy(spread = PdfReaderSettings.Spread.NONE)) },
-                    label = { Text("Single") },
+                    label = { Text(stringResource(R.string.single)) },
                 )
                 FilterChip(
                     selected = settings.spread == PdfReaderSettings.Spread.ODD,
                     onClick = { onChange(settings.copy(spread = PdfReaderSettings.Spread.ODD)) },
-                    label = { Text("Odd") },
+                    label = { Text(stringResource(R.string.odd)) },
                 )
                 FilterChip(
                     selected = settings.spread == PdfReaderSettings.Spread.EVEN,
                     onClick = { onChange(settings.copy(spread = PdfReaderSettings.Spread.EVEN)) },
-                    label = { Text("Even") },
+                    label = { Text(stringResource(R.string.even)) },
                 )
             }
 
@@ -78,23 +80,23 @@ fun PdfReaderSettingsSheet(
                 FilterChip(
                     selected = settings.zoomMode == PdfReaderSettings.ZoomMode.FIT_WIDTH,
                     onClick = { onChange(settings.copy(zoomMode = PdfReaderSettings.ZoomMode.FIT_WIDTH)) },
-                    label = { Text("Fit width") },
+                    label = { Text(stringResource(R.string.fit_width)) },
                 )
                 FilterChip(
                     selected = settings.zoomMode == PdfReaderSettings.ZoomMode.FIT_PAGE,
                     onClick = { onChange(settings.copy(zoomMode = PdfReaderSettings.ZoomMode.FIT_PAGE)) },
-                    label = { Text("Fit page") },
+                    label = { Text(stringResource(R.string.fit_page)) },
                 )
                 FilterChip(
                     selected = settings.zoomMode == PdfReaderSettings.ZoomMode.CUSTOM,
                     onClick = { onChange(settings.withCustomScale(settings.customScale)) },
-                    label = { Text("Custom") },
+                    label = { Text(stringResource(R.string.custom)) },
                 )
             }
 
             if (settings.zoomMode == PdfReaderSettings.ZoomMode.CUSTOM) {
                 Stepper(
-                    label = "Scale",
+                    label = stringResource(R.string.scale),
                     value = String.format("%.2fx", settings.customScale),
                     onDecrement = { onChange(settings.withCustomScale(settings.customScale - 0.25)) },
                     onIncrement = { onChange(settings.withCustomScale(settings.customScale + 0.25)) },
@@ -102,10 +104,10 @@ fun PdfReaderSettingsSheet(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Rotation", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.rotation), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                 Text("${settings.rotation}°", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(end = 8.dp))
                 IconButton(onClick = { onChange(settings.rotatedCw()) }) {
-                    Icon(Icons.Filled.RotateRight, contentDescription = "Rotate")
+                    Icon(Icons.Filled.RotateRight, contentDescription = stringResource(R.string.rotate))
                 }
             }
         }
@@ -121,8 +123,8 @@ private fun Label(text: String) {
 private fun Stepper(label: String, value: String, onDecrement: () -> Unit, onIncrement: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        IconButton(onClick = onDecrement) { Icon(Icons.Filled.Remove, contentDescription = "Decrease") }
+        IconButton(onClick = onDecrement) { Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.decrease)) }
         Text(value, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(horizontal = 8.dp))
-        IconButton(onClick = onIncrement) { Icon(Icons.Filled.Add, contentDescription = "Increase") }
+        IconButton(onClick = onIncrement) { Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.increase)) }
     }
 }

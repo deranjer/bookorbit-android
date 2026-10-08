@@ -1,5 +1,7 @@
 package com.bookorbit.feature.bookdrop
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -107,7 +109,7 @@ fun BookDropDetailSheet(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Icon(Icons.Filled.AutoFixHigh, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                    Text("Apply fetched metadata")
+                    Text(stringResource(R.string.apply_fetched_metadata))
                 }
             }
 
@@ -149,7 +151,7 @@ fun BookDropDetailSheet(
                     enabled = !busy,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Save")
+                    Text(stringResource(R.string.save))
                 }
                 Button(
                     onClick = {
@@ -167,7 +169,7 @@ fun BookDropDetailSheet(
                     if (busy) {
                         CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp), strokeWidth = 2.dp)
                     }
-                    Text("Approve")
+                    Text(stringResource(R.string.approve))
                 }
             }
 
@@ -177,7 +179,7 @@ fun BookDropDetailSheet(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                Text("Discard")
+                Text(stringResource(R.string.discard))
             }
         }
     }

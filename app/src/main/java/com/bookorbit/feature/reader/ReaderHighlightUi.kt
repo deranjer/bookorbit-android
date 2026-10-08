@@ -1,5 +1,7 @@
 package com.bookorbit.feature.reader
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -81,7 +83,7 @@ fun HighlightToolbar(
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .clickable(onClickLabel = "Highlight $name") { onColor(hex) },
+                        .clickable(onClickLabel = stringResource(R.string.highlight, name)) { onColor(hex) },
                     contentAlignment = Alignment.Center,
                 ) {
                     Box(
@@ -94,11 +96,11 @@ fun HighlightToolbar(
                 }
             }
             IconButton(onClick = onNote) {
-                Icon(Icons.Filled.EditNote, contentDescription = "Add note", tint = Color.White)
+                Icon(Icons.Filled.EditNote, contentDescription = stringResource(R.string.add_note), tint = Color.White)
             }
             if (onDelete != null) {
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Filled.Delete, contentDescription = "Delete highlight", tint = Color.White)
+                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.delete_highlight), tint = Color.White)
                 }
             }
         }
@@ -114,18 +116,18 @@ fun NoteDialog(
     var text by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Note") },
+        title = { Text(stringResource(R.string.note)) },
         text = {
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
-                placeholder = { Text("Write a note") },
+                placeholder = { Text(stringResource(R.string.write_a_note)) },
             )
         },
-        confirmButton = { TextButton(onClick = { onSave(text.trim()) }) { Text("Save") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = { onSave(text.trim()) }) { Text(stringResource(R.string.save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }
 
@@ -145,8 +147,8 @@ fun HighlightsSheet(
     var tab by remember { mutableIntStateOf(0) }
     ModalBottomSheet(onDismissRequest = onDismiss) {
         TabRow(selectedTabIndex = tab) {
-            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Highlights") })
-            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Bookmarks") })
+            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text(stringResource(R.string.highlights)) })
+            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text(stringResource(R.string.bookmarks)) })
         }
         if (tab == 1) {
             BookmarksList(bookmarks, onJumpBookmark, onAddBookmark, onDeleteBookmark)
@@ -154,7 +156,7 @@ fun HighlightsSheet(
         }
         if (annotations.isEmpty()) {
             Text(
-                "No highlights yet. Press and hold text in the page to highlight it.",
+                stringResource(R.string.no_highlights_yet_press_and_2),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
@@ -199,7 +201,7 @@ fun HighlightsSheet(
                             }
                         }
                         IconButton(onClick = { onDelete(a) }) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Delete highlight")
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.delete_highlight))
                         }
                     }
                 }
@@ -217,11 +219,11 @@ private fun BookmarksList(
 ) {
     Button(onClick = onAdd, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Icon(Icons.Filled.BookmarkAdd, contentDescription = null)
-        Text("Bookmark this page", modifier = Modifier.padding(start = 8.dp))
+        Text(stringResource(R.string.bookmark_this_page), modifier = Modifier.padding(start = 8.dp))
     }
     if (bookmarks.isEmpty()) {
         Text(
-            "No bookmarks yet.",
+            stringResource(R.string.no_bookmarks_yet),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
@@ -245,7 +247,7 @@ private fun BookmarksList(
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = { onDelete(b) }) {
-                    Icon(Icons.Filled.Delete, contentDescription = "Delete bookmark")
+                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.delete_bookmark))
                 }
             }
         }

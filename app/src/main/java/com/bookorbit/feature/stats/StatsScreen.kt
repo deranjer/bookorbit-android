@@ -1,5 +1,7 @@
 package com.bookorbit.feature.stats
 
+import androidx.compose.ui.res.stringResource
+import com.bookorbit.R
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -51,8 +53,8 @@ fun StatsScreen(vm: StatsViewModel = hiltViewModel()) {
         ui.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
         ui.failed -> Box(Modifier.fillMaxSize(), Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Couldn't load your reading stats", color = MaterialTheme.colorScheme.error)
-                Button(onClick = vm::refresh, modifier = Modifier.padding(top = 12.dp)) { Text("Retry") }
+                Text(stringResource(R.string.couldn_t_load_your_reading), color = MaterialTheme.colorScheme.error)
+                Button(onClick = vm::refresh, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.retry)) }
             }
         }
         else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
@@ -74,7 +76,7 @@ fun StatsScreen(vm: StatsViewModel = hiltViewModel()) {
                 val total = last30.sumOf { it.value }
                 SectionTitle("Last 30 days")
                 Text(
-                    "${formatSeconds(total)} total · ${formatSeconds(total / 30)} a day",
+                    stringResource(R.string.total_a_day, formatSeconds(total), formatSeconds(total / 30)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp),
