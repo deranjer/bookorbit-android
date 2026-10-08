@@ -42,7 +42,7 @@ fun ReadStatusSheet(
             ) {
                 Icon(meta.icon, contentDescription = null, tint = meta.color)
                 Text(
-                    meta.label,
+                    stringResource(meta.label),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier
                         .weight(1f)

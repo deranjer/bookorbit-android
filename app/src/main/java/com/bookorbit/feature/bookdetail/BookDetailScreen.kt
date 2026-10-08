@@ -484,7 +484,7 @@ private fun ShelfCards(
                     tint = meta?.color ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    meta?.label ?: "Set reading status",
+                    stringResource(meta?.label ?: R.string.status_set),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f).padding(start = 10.dp),

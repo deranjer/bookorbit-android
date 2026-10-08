@@ -1,5 +1,7 @@
 package com.bookorbit.feature.bookdetail
 
+import androidx.annotation.StringRes
+import com.bookorbit.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.CheckCircle
@@ -19,21 +21,21 @@ import com.bookorbit.ui.theme.WarningOrange
 
 data class ReadStatusMeta(
     val value: String,
-    val label: String,
+    @StringRes val label: Int,
     val icon: ImageVector,
     val color: Color,
 )
 
 /** Order/labels mirror the web client's STATUS_OPTIONS. */
 val READ_STATUS_META: List<ReadStatusMeta> = listOf(
-    ReadStatusMeta("unread", "Unread", Icons.Outlined.Book, TextMuted),
-    ReadStatusMeta("want_to_read", "Want to Read", Icons.Outlined.BookmarkBorder, Color(0xFFA78BFA)),
-    ReadStatusMeta("reading", "Reading", Icons.Filled.AutoStories, Accent),
-    ReadStatusMeta("on_hold", "On Hold", Icons.Outlined.PauseCircleOutline, WarningOrange),
-    ReadStatusMeta("rereading", "Re-reading", Icons.Filled.Refresh, Color(0xFFE879F9)),
-    ReadStatusMeta("read", "Read", Icons.Filled.CheckCircle, SuccessGreen),
-    ReadStatusMeta("skimmed", "Skimmed", Icons.Outlined.Visibility, Color(0xFF22D3EE)),
-    ReadStatusMeta("abandoned", "Abandoned", Icons.Outlined.Cancel, ErrorRed),
+    ReadStatusMeta("unread", R.string.status_unread, Icons.Outlined.Book, TextMuted),
+    ReadStatusMeta("want_to_read", R.string.status_want_to_read, Icons.Outlined.BookmarkBorder, Color(0xFFA78BFA)),
+    ReadStatusMeta("reading", R.string.status_reading, Icons.Filled.AutoStories, Accent),
+    ReadStatusMeta("on_hold", R.string.status_on_hold, Icons.Outlined.PauseCircleOutline, WarningOrange),
+    ReadStatusMeta("rereading", R.string.status_rereading, Icons.Filled.Refresh, Color(0xFFE879F9)),
+    ReadStatusMeta("read", R.string.status_read, Icons.Filled.CheckCircle, SuccessGreen),
+    ReadStatusMeta("skimmed", R.string.status_skimmed, Icons.Outlined.Visibility, Color(0xFF22D3EE)),
+    ReadStatusMeta("abandoned", R.string.status_abandoned, Icons.Outlined.Cancel, ErrorRed),
 )
 
 private val META_BY_VALUE = READ_STATUS_META.associateBy { it.value }
