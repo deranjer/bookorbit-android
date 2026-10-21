@@ -18,13 +18,29 @@ import javax.inject.Singleton
 class SecureStorage @Inject constructor(
     @ApplicationContext context: Context,
 ) {
-    private val prefs: SharedPreferences = run {
+    private val prefs: SharedPreferences = try {
+        openPrefs(context)
+    } catch (e: Exception) {
+        // The Keystore master key no longer matches the stored data (restored backup, key
+        // invalidated by a lock-screen change or OS update, ...). It is unrecoverable; wipe the
+        // store and start fresh, which just signs the user out, instead of crashing at launch.
+        context.deleteSharedPreferences(PREFS_NAME)
+        context.deleteSharedPreferences(KEYSET_PREFS_NAME)
+        runCatching {
+            java.security.KeyStore.getInstance("AndroidKeyStore")
+                .apply { load(null) }
+                .deleteEntry(MasterKey.DEFAULT_MASTER_KEY_ALIAS)
+        }
+        openPrefs(context)
+    }
+
+    private fun openPrefs(context: Context): SharedPreferences {
         val masterKey = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
-        EncryptedSharedPreferences.create(
+        return EncryptedSharedPreferences.create(
             context,
-            "bookorbit_secure_prefs",
+            PREFS_NAME,
             masterKey,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
@@ -42,6 +58,9 @@ class SecureStorage @Inject constructor(
     fun remove(key: String) = prefs.edit().remove(key).apply()
 
     companion object {
+        private const val PREFS_NAME = "bookorbit_secure_prefs"
+        // Tink keyset store used by EncryptedSharedPreferences (the library's default file name).
+        private const val KEYSET_PREFS_NAME = "__androidx_security_crypto_encrypted_prefs__"
         const val KEY_ACCESS_TOKEN = "access_token"
         const val KEY_SERVER_URL = "server_url"
         const val KEY_USER = "user"
