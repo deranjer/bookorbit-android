@@ -2,5 +2,4 @@
 <!-- See data_extraction_rules.xml: Keystore-encrypted prefs must not be restored onto another install. -->
 <full-backup-content>
     <exclude domain="sharedpref" path="bookorbit_secure_prefs.xml" />
-    <exclude domain="sharedpref" path="__androidx_security_crypto_encrypted_prefs__.xml" />
 </full-backup-content>

@@ -4,10 +4,8 @@
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="sharedpref" path="bookorbit_secure_prefs.xml" />
-        <exclude domain="sharedpref" path="__androidx_security_crypto_encrypted_prefs__.xml" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="bookorbit_secure_prefs.xml" />
-        <exclude domain="sharedpref" path="__androidx_security_crypto_encrypted_prefs__.xml" />
     </device-transfer>
 </data-extraction-rules>
