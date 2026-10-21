@@ -63,6 +63,8 @@ class PlaybackService : MediaLibraryService() {
     private var lastNotifiedBookId: Int? = null
 
     private var mediaSession: MediaLibrarySession? = null
+    private var usingCast = false
+    private var castStartBookPositionMs = 0L
 
     override fun onCreate() {
         super.onCreate()
@@ -95,12 +97,12 @@ class PlaybackService : MediaLibraryService() {
 
     /** Moves playback from the local [player] to [cast], preserving position and play state. */
     private fun switchToCast(cast: Player) {
+        if (usingCast) return
         val session = mediaSession ?: return
         val current = session.player
 
         val outgoing = activeBookPlayer.current ?: return
         val absoluteMs = outgoing.bookPositionMs()
-        val wasPlaying = current.playWhenReady
         val items = current.currentTimeline.mediaItems()
         if (items.isEmpty()) return
 
@@ -108,8 +110,7 @@ class PlaybackService : MediaLibraryService() {
         // Cast SDK callback; stay on the local player instead.
         val prepared = runCatching {
             castProxyServer.start()
-            cast.setMediaItems(castProxyServer.rewriteForCast(items))
-            cast.prepare()
+            transferQueueToCast(player, cast, castProxyServer.rewriteForCast(items))
         }
         if (prepared.isFailure) {
             Log.w("PlaybackService", "Cast handoff failed; retaining local playback", prepared.exceptionOrNull())
@@ -120,24 +121,27 @@ class PlaybackService : MediaLibraryService() {
         outgoing.detach()
         val incoming = wrap(cast)
         session.setPlayer(incoming)
-        incoming.seekToBookMs(absoluteMs)
-        incoming.playWhenReady = wasPlaying
+        castStartBookPositionMs = absoluteMs
+        usingCast = true
     }
 
     /** Moves playback back from the cast player to the local [player], preserving position and play state. */
     private fun switchToLocal() {
+        if (!usingCast) return
         val session = mediaSession ?: return
         val current = session.player
 
         val outgoing = activeBookPlayer.current ?: return
-        val absoluteMs = outgoing.bookPositionMs()
+        val absoluteMs = if (current.currentTimeline.isEmpty) castStartBookPositionMs else outgoing.bookPositionMs()
         val wasPlaying = current.playWhenReady
 
+        current.pause()
         outgoing.detach()
         val incoming = wrap(player)
         session.setPlayer(incoming)
         incoming.seekToBookMs(absoluteMs)
         incoming.playWhenReady = wasPlaying
+        usingCast = false
 
         castProxyServer.stop()
     }

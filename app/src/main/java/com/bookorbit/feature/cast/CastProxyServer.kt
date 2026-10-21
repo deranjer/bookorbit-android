@@ -3,6 +3,8 @@ package com.bookorbit.feature.cast
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Uri
+import android.util.Log
+import com.bookorbit.BuildConfig
 import androidx.media3.common.MediaItem
 import com.bookorbit.core.network.CastUpstreamClient
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -204,12 +206,15 @@ class CastProxyServer @Inject constructor(
     }
 
     private fun serveRemote(out: OutputStream, url: String, rangeHeader: String?, headOnly: Boolean) {
+        val started = System.nanoTime()
+        if (BuildConfig.DEBUG) Log.d("CastProxyServer", "Upstream request head=$headOnly range=${rangeHeader ?: "none"}")
         val request = Request.Builder().url(url).apply {
             if (rangeHeader != null) header("Range", rangeHeader)
         }.build()
         val response = try {
             upstreamClient.newCall(request).execute()
         } catch (e: IOException) {
+            if (BuildConfig.DEBUG) Log.w("CastProxyServer", "Upstream request failed", e)
             writeStatus(out, 502, "Bad Gateway")
             return
         }
@@ -219,8 +224,17 @@ class CastProxyServer @Inject constructor(
             val contentLength = body?.contentLength()?.takeIf { it >= 0 }
             val contentRange = resp.header("Content-Range")
             val message = resp.message.ifBlank { "OK" }
+            if (BuildConfig.DEBUG) {
+                Log.d("CastProxyServer", "Upstream headers status=${resp.code} contentRange=$contentRange length=$contentLength afterMs=${(System.nanoTime() - started) / 1_000_000}")
+                if (rangeHeader != null && resp.code == 200) {
+                    Log.w("CastProxyServer", "Upstream ignored byte range; large M4B metadata may require reading the whole file")
+                }
+            }
             writeHeaders(out, resp.code, message, contentType, contentLength, contentRange)
-            if (!headOnly && body != null) body.byteStream().use { it.copyTo(out) }
+            if (!headOnly && body != null) body.byteStream().use {
+                val bytes = it.copyTo(out, COPY_BUFFER_SIZE)
+                if (BuildConfig.DEBUG) Log.d("CastProxyServer", "Upstream transfer bytes=$bytes elapsedMs=${(System.nanoTime() - started) / 1_000_000}")
+            }
         }
     }
 
@@ -286,7 +300,7 @@ class CastProxyServer @Inject constructor(
 
     private companion object {
         const val SOCKET_TIMEOUT_MS = 30_000
-        const val COPY_BUFFER_SIZE = 8 * 1024
+        const val COPY_BUFFER_SIZE = 64 * 1024
     }
 }
 
