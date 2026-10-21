@@ -103,11 +103,17 @@ class PlaybackService : MediaLibraryService() {
         val items = current.currentTimeline.mediaItems()
         if (items.isEmpty()) return
 
-        castProxyServer.start()
-        val rewritten = castProxyServer.rewriteForCast(items)
-
-        cast.setMediaItems(rewritten)
-        cast.prepare()
+        // A failure here (no LAN address, unconvertible item) must not take the app down from inside a
+        // Cast SDK callback; stay on the local player instead.
+        val prepared = runCatching {
+            castProxyServer.start()
+            cast.setMediaItems(castProxyServer.rewriteForCast(items))
+            cast.prepare()
+        }
+        if (prepared.isFailure) {
+            castProxyServer.stop()
+            return
+        }
 
         outgoing.detach()
         val incoming = wrap(cast)

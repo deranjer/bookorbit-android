@@ -100,7 +100,14 @@ class CastProxyServer @Inject constructor(
             val uri = item.localConfiguration?.uri ?: return@map item
             val key = item.mediaId
             newTargets[key] = targetFor(uri)
-            val builder = item.buildUpon().setUri(Uri.parse("http://$ip:$port/$token/$key"))
+            // CastPlayer's DefaultMediaItemConverter throws IllegalArgumentException when the item has
+            // no mimeType, and our items are built from bare URIs (often extensionless API URLs).
+            val mime = item.localConfiguration?.mimeType
+                ?: mimeTypeFor(uri.path.orEmpty()).takeIf { it.startsWith("audio/") }
+                ?: "audio/mpeg"
+            val builder = item.buildUpon()
+                .setUri(Uri.parse("http://$ip:$port/$token/$key"))
+                .setMimeType(mime)
 
             val artwork = item.mediaMetadata.artworkUri
             if (artwork != null && artwork.scheme == "file") {
