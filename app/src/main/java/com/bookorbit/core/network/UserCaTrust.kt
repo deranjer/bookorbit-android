@@ -1,90 +1,81 @@
 package com.bookorbit.core.network
 
-import com.bookorbit.core.settings.AppSettingsStore
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import android.net.http.X509TrustManagerExtensions
 import okhttp3.OkHttpClient
+import java.io.IOException
+import java.security.GeneralSecurityException
 import java.security.KeyStore
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
 import javax.inject.Inject
 import javax.inject.Singleton
 import javax.net.ssl.SSLContext
-import javax.net.ssl.SSLSocketFactory
+import javax.net.ssl.SSLPeerUnverifiedException
 import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
 
-/**
- * Opt-in trust for CAs the user installed on the device (Settings > Security > Encryption &
- * credentials), for servers behind a private CA. Deliberately not done through
- * network_security_config.xml, which would make every user-store CA a trust root for all app traffic
- * with no way to turn it off.
- *
- * The trust manager always tries the system store first and only falls back to the user store when
- * the setting is on, so public certificates are validated exactly as before. The setting is read live,
- * so toggling it needs no client rebuild. Hostname verification is still done by OkHttp.
- */
+/** System trust by default, with user roots permitted only for explicitly opted-in HTTPS hosts. */
 @Singleton
-class UserCaTrust @Inject constructor(settings: AppSettingsStore) {
+class UserCaTrust internal constructor(
+    settings: UserCaSettings,
+    private val userTrustManager: () -> X509TrustManager?,
+) {
+    @Inject constructor(settings: UserCaSettings) : this(settings, ::loadUserTrustManager)
 
-    @Volatile
-    private var enabled: Boolean = runBlocking { settings.trustUserCas.first() }
+    private val system = trustManagerFor(null)
+    private val systemExtensions = X509TrustManagerExtensions(system)
+    val trustManager = HostScopedTrustManager(
+        system = system,
+        systemCheck = { chain, authType, host -> systemExtensions.checkServerTrusted(chain, authType, host) },
+        userCheck = { chain, authType, host ->
+            val user = try {
+                userTrustManager()
+            } catch (e: GeneralSecurityException) {
+                throw CertificateException("Cannot read user-installed CA certificates", e)
+            } catch (e: IOException) {
+                throw CertificateException("Cannot read user-installed CA certificates", e)
+            } ?: throw CertificateException("No user-installed CA certificates")
+            X509TrustManagerExtensions(user).checkServerTrusted(chain, authType, host)
+        },
+        enabled = settings::isEnabledForHost,
+    )
 
-    init {
-        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
-            settings.trustUserCas.collect { enabled = it }
-        }
-    }
+    private val sslSocketFactory = SSLContext.getInstance("TLS").apply {
+        init(null, arrayOf(trustManager), null)
+    }.socketFactory
 
-    private val system: X509TrustManager = trustManagerFor(null)
-
-    val trustManager: X509TrustManager = object : X509TrustManager {
-        override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) =
-            system.checkClientTrusted(chain, authType)
-
-        override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {
-            try {
-                system.checkServerTrusted(chain, authType)
-            } catch (e: CertificateException) {
-                if (!enabled) throw e
-                val user = userTrustManager() ?: throw e
+    fun applyTo(builder: OkHttpClient.Builder): OkHttpClient.Builder = builder
+        .sslSocketFactory(sslSocketFactory, trustManager)
+        .addNetworkInterceptor { chain ->
+            // Recheck BEFORE sending HTTP headers on every exchange, including redirected requests,
+            // pooled connections and resumed TLS sessions. Disabling consent blocks the next request;
+            // a response already in progress (e.g. an audio stream) is not retroactively cancelled.
+            if (chain.request().url.isHttps) {
+                val certificates: Array<X509Certificate> = chain.connection()?.handshake()?.peerCertificates
+                    ?.filterIsInstance<X509Certificate>()?.toTypedArray() ?: emptyArray()
                 try {
-                    user.checkServerTrusted(chain, authType)
-                } catch (_: CertificateException) {
-                    throw e
+                    trustManager.checkServerTrusted(certificates, "RSA", chain.request().url.host)
+                } catch (e: CertificateException) {
+                    throw SSLPeerUnverifiedException("Certificate not trusted for ${chain.request().url.host}").apply { initCause(e) }
                 }
             }
+            chain.proceed(chain.request())
         }
 
-        override fun getAcceptedIssuers(): Array<X509Certificate> =
-            system.acceptedIssuers + if (enabled) userTrustManager()?.acceptedIssuers.orEmpty() else emptyArray()
-    }
+    companion object {
+        internal fun trustManagerFor(store: KeyStore?): X509TrustManager =
+            TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
+                .apply { init(store) }.trustManagers.filterIsInstance<X509TrustManager>().first()
 
-    val sslSocketFactory: SSLSocketFactory by lazy {
-        SSLContext.getInstance("TLS").apply { init(null, arrayOf(trustManager), null) }.socketFactory
-    }
-
-    fun applyTo(builder: OkHttpClient.Builder): OkHttpClient.Builder =
-        builder.sslSocketFactory(sslSocketFactory, trustManager)
-
-    /** Built per failed handshake so certificates installed or removed while running are picked up. */
-    private fun userTrustManager(): X509TrustManager? = runCatching {
-        val androidStore = KeyStore.getInstance("AndroidCAStore").apply { load(null) }
-        val userStore = KeyStore.getInstance(KeyStore.getDefaultType()).apply { load(null) }
-        for (alias in androidStore.aliases()) {
-            if (alias.startsWith("user:")) {
-                androidStore.getCertificate(alias)?.let { userStore.setCertificateEntry(alias, it) }
+        private fun loadUserTrustManager(): X509TrustManager? {
+            val androidStore = KeyStore.getInstance("AndroidCAStore").apply { load(null) }
+            val userStore = KeyStore.getInstance(KeyStore.getDefaultType()).apply { load(null) }
+            for (alias in androidStore.aliases()) {
+                if (alias.startsWith("user:")) {
+                    androidStore.getCertificate(alias)?.let { userStore.setCertificateEntry(alias, it) }
+                }
             }
+            return if (userStore.size() == 0) null else trustManagerFor(userStore)
         }
-        if (userStore.size() == 0) null else trustManagerFor(userStore)
-    }.getOrNull()
-
-    private fun trustManagerFor(store: KeyStore?): X509TrustManager =
-        TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
-            .apply { init(store) }
-            .trustManagers.filterIsInstance<X509TrustManager>().first()
+    }
 }

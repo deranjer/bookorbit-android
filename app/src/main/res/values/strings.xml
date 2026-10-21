@@ -207,7 +207,8 @@
     <string name="settings_material_you_desc">Match your wallpaper instead of BookOrbit blue</string>
     <string name="settings_security">Security</string>
     <string name="settings_trust_user_cas">Trust user-installed certificates</string>
-    <string name="settings_trust_user_cas_desc">For servers using a private certificate authority you installed on this device. Only enable if you trust every CA in your device\'s user store.</string>
+    <string name="settings_trust_user_cas_desc">Allow device-installed CAs for %1$s only. Enable only if you trust every CA in your device\'s user store. Certificate validity and server names are still checked. Turning this off blocks new requests; transfers already in progress can finish.</string>
+    <string name="server_err_certificate">The secure connection could not be verified. Check the server name, certificate expiry and certificate chain. For a private CA, install its CA certificate in Android and enable Trust user-installed certificates above.</string>
     <string name="settings_wifi_only">Wi-Fi only</string>
     <string name="settings_wifi_only_desc">Only download books over an unmetered connection</string>
     <string name="settings_download_location">Download location</string>

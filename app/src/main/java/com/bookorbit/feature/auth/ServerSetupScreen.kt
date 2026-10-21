@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -22,9 +24,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -36,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bookorbit.ui.theme.WarningOrange
+import com.bookorbit.core.network.UserCaSettings
 
 @Composable
 fun ServerSetupScreen(
@@ -46,13 +51,16 @@ fun ServerSetupScreen(
     val ui by vm.ui.collectAsStateWithLifecycle()
     var url by rememberSaveable { mutableStateOf(vm.currentServerUrl.orEmpty()) }
     val isInsecure = url.trim().startsWith("http://", ignoreCase = true)
+    val certificateHost = UserCaSettings.httpsHost(url)
+    var trustUserCas by remember(certificateHost) { mutableStateOf(vm.trustsUserCas(url)) }
 
-    fun submit() = vm.connect(url, onConnected)
+    fun submit() = vm.connect(url, trustUserCas, onConnected)
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .imePadding()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.Center,
     ) {
@@ -94,6 +102,21 @@ fun ServerSetupScreen(
                     style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
                 )
             }
+        }
+
+        if (certificateHost != null) {
+            Spacer(Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.settings_trust_user_cas),
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(checked = trustUserCas, onCheckedChange = { trustUserCas = it }, enabled = !ui.loading)
+            }
+            Text(
+                stringResource(R.string.settings_trust_user_cas_desc, certificateHost),
+                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+            )
         }
 
         ui.error?.let {

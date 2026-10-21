@@ -184,8 +184,8 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             item {
                 SettingsRow(
                     title = stringResource(R.string.settings_trust_user_cas),
-                    subtitle = stringResource(R.string.settings_trust_user_cas_desc),
-                    trailing = { Switch(checked = trustUserCas, onCheckedChange = vm::setTrustUserCas) },
+                    subtitle = stringResource(R.string.settings_trust_user_cas_desc, vm.certificateHost),
+                    trailing = { Switch(checked = trustUserCas, enabled = vm.certificateHost.isNotBlank(), onCheckedChange = vm::setTrustUserCas) },
                 )
             }
             item { HorizontalDivider() }
