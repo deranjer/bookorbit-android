@@ -153,7 +153,8 @@ class BookAggregatingPlayer(
             .takeIf { it.size >= 2 } ?: emptyList()
     }
 
-    fun bookPositionMs(): Long = absoluteMs(super.getCurrentPosition())
+    fun filePositionMs(): Long = super.getCurrentPosition()
+    fun bookPositionMs(): Long = absoluteMs(filePositionMs())
     fun bookBufferedPositionMs(): Long = absoluteMs(super.getBufferedPosition())
     fun bookDurationMs(): Long = clock().bookDurationMs
 

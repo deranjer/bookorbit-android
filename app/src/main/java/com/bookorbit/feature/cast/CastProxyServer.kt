@@ -10,6 +10,7 @@ import com.bookorbit.core.network.CastUpstreamClient
 import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Call
 import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
@@ -21,6 +22,7 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.util.UUID
 import java.util.concurrent.Executors
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -44,6 +46,20 @@ class CastProxyServer @Inject constructor(
     }
 
     private val executor = Executors.newCachedThreadPool()
+    private val activeSockets = ConcurrentHashMap.newKeySet<Socket>()
+    private val activeCalls = ConcurrentHashMap.newKeySet<Call>()
+
+    data class SourceQueue(
+        val items: List<MediaItem>,
+        val castItems: List<MediaItem>,
+        val startIndex: Int,
+        val startPositionMs: Long,
+    )
+
+    @Volatile var sourceQueue: SourceQueue? = null
+        private set
+
+    val isRunning: Boolean get() = running
 
     @Volatile private var serverSocket: ServerSocket? = null
 
@@ -68,6 +84,7 @@ class CastProxyServer @Inject constructor(
                 } catch (e: IOException) {
                     break
                 }
+                activeSockets.add(client)
                 executor.execute { handle(client) }
             }
         }.apply { isDaemon = true }.start()
@@ -80,6 +97,8 @@ class CastProxyServer @Inject constructor(
         running = false
         sessionToken = null
         targets = emptyMap()
+        sourceQueue = null
+        closeTransfers()
         runCatching { serverSocket?.close() }
         serverSocket = null
     }
@@ -92,8 +111,10 @@ class CastProxyServer @Inject constructor(
      * cover art is rewritten the same way, since it is exactly as unreachable from the Cast device as
      * a local audio file.
      */
-    fun rewriteForCast(items: List<MediaItem>): List<MediaItem> {
-        val token = sessionToken ?: error("CastProxyServer.start() must be called before rewriteForCast()")
+    @Synchronized
+    fun rewriteForCast(items: List<MediaItem>, startIndex: Int = 0, startPositionMs: Long = 0): List<MediaItem> {
+        check(running) { "CastProxyServer.start() must be called before rewriteForCast()" }
+        val token = UUID.randomUUID().toString()
         val port = serverSocket?.localPort ?: error("CastProxyServer is not running")
         val ip = lanIpAddress() ?: error("No LAN address available for the cast proxy")
         val newTargets = mutableMapOf<String, ProxyTarget>()
@@ -123,8 +144,32 @@ class CastProxyServer @Inject constructor(
             builder.build()
         }
         targets = newTargets
+        sessionToken = token
+        sourceQueue = SourceQueue(items.toList(), rewritten, startIndex.coerceAtLeast(0), startPositionMs.coerceAtLeast(0))
+        closeTransfers() // Old book requests must not keep consuming bandwidth after queue replacement.
+        trace("Queue replaced items=${items.size} index=$startIndex positionMs=$startPositionMs")
         return rewritten
     }
+
+    private fun closeTransfers() {
+        activeCalls.forEach { it.cancel() }
+        activeSockets.forEach { runCatching { it.close() } }
+    }
+
+    /** A bounded debug trace survives small Android log buffers and wireless-debugging disconnects. */
+    private fun trace(message: String) {
+        if (!BuildConfig.DEBUG) return
+        Log.i("CastProxyServer", message)
+        synchronized(traceLock) {
+            runCatching {
+                val file = File(context.cacheDir, "cast-proxy-trace.log")
+                if (file.length() > 65_536) file.writeText("")
+                file.appendText("${System.currentTimeMillis()} $message\n")
+            }
+        }
+    }
+
+    private val traceLock = Any()
 
     // A content:// local Uri (SAF-backed download) isn't castable — RandomAccessFile has no SAF
     // equivalent — but it must still route to Local so serveLocal() 404s it cleanly instead of
@@ -159,7 +204,7 @@ class CastProxyServer @Inject constructor(
                 }
 
                 val out = socket.getOutputStream()
-                if (method != "GET" && method != "HEAD") {
+                if (method != "GET" && method != "HEAD" && method != "OPTIONS") {
                     writeStatus(out, 405, "Method Not Allowed")
                     return
                 }
@@ -170,6 +215,10 @@ class CastProxyServer @Inject constructor(
                     writeStatus(out, 403, "Forbidden")
                     return
                 }
+                if (method == "OPTIONS") {
+                    writeStatus(out, if (targets.containsKey(segments[1])) 204 else 404, "No Content")
+                    return
+                }
                 when (val target = targets[segments[1]]) {
                     is ProxyTarget.Local -> serveLocal(out, target.path, rangeHeader, method == "HEAD")
                     is ProxyTarget.Remote -> serveRemote(out, target.url, rangeHeader, method == "HEAD")
@@ -177,6 +226,8 @@ class CastProxyServer @Inject constructor(
                 }
             } catch (e: IOException) {
                 // Client disconnected mid-transfer (e.g. the receiver abandoned a seek) - not an error.
+            } finally {
+                activeSockets.remove(socket)
             }
         }
     }
@@ -190,6 +241,11 @@ class CastProxyServer @Inject constructor(
         val length = file.length()
         val contentType = mimeTypeFor(path)
         val range = parseRangeHeader(rangeHeader, length)
+        trace("Local request head=$headOnly range=${rangeHeader ?: "none"} length=$length mime=$contentType")
+        if (rangeHeader != null && range == null) {
+            writeHeaders(out, 416, "Range Not Satisfiable", contentType, 0, "bytes */$length")
+            return
+        }
         if (range != null) {
             val contentLength = range.last - range.first + 1
             writeHeaders(out, 206, "Partial Content", contentType, contentLength, "bytes ${range.first}-${range.last}/$length")
@@ -201,56 +257,67 @@ class CastProxyServer @Inject constructor(
             }
         } else {
             writeHeaders(out, 200, "OK", contentType, length, null)
-            if (!headOnly) file.inputStream().use { it.copyTo(out) }
+            if (!headOnly) RandomAccessFile(file, "r").use { copyRange(it, out, length) }
         }
     }
 
     private fun serveRemote(out: OutputStream, url: String, rangeHeader: String?, headOnly: Boolean) {
         val started = System.nanoTime()
-        if (BuildConfig.DEBUG) Log.d("CastProxyServer", "Upstream request head=$headOnly range=${rangeHeader ?: "none"}")
+        trace("Upstream request head=$headOnly range=${rangeHeader ?: "none"}")
         val request = Request.Builder().url(url).apply {
             if (rangeHeader != null) header("Range", rangeHeader)
         }.build()
-        val response = try {
-            upstreamClient.newCall(request).execute()
-        } catch (e: IOException) {
-            if (BuildConfig.DEBUG) Log.w("CastProxyServer", "Upstream request failed: ${e.javaClass.simpleName}")
-            writeStatus(out, 502, "Bad Gateway")
-            return
-        }
-        response.use { resp ->
-            val body = resp.body
-            val contentType = resp.header("Content-Type") ?: "application/octet-stream"
-            val contentLength = body?.contentLength()?.takeIf { it >= 0 }
-            val contentRange = resp.header("Content-Range")
-            val message = resp.message.ifBlank { "OK" }
-            if (BuildConfig.DEBUG) {
-                Log.d("CastProxyServer", "Upstream headers status=${resp.code} contentRange=$contentRange length=$contentLength afterMs=${(System.nanoTime() - started) / 1_000_000}")
-                if (rangeHeader != null && resp.code == 200) {
-                    Log.w("CastProxyServer", "Upstream ignored byte range; large M4B metadata may require reading the whole file")
+        val call = upstreamClient.newCall(request)
+        activeCalls.add(call)
+        try {
+            val response = try {
+                call.execute()
+            } catch (e: IOException) {
+                if (BuildConfig.DEBUG) Log.w("CastProxyServer", "Upstream request failed: ${e.javaClass.simpleName}")
+                writeStatus(out, 502, "Bad Gateway")
+                return
+            }
+            response.use { resp ->
+                val body = resp.body
+                val contentType = resp.header("Content-Type") ?: "application/octet-stream"
+                val contentLength = body?.contentLength()?.takeIf { it >= 0 }
+                val contentRange = resp.header("Content-Range")
+                val message = resp.message.ifBlank { "OK" }
+                trace("Upstream headers status=${resp.code} contentRange=$contentRange length=$contentLength afterMs=${(System.nanoTime() - started) / 1_000_000}")
+                if (BuildConfig.DEBUG) {
+                    if (rangeHeader != null && resp.code == 200) {
+                        Log.w("CastProxyServer", "Upstream ignored byte range; large M4B metadata may require reading the whole file")
+                    }
+                }
+                writeHeaders(out, resp.code, message, contentType, contentLength, contentRange)
+                if (!headOnly && body != null) body.byteStream().use {
+                    val bytes = it.copyTo(out, COPY_BUFFER_SIZE)
+                    trace("Upstream transfer bytes=$bytes elapsedMs=${(System.nanoTime() - started) / 1_000_000}")
                 }
             }
-            writeHeaders(out, resp.code, message, contentType, contentLength, contentRange)
-            if (!headOnly && body != null) body.byteStream().use {
-                val bytes = it.copyTo(out, COPY_BUFFER_SIZE)
-                if (BuildConfig.DEBUG) Log.d("CastProxyServer", "Upstream transfer bytes=$bytes elapsedMs=${(System.nanoTime() - started) / 1_000_000}")
-            }
+        } finally {
+            activeCalls.remove(call)
         }
     }
 
     private fun copyRange(raf: RandomAccessFile, out: OutputStream, length: Long) {
+        val started = System.nanoTime()
         val buffer = ByteArray(COPY_BUFFER_SIZE)
         var remaining = length
-        while (remaining > 0) {
-            val read = raf.read(buffer, 0, minOf(buffer.size.toLong(), remaining).toInt())
-            if (read <= 0) break
-            out.write(buffer, 0, read)
-            remaining -= read
+        try {
+            while (remaining > 0) {
+                val read = raf.read(buffer, 0, minOf(buffer.size.toLong(), remaining).toInt())
+                if (read <= 0) break
+                out.write(buffer, 0, read)
+                remaining -= read
+            }
+        } finally {
+            trace("Local transfer bytes=${length - remaining} complete=${remaining == 0L} elapsedMs=${(System.nanoTime() - started) / 1_000_000}")
         }
     }
 
     private fun writeStatus(out: OutputStream, code: Int, message: String) {
-        out.write("HTTP/1.1 $code $message\r\nConnection: close\r\nContent-Length: 0\r\n\r\n".toByteArray(Charsets.ISO_8859_1))
+        out.write("HTTP/1.1 $code $message\r\nConnection: close\r\n${corsHeaders()}Content-Length: 0\r\n\r\n".toByteArray(Charsets.ISO_8859_1))
         out.flush()
     }
 
@@ -265,6 +332,7 @@ class CastProxyServer @Inject constructor(
         val sb = StringBuilder()
         sb.append("HTTP/1.1 $code $message\r\n")
         sb.append("Connection: close\r\n")
+        sb.append(corsHeaders())
         sb.append("Accept-Ranges: bytes\r\n")
         sb.append("Content-Type: $contentType\r\n")
         if (contentLength != null) sb.append("Content-Length: $contentLength\r\n")
@@ -273,6 +341,11 @@ class CastProxyServer @Inject constructor(
         out.write(sb.toString().toByteArray(Charsets.ISO_8859_1))
         out.flush()
     }
+
+    private fun corsHeaders() = "Access-Control-Allow-Origin: *\r\n" +
+        "Access-Control-Allow-Methods: GET, HEAD, OPTIONS\r\n" +
+        "Access-Control-Allow-Headers: Content-Type, Accept-Encoding, Range\r\n" +
+        "Access-Control-Expose-Headers: Content-Length, Content-Range, Accept-Ranges\r\n"
 
     private fun mimeTypeFor(path: String): String = when (path.substringAfterLast('.', "").lowercase()) {
         "mp3" -> "audio/mpeg"
@@ -312,7 +385,7 @@ class CastProxyServer @Inject constructor(
  */
 internal fun parseRangeHeader(header: String?, totalLength: Long): LongRange? {
     if (header == null || totalLength <= 0) return null
-    val match = Regex("""bytes=(\d*)-(\d*)""").find(header) ?: return null
+    val match = Regex("""bytes=(\d*)-(\d*)""").matchEntire(header) ?: return null
     val startStr = match.groupValues[1]
     val endStr = match.groupValues[2]
     if (startStr.isEmpty() && endStr.isEmpty()) return null
@@ -320,12 +393,12 @@ internal fun parseRangeHeader(header: String?, totalLength: Long): LongRange? {
     val start: Long
     val end: Long
     if (startStr.isEmpty()) {
-        val suffixLength = endStr.toLong()
+        val suffixLength = endStr.toLongOrNull()?.takeIf { it > 0 } ?: return null
         start = (totalLength - suffixLength).coerceAtLeast(0)
         end = totalLength - 1
     } else {
-        start = startStr.toLong()
-        end = if (endStr.isEmpty()) totalLength - 1 else endStr.toLong().coerceAtMost(totalLength - 1)
+        start = startStr.toLongOrNull() ?: return null
+        end = if (endStr.isEmpty()) totalLength - 1 else (endStr.toLongOrNull() ?: return null).coerceAtMost(totalLength - 1)
     }
     if (start > end || start >= totalLength) return null
     return start..end

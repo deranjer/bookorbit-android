@@ -13,6 +13,10 @@ Use the same Wi-Fi network as the Chromecast and sign into your server in the de
    duplicate audio. Reconnect once and test another chapter or file in a multi-file book.
 4. Download an MP3 and M4B to the app's default private storage; repeat Cast playback from each
    downloaded copy. SAF/content-URI Cast playback is an existing limitation, not fixed here.
+   Also test M4A. While connected, pause the first book, select a different book, and press Listen.
+   The receiver must load the new book without disconnecting. Repeat in the opposite direction,
+   then disconnect both during loading and after playback starts: the phone must retain the new
+   book and its requested/current position rather than returning to the original book.
 5. If the receiver cannot fetch the stream, verify the app remains usable. Synchronous handoff
    failures retain local playback and log a warning; asynchronous receiver failures are a
    separate path and are not covered by that catch block.
@@ -28,3 +32,15 @@ download comparison helps separate the upstream server path from receiver/file p
 
 The `CastProxyRangeTest` Android test checks an eight-byte tail request on a virtual 8 GiB source,
 verifying large offsets and 206/Content-Range forwarding without downloading a large book.
+It also replaces a local queue, checks that stale URLs are rejected, and verifies local ranges,
+invalid-range responses and Cast CORS/preflight headers.
+
+Debug builds retain a bounded trace in `cache/cast-proxy-trace.log`, readable with
+`adb shell run-as com.bookorbit.debug cat cache/cast-proxy-trace.log`. It includes local request
+ranges and bytes/time as well as remote header timing, and survives wireless-debugging drops.
+
+Physical Pixel 9 Pro / Android 17 findings: pause/resume now works. Both streamed and downloaded
+M4A/M4B copies start slowly; the small MP3 starts immediately. The inspected downloaded M4A is
+648,249,033 bytes and already has its 7,726,136-byte `moov` box at offset 24, before `mdat`.
+End-of-file metadata is therefore not the explanation for that file. Receiver request timing is
+still needed before attributing the delay to file size, Wi-Fi throughput or MP4 parsing.

@@ -6,6 +6,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.net.ServerSocket
+import java.io.File
 import java.util.concurrent.atomic.AtomicReference
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -17,6 +18,46 @@ import org.junit.runner.RunWith
 @UnstableApi
 @RunWith(AndroidJUnit4::class)
 class CastProxyRangeTest {
+    @Test fun replacingBookInvalidatesOldUrlsAndServesNewLocalRangesWithCors() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val first = File.createTempFile("cast-first", ".m4a", context.cacheDir).apply { writeText("old-book") }
+        val second = File.createTempFile("cast-second", ".m4b", context.cacheDir).apply { writeText("new-book-metadata") }
+        val client = OkHttpClient()
+        val proxy = CastProxyServer(context, client)
+        try {
+            proxy.start()
+            fun item(file: File) = MediaItem.Builder().setMediaId("same-id")
+                .setUri(file.toURI().toString()).setMimeType("audio/mp4").build()
+            val oldUrl = proxy.rewriteForCast(listOf(item(first))).single().localConfiguration!!.uri.toString()
+            val originals = listOf(item(second))
+            val newUrl = proxy.rewriteForCast(originals, 0, 12_345).single().localConfiguration!!.uri.toString()
+            assertEquals(originals, proxy.sourceQueue!!.items)
+            assertEquals(12_345L, proxy.sourceQueue!!.startPositionMs)
+            client.newCall(Request.Builder().url(oldUrl).build()).execute().use { assertEquals(403, it.code) }
+            client.newCall(Request.Builder().url(newUrl).method("OPTIONS", null).build()).execute().use {
+                assertEquals(204, it.code)
+                assertEquals("*", it.header("Access-Control-Allow-Origin"))
+                assertTrue(it.header("Access-Control-Allow-Headers")!!.contains("Range"))
+            }
+            client.newCall(Request.Builder().url(newUrl).header("Range", "bytes=-8").build()).execute().use {
+                assertEquals(206, it.code)
+                assertEquals("bytes 9-16/17", it.header("Content-Range"))
+                assertEquals("metadata", it.body!!.string())
+                assertEquals("audio/mp4", it.header("Content-Type"))
+            }
+            client.newCall(Request.Builder().url(newUrl).header("Range", "bytes=900000000000000000000-").build()).execute().use {
+                assertEquals(416, it.code)
+                assertEquals("bytes */17", it.header("Content-Range"))
+            }
+        } finally {
+            proxy.stop()
+            first.delete()
+            second.delete()
+            client.connectionPool.evictAll()
+            client.dispatcher.executorService.shutdown()
+        }
+    }
+
     @Test fun remoteTailRangePreservesLargeOffsetsAndTransfersOnlyRequestedBytes() {
         val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
         val requestRange = AtomicReference<String>()

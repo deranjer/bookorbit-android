@@ -64,7 +64,6 @@ class PlaybackService : MediaLibraryService() {
 
     private var mediaSession: MediaLibrarySession? = null
     private var usingCast = false
-    private var castStartBookPositionMs = 0L
 
     override fun onCreate() {
         super.onCreate()
@@ -102,7 +101,6 @@ class PlaybackService : MediaLibraryService() {
         val current = session.player
 
         val outgoing = activeBookPlayer.current ?: return
-        val absoluteMs = outgoing.bookPositionMs()
         val items = current.currentTimeline.mediaItems()
         if (items.isEmpty()) return
 
@@ -110,7 +108,7 @@ class PlaybackService : MediaLibraryService() {
         // Cast SDK callback; stay on the local player instead.
         val prepared = runCatching {
             castProxyServer.start()
-            transferQueueToCast(player, cast, castProxyServer.rewriteForCast(items))
+            transferQueueToCast(player, cast, castProxyServer.rewriteForCast(items, player.currentMediaItemIndex, player.currentPosition))
         }
         if (prepared.isFailure) {
             Log.w("PlaybackService", "Cast handoff failed; retaining local playback", prepared.exceptionOrNull())
@@ -121,7 +119,6 @@ class PlaybackService : MediaLibraryService() {
         outgoing.detach()
         val incoming = wrap(cast)
         session.setPlayer(incoming)
-        castStartBookPositionMs = absoluteMs
         usingCast = true
     }
 
@@ -132,14 +129,19 @@ class PlaybackService : MediaLibraryService() {
         val current = session.player
 
         val outgoing = activeBookPlayer.current ?: return
-        val absoluteMs = if (current.currentTimeline.isEmpty) castStartBookPositionMs else outgoing.bookPositionMs()
+        val queue = castProxyServer.sourceQueue ?: return
+        // Cast can still expose the previous book while its replacement is loading. In that case
+        // restore the requested new queue and its resume point, never the stale receiver timeline.
+        val location = castReturnPosition(queue, current.currentTimeline.mediaItems(), current.currentMediaItemIndex, outgoing.filePositionMs())
         val wasPlaying = current.playWhenReady
 
         current.pause()
         outgoing.detach()
+        player.setMediaItems(queue.items, location.first, location.second)
+        player.playbackParameters = current.playbackParameters
+        player.prepare()
         val incoming = wrap(player)
         session.setPlayer(incoming)
-        incoming.seekToBookMs(absoluteMs)
         incoming.playWhenReady = wasPlaying
         usingCast = false
 

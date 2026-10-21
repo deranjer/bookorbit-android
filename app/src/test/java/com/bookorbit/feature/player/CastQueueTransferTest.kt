@@ -3,6 +3,7 @@ package com.bookorbit.feature.player
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import com.bookorbit.feature.cast.CastProxyServer
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -49,5 +50,17 @@ class CastQueueTransferTest {
         } catch (_: IllegalArgumentException) { }
         assertTrue(localPlaying)
         assertFalse(castPlaying)
+    }
+
+    @Test fun `disconnect during replacement restores newly requested book and resume point`() {
+        val oldBook = listOf(mockk<MediaItem>())
+        val queue = CastProxyServer.SourceQueue(items, items, 1, 42_000)
+        assertEquals(1 to 42_000L, castReturnPosition(queue, oldBook, 0, 900_000))
+    }
+
+    @Test fun `disconnect from current queue uses receiver file index and offset`() {
+        val realItems = (0..1).map { MediaItem.Builder().setMediaId("$it").build() }
+        val queue = CastProxyServer.SourceQueue(realItems, realItems, 0, 0)
+        assertEquals(1 to 80_000L, castReturnPosition(queue, realItems, 1, 80_000))
     }
 }
