@@ -1,0 +1,11 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/ic_launcher_foreground" />
+    <item>
+        <vector android:width="108dp" android:height="108dp"
+            android:viewportWidth="108" android:viewportHeight="108">
+            <path android:fillColor="#B45309" android:pathData="M62,62h22v22h-22z" />
+            <path android:fillColor="#FFFFFF" android:fillType="evenOdd"
+                android:pathData="M66,65h6c12,0 12,16 0,16h-6z M70,69v8h2c6,0 6,-8 0,-8z" />
+        </vector>
+    </item>
+</layer-list>
