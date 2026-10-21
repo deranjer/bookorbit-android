@@ -6,7 +6,9 @@ import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
+import com.bookorbit.core.network.UserCaTrust
+import okhttp3.OkHttpClient
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
@@ -35,12 +37,15 @@ object PlayerModule {
     fun provideMediaSourceFactory(
         @ApplicationContext context: Context,
         session: SessionManager,
+        userCaTrust: UserCaTrust,
     ): MediaSource.Factory {
+        // OkHttp (not the platform HttpsURLConnection DefaultHttpDataSource uses) so streaming honours
+        // the opt-in user-CA trust like every other request.
+        val streamClient = userCaTrust.applyTo(OkHttpClient.Builder()).build()
         // Per-request auth header so streaming survives token refresh.
         val httpFactory = DataSource.Factory {
             val token = session.accessToken
-            DefaultHttpDataSource.Factory()
-                .setAllowCrossProtocolRedirects(true)
+            OkHttpDataSource.Factory(streamClient)
                 .apply {
                     if (!token.isNullOrBlank()) {
                         setDefaultRequestProperties(mapOf("Authorization" to "Bearer $token"))

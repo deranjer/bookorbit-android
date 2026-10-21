@@ -51,8 +51,8 @@ android {
         // .github/workflows/release-please.yml (release-please's own generic-file updater is
         // unreliable for this -- see the commit that introduced this comment). Both must stay
         // plain literals so F-Droid's static manifest parser can find them too.
-        versionCode = 600
-        versionName = "0.6.0"
+        versionCode = 501
+        versionName = "0.5.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -180,6 +180,7 @@ dependencies {
     // Media + images
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)
+    implementation(libs.androidx.media3.datasource.okhttp)
     implementation(libs.androidx.media3.common)
     implementation(libs.coil.compose)
 

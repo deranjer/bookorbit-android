@@ -75,6 +75,13 @@ class SettingsViewModel @Inject constructor(
     val wifiOnlyDownloads: StateFlow<Boolean> = appSettings.wifiOnlyDownloads
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
+    val trustUserCas: StateFlow<Boolean> = appSettings.trustUserCas
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun setTrustUserCas(enabled: Boolean) {
+        viewModelScope.launch { appSettings.setTrustUserCas(enabled) }
+    }
+
     val downloadsSummary: StateFlow<DownloadsSummary> = downloadsRepo.downloads
         .map { downloads -> DownloadsSummary(count = downloads.size, totalBytes = downloads.sumOf { it.sizeBytes }) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DownloadsSummary())

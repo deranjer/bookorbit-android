@@ -67,6 +67,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val navItems by vm.navItems.collectAsStateWithLifecycle()
     val wifiOnly by vm.wifiOnlyDownloads.collectAsStateWithLifecycle()
     val dynamicColor by vm.dynamicColor.collectAsStateWithLifecycle()
+    val trustUserCas by vm.trustUserCas.collectAsStateWithLifecycle()
     val downloadsSummary by vm.downloadsSummary.collectAsStateWithLifecycle()
     val defaultSpeed by vm.defaultSpeed.collectAsStateWithLifecycle()
     val progressBarMode by vm.progressBarMode.collectAsStateWithLifecycle()
@@ -176,6 +177,16 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                         Text(stringResource(R.string.settings_nav_reset))
                     }
                 }
+            }
+            item { HorizontalDivider() }
+
+            item { SectionHeader(stringResource(R.string.settings_security)) }
+            item {
+                SettingsRow(
+                    title = stringResource(R.string.settings_trust_user_cas),
+                    subtitle = stringResource(R.string.settings_trust_user_cas_desc),
+                    trailing = { Switch(checked = trustUserCas, onCheckedChange = vm::setTrustUserCas) },
+                )
             }
             item { HorizontalDivider() }
 

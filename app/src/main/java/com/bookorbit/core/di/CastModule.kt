@@ -3,6 +3,7 @@ package com.bookorbit.core.di
 import com.bookorbit.core.network.AuthInterceptor
 import com.bookorbit.core.network.CastUpstreamClient
 import com.bookorbit.core.network.TokenAuthenticator
+import com.bookorbit.core.network.UserCaTrust
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,7 +24,8 @@ object CastModule {
         authInterceptor: AuthInterceptor,
         authenticator: TokenAuthenticator,
         logging: HttpLoggingInterceptor,
-    ): OkHttpClient = OkHttpClient.Builder()
+        userCaTrust: UserCaTrust,
+    ): OkHttpClient = userCaTrust.applyTo(OkHttpClient.Builder())
         .addInterceptor(authInterceptor)
         .addInterceptor(logging)
         .authenticator(authenticator)

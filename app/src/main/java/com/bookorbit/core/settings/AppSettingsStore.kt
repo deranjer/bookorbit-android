@@ -33,7 +33,16 @@ class AppSettingsStore @Inject constructor(
     private val seriesViewModeKey = stringPreferencesKey("series_view_mode")
     private val navItemsKey = stringPreferencesKey("nav_items")
 
-    val themeMode = context.appSettingsDataStore.data.map { prefs ->
+    private val trustUserCasKey = booleanPreferencesKey("trust_user_cas")
+
+    /** Accept TLS certificates signed by CAs the user installed on the device. Off by default. */
+    val trustUserCas = context.appSettingsDataStore.data.map { it[trustUserCasKey] ?: false }
+
+    suspend fun setTrustUserCas(enabled: Boolean) {
+        context.appSettingsDataStore.edit { it[trustUserCasKey] = enabled }
+    }
+
+    val themeMode =context.appSettingsDataStore.data.map { prefs ->
         prefs[themeModeKey]?.let { raw -> runCatching { ThemeMode.valueOf(raw) }.getOrNull() } ?: ThemeMode.SYSTEM
     }
 

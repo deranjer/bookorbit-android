@@ -205,6 +205,9 @@
     <string name="year">Year</string>
     <string name="settings_material_you">Material You colours</string>
     <string name="settings_material_you_desc">Match your wallpaper instead of BookOrbit blue</string>
+    <string name="settings_security">Security</string>
+    <string name="settings_trust_user_cas">Trust user-installed certificates</string>
+    <string name="settings_trust_user_cas_desc">For servers using a private certificate authority you installed on this device. Only enable if you trust every CA in your device\'s user store.</string>
     <string name="settings_wifi_only">Wi-Fi only</string>
     <string name="settings_wifi_only_desc">Only download books over an unmetered connection</string>
     <string name="settings_download_location">Download location</string>
