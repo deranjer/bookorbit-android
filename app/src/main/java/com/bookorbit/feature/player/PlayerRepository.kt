@@ -91,7 +91,12 @@ class PlayerRepository @Inject constructor(
                     if (localRef != null && coverPath != null) setArtworkUri(LocalRef.parse(coverPath).toUri())
                 }
                 .build()
-            MediaItem.Builder().setMediaId(file.id.toString()).setUri(uri).setMediaMetadata(metadata).build()
+            MediaItem.Builder()
+                .setMediaId(file.id.toString())
+                .setUri(uri)
+                .setMimeType(audioMimeType(file.format, file.filename))
+                .setMediaMetadata(metadata)
+                .build()
         }
         return PlayerData(book, files, items)
     }

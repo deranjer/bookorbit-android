@@ -1,5 +1,6 @@
 package com.bookorbit.feature.player
 
+import android.util.Log
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
@@ -111,6 +112,7 @@ class PlaybackService : MediaLibraryService() {
             cast.prepare()
         }
         if (prepared.isFailure) {
+            Log.w("PlaybackService", "Cast handoff failed; retaining local playback", prepared.exceptionOrNull())
             castProxyServer.stop()
             return
         }
