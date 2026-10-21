@@ -214,7 +214,7 @@ class CastProxyServer @Inject constructor(
         val response = try {
             upstreamClient.newCall(request).execute()
         } catch (e: IOException) {
-            if (BuildConfig.DEBUG) Log.w("CastProxyServer", "Upstream request failed", e)
+            if (BuildConfig.DEBUG) Log.w("CastProxyServer", "Upstream request failed: ${e.javaClass.simpleName}")
             writeStatus(out, 502, "Bad Gateway")
             return
         }
