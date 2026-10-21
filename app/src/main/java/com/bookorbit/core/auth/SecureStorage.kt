@@ -33,6 +33,11 @@ class SecureStorage internal constructor(
         if (e !is GeneralSecurityException && e !is IOException && e !is SecurityException) throw e
         Log.w("SecureStorage", "Encrypted credentials cannot be read; resetting sign-in", e)
         // Both Tink keysets are entries INSIDE this file, not a second preference file.
+        // Drain pending apply() writes first: deleting the file alone lets an old write recreate
+        // it with the old keysets after we have replaced the Keystore key.
+        if (!context.getSharedPreferences(prefsName, Context.MODE_PRIVATE).edit().clear().commit()) {
+            throw IOException("Cannot clear encrypted preferences", e)
+        }
         if (!context.deleteSharedPreferences(prefsName)) throw IOException("Cannot reset encrypted preferences", e)
         KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(masterKeyAlias)
         openAndValidate() // One retry only; surface persistent storage/Keystore failures.
