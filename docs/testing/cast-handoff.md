@@ -44,3 +44,13 @@ M4A/M4B copies start slowly; the small MP3 starts immediately. The inspected dow
 648,249,033 bytes and already has its 7,726,136-byte `moov` box at offset 24, before `mdat`.
 End-of-file metadata is therefore not the explanation for that file. Receiver request timing is
 still needed before attributing the delay to file size, Wi-Fi throughput or MP4 parsing.
+
+Follow-up two-minute startup investigation: the downloaded M4A has an AAC audio track plus a
+QuickTime chapter-text track containing 498 samples spread across the file. In the retained
+trace, 190 of 191 audio byte-range requests exactly match chapter sample offsets rounded down
+to 32 KiB; the one unmatched request is the eventual playback/resume read. The early trace
+rotated out, so this does not measure the entire two-minute interval. Individual retained scan
+transfers generally complete in tens of milliseconds. This strongly implicates receiver chapter
+preloading rather than upstream latency or end-of-file moov placement. Next controlled test:
+serve an audio-only version to Cast while retaining the app's own chapters, then compare startup
+and seeking with the original. That mitigation has not yet been implemented or verified.
