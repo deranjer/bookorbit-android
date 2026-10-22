@@ -90,3 +90,22 @@ seeking, resume, chapters, cover art and queue replacement before Chromecast acc
 Full remuxing is a fallback if a metadata overlay is incompatible with a receiver, but requires
 processing/caching the complete book. Fast-start relocation alone does not address this file,
 whose moov is already at the front.
+
+### Chapter filter device retest
+
+The Cast proxy now hides only referenced QuickTime text chapter tracks and their `chap`
+references, using same-length `free` boxes. Original files, audio data/offsets, cover metadata,
+and BookOrbit's own chapter metadata remain intact. This runs for downloaded and streamed MP4
+queues. Discovery is cached per queue target and bounded to 16 top-level headers, a 16 MiB moov
+and a 15-second I/O budget; unknown, fragmented, malformed or unsupported layouts pass through.
+Remote metadata probes require exact 206/Content-Range responses and identity encoding, avoiding
+accidental full-book downloads when Range is ignored. Every response range gets the same overlay,
+including a request intersecting only part of a patched field. The debug trace limit is now 256 KiB.
+
+Reconnect Chromecast after installing this revision to invalidate old receiver URLs/cache. Start
+with the same downloaded slow M4A, note start time, pause/resume, seek well ahead, and try chapter
+navigation. Confirm cover art, then repeat from a server-only book. Look for
+`MP4 chapter filter patches=2` for the inspected two-track book; compare whether the hundreds of
+chapter-position requests disappear. A fallback logs zero patches or unavailable and retains the
+original representation. Finally select a different book without disconnecting and test returning
+to phone playback. Physical startup improvement remains pending this retest.

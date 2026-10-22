@@ -15,6 +15,7 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
 import java.io.InputStreamReader
+import java.io.InputStream
 import java.io.OutputStream
 import java.io.RandomAccessFile
 import java.net.Inet4Address
@@ -23,6 +24,7 @@ import java.net.Socket
 import java.util.UUID
 import java.util.concurrent.Executors
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -41,8 +43,10 @@ class CastProxyServer @Inject constructor(
     @CastUpstreamClient private val upstreamClient: OkHttpClient,
 ) {
     private sealed class ProxyTarget {
-        data class Local(val path: String) : ProxyTarget()
-        data class Remote(val url: String) : ProxyTarget()
+        abstract val filterMp4: Boolean
+        var patches: List<Mp4HeaderPatch>? = null
+        class Local(val path: String, override val filterMp4: Boolean) : ProxyTarget()
+        class Remote(val url: String, override val filterMp4: Boolean) : ProxyTarget()
     }
 
     private val executor = Executors.newCachedThreadPool()
@@ -122,12 +126,12 @@ class CastProxyServer @Inject constructor(
         val rewritten = items.map { item ->
             val uri = item.localConfiguration?.uri ?: return@map item
             val key = item.mediaId
-            newTargets[key] = targetFor(uri)
             // CastPlayer's DefaultMediaItemConverter throws IllegalArgumentException when the item has
             // no mimeType, and our items are built from bare URIs (often extensionless API URLs).
             val mime = item.localConfiguration?.mimeType
                 ?: mimeTypeFor(uri.path.orEmpty()).takeIf { it.startsWith("audio/") }
                 ?: "audio/mpeg"
+            newTargets[key] = targetFor(uri, mime.substringBefore(';') == "audio/mp4")
             val builder = item.buildUpon()
                 .setUri(Uri.parse("http://$ip:$port/$token/$key"))
                 .setMimeType(mime)
@@ -163,7 +167,7 @@ class CastProxyServer @Inject constructor(
         synchronized(traceLock) {
             runCatching {
                 val file = File(context.cacheDir, "cast-proxy-trace.log")
-                if (file.length() > 65_536) file.writeText("")
+                if (file.length() > 262_144) file.writeText("")
                 file.appendText("${System.currentTimeMillis()} $message\n")
             }
         }
@@ -174,11 +178,11 @@ class CastProxyServer @Inject constructor(
     // A content:// local Uri (SAF-backed download) isn't castable — RandomAccessFile has no SAF
     // equivalent — but it must still route to Local so serveLocal() 404s it cleanly instead of
     // Remote handing a non-http(s) scheme to OkHttp, which throws.
-    private fun targetFor(uri: Uri): ProxyTarget =
+    private fun targetFor(uri: Uri, filterMp4: Boolean = false): ProxyTarget =
         if (uri.scheme == "file" || uri.scheme == "content") {
-            ProxyTarget.Local(uri.path ?: uri.toString())
+            ProxyTarget.Local(uri.path ?: uri.toString(), filterMp4)
         } else {
-            ProxyTarget.Remote(uri.toString())
+            ProxyTarget.Remote(uri.toString(), filterMp4)
         }
 
     private fun handle(socket: Socket) {
@@ -220,8 +224,8 @@ class CastProxyServer @Inject constructor(
                     return
                 }
                 when (val target = targets[segments[1]]) {
-                    is ProxyTarget.Local -> serveLocal(out, target.path, rangeHeader, method == "HEAD")
-                    is ProxyTarget.Remote -> serveRemote(out, target.url, rangeHeader, method == "HEAD")
+                    is ProxyTarget.Local -> serveLocal(out, target, rangeHeader, method == "HEAD")
+                    is ProxyTarget.Remote -> serveRemote(out, target, rangeHeader, method == "HEAD")
                     null -> writeStatus(out, 404, "Not Found")
                 }
             } catch (e: IOException) {
@@ -232,14 +236,14 @@ class CastProxyServer @Inject constructor(
         }
     }
 
-    private fun serveLocal(out: OutputStream, path: String, rangeHeader: String?, headOnly: Boolean) {
-        val file = File(path)
+    private fun serveLocal(out: OutputStream, target: ProxyTarget.Local, rangeHeader: String?, headOnly: Boolean) {
+        val file = File(target.path)
         if (!file.exists()) {
             writeStatus(out, 404, "Not Found")
             return
         }
         val length = file.length()
-        val contentType = mimeTypeFor(path)
+        val contentType = mimeTypeFor(target.path)
         val range = parseRangeHeader(rangeHeader, length)
         trace("Local request head=$headOnly range=${rangeHeader ?: "none"} length=$length mime=$contentType")
         if (rangeHeader != null && range == null) {
@@ -251,20 +255,25 @@ class CastProxyServer @Inject constructor(
             writeHeaders(out, 206, "Partial Content", contentType, contentLength, "bytes ${range.first}-${range.last}/$length")
             if (!headOnly) {
                 RandomAccessFile(file, "r").use { raf ->
+                    val patches = localPatches(target, raf)
                     raf.seek(range.first)
-                    copyRange(raf, out, contentLength)
+                    copyRange(raf, out, contentLength, patches)
                 }
             }
         } else {
             writeHeaders(out, 200, "OK", contentType, length, null)
-            if (!headOnly) RandomAccessFile(file, "r").use { copyRange(it, out, length) }
+            if (!headOnly) RandomAccessFile(file, "r").use {
+                val patches = localPatches(target, it)
+                it.seek(0)
+                copyRange(it, out, length, patches)
+            }
         }
     }
 
-    private fun serveRemote(out: OutputStream, url: String, rangeHeader: String?, headOnly: Boolean) {
+    private fun serveRemote(out: OutputStream, target: ProxyTarget.Remote, rangeHeader: String?, headOnly: Boolean) {
         val started = System.nanoTime()
         trace("Upstream request head=$headOnly range=${rangeHeader ?: "none"}")
-        val request = Request.Builder().url(url).apply {
+        val request = Request.Builder().url(target.url).header("Accept-Encoding", "identity").apply {
             if (rangeHeader != null) header("Range", rangeHeader)
         }.build()
         val call = upstreamClient.newCall(request)
@@ -282,6 +291,13 @@ class CastProxyServer @Inject constructor(
                 val contentType = resp.header("Content-Type") ?: "application/octet-stream"
                 val contentLength = body?.contentLength()?.takeIf { it >= 0 }
                 val contentRange = resp.header("Content-Range")
+                val span = contentRange?.let { Regex("bytes (\\d+)-(\\d+)/(\\d+)").matchEntire(it) }
+                val start = if (resp.code == 200) 0L else span?.groupValues?.get(1)?.toLongOrNull()
+                val total = if (resp.code == 200) contentLength else span?.groupValues?.get(3)?.toLongOrNull()
+                val identity = resp.header("Content-Encoding").let { it == null || it.equals("identity", true) }
+                val patches = if (!headOnly && identity && start != null && total != null && resp.code in listOf(200, 206)) {
+                    chapterPatches(target, total) { position, count, budget -> readRemoteMetadata(target.url, position, count, total, budget) }
+                } else emptyList()
                 val message = resp.message.ifBlank { "OK" }
                 trace("Upstream headers status=${resp.code} contentRange=$contentRange length=$contentLength afterMs=${(System.nanoTime() - started) / 1_000_000}")
                 if (BuildConfig.DEBUG) {
@@ -291,7 +307,7 @@ class CastProxyServer @Inject constructor(
                 }
                 writeHeaders(out, resp.code, message, contentType, contentLength, contentRange)
                 if (!headOnly && body != null) body.byteStream().use {
-                    val bytes = it.copyTo(out, COPY_BUFFER_SIZE)
+                    val bytes = copyStream(it, out, start ?: 0, patches)
                     trace("Upstream transfer bytes=$bytes elapsedMs=${(System.nanoTime() - started) / 1_000_000}")
                 }
             }
@@ -300,7 +316,75 @@ class CastProxyServer @Inject constructor(
         }
     }
 
-    private fun copyRange(raf: RandomAccessFile, out: OutputStream, length: Long) {
+    private fun localPatches(target: ProxyTarget.Local, raf: RandomAccessFile): List<Mp4HeaderPatch> =
+        chapterPatches(target, raf.length()) { position, count, _ ->
+            raf.seek(position)
+            ByteArray(count).also { raf.readFully(it) }
+        }
+
+    private fun chapterPatches(target: ProxyTarget, length: Long, read: (Long, Int, Long) -> ByteArray?): List<Mp4HeaderPatch> {
+        if (!target.filterMp4) return emptyList()
+        // Compute once per queue target, off the UI thread, including the unchanged fallback.
+        return synchronized(target) {
+            target.patches ?: try {
+                val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15)
+                val result = Mp4ChapterFilter.discover(length) { position, count ->
+                    val remaining = deadline - System.nanoTime()
+                    if (remaining <= 0) null else read(position, count, remaining)
+                }
+                target.patches = result
+                trace("MP4 chapter filter patches=${result.size} length=$length")
+                result
+            } catch (_: IOException) {
+                emptyList<Mp4HeaderPatch>().also {
+                    target.patches = it
+                    trace("MP4 chapter filter unavailable; original bytes retained")
+                }
+            }
+        }
+    }
+
+    private fun readRemoteMetadata(url: String, position: Long, count: Int, total: Long, budgetNanos: Long): ByteArray? {
+        val end = position + count - 1
+        val request = Request.Builder().url(url).header("Accept-Encoding", "identity")
+            .header("Range", "bytes=$position-$end").build()
+        val call = upstreamClient.newCall(request)
+        call.timeout().timeout(minOf(TimeUnit.SECONDS.toNanos(10), budgetNanos), TimeUnit.NANOSECONDS)
+        activeCalls.add(call)
+        try {
+            return call.execute().use { response ->
+                // Never download the full book if an upstream ignores Range or changes representation.
+                if (response.code != 206 || response.header("Content-Range") != "bytes $position-$end/$total" ||
+                    response.header("Content-Encoding").let { it != null && !it.equals("identity", true) }) return@use null
+                val stream = response.body?.byteStream() ?: return@use null
+                val bytes = ByteArray(count)
+                var offset = 0
+                while (offset < count) {
+                    val read = stream.read(bytes, offset, count - offset)
+                    if (read < 0) return@use null
+                    offset += read
+                }
+                bytes
+            }
+        } finally {
+            activeCalls.remove(call)
+        }
+    }
+
+    private fun copyStream(input: InputStream, out: OutputStream, start: Long, patches: List<Mp4HeaderPatch>): Long {
+        val buffer = ByteArray(COPY_BUFFER_SIZE)
+        var copied = 0L
+        while (true) {
+            val read = input.read(buffer)
+            if (read < 0) break
+            patches.forEach { it.apply(start + copied, buffer, read) }
+            out.write(buffer, 0, read)
+            copied += read
+        }
+        return copied
+    }
+
+    private fun copyRange(raf: RandomAccessFile, out: OutputStream, length: Long, patches: List<Mp4HeaderPatch>) {
         val started = System.nanoTime()
         val buffer = ByteArray(COPY_BUFFER_SIZE)
         var remaining = length
@@ -308,6 +392,7 @@ class CastProxyServer @Inject constructor(
             while (remaining > 0) {
                 val read = raf.read(buffer, 0, minOf(buffer.size.toLong(), remaining).toInt())
                 if (read <= 0) break
+                patches.forEach { it.apply(raf.filePointer - read, buffer, read) }
                 out.write(buffer, 0, read)
                 remaining -= read
             }
