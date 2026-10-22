@@ -14,11 +14,14 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSession.ControllerInfo
 import androidx.media3.session.MediaSession.MediaItemsWithStartPosition
 import androidx.media3.session.SessionError
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
 import com.bookorbit.feature.downloads.DownloadsRepository
 import com.bookorbit.feature.cast.CastProxyServer
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
+import com.google.common.util.concurrent.Futures
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -46,6 +49,39 @@ class MediaLibraryCallback @Inject constructor(
 ) : MediaLibrarySession.Callback {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var queueRequestGeneration = 0L
+
+    override fun onConnect(session: MediaSession, controller: ControllerInfo): MediaSession.ConnectionResult {
+        val base = super<MediaLibrarySession.Callback>.onConnect(session, controller)
+        if (!base.isAccepted || controller.packageName != context.packageName) return base
+        return MediaSession.ConnectionResult.accept(
+            base.availableSessionCommands.buildUpon().add(BookQueueCommand.command).build(),
+            base.availablePlayerCommands,
+        )
+    }
+
+    override fun onCustomCommand(
+        session: MediaSession,
+        controller: ControllerInfo,
+        command: SessionCommand,
+        args: Bundle,
+    ): ListenableFuture<SessionResult> {
+        if (command != BookQueueCommand.command || controller.packageName != context.packageName) {
+            return Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))
+        }
+        val generation = ++queueRequestGeneration
+        return future {
+            val load = try { BookQueueCommand.decode(args) } catch (_: IllegalArgumentException) {
+                return@future SessionResult(SessionError.ERROR_BAD_VALUE)
+            }
+            withContext(Dispatchers.Main.immediate) {
+                if (generation != queueRequestGeneration) return@withContext SessionResult(SessionResult.RESULT_SUCCESS)
+                val routed = routeQueue(MediaItemsWithStartPosition(load.items, load.index, load.positionMs))
+                BookQueueCommand.apply(session.player, load.copy(items = routed.mediaItems))
+                SessionResult(SessionResult.RESULT_SUCCESS)
+            }
+        }
+    }
 
     override fun onGetLibraryRoot(
         session: MediaLibrarySession,

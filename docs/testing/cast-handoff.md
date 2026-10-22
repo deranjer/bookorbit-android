@@ -125,3 +125,22 @@ Regression coverage uses a 127-file partial queue, a cross-file seek, advancing 
 mode, old-generation rejection and return-position preservation. On device, play the MP3 for ten
 seconds, scrub into another file/chapter, confirm the phone keeps advancing at the new time, then
 pause and disconnect to verify position continuity.
+
+### Queue replacement crash follow-up
+
+Physical testing confirmed MP3 progress after the partial-queue fix, then switching to a one-file
+M4B crashed in Media3 1.5.1 `MediaUtils.mergePlayerInfo` / `PlayerInfo.Builder.build`. The controller
+optimistically masked the new one-item queue while the receiver still emitted an index from the
+old 127-item queue. This happened before audio loading, not during M4B decoding.
+
+Phone-initiated loads now use an app-private session command. The service validates the request,
+routes it through the Cast proxy, and applies queue/resume/speed/play state together. The phone
+follows actual receiver timeline updates rather than masking a new queue prematurely. Requests
+retain media configuration and metadata using Media3's chunked BundleListRetriever transport;
+only the app's own controller receives the custom command. Superseded requests are discarded.
+Android Auto's standard browse/set-media-items entry points remain available.
+
+A real MediaController/MediaSession regression uses a delayed 127-to-1 queue change and an old
+index-41 update in between. It asserts a consistent old queue until the receiver acknowledges the
+new one, then a connected controller at index zero. Retest MP3 playback, select M4B without
+leaving Cast, then return to MP3. Verify playback, displayed time and seeking in both books.

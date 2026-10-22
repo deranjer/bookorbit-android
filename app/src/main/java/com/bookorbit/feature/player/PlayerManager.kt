@@ -12,6 +12,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.media3.session.SessionResult
 import com.bookorbit.core.model.AudioProgress
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFileRef
@@ -244,10 +245,16 @@ class PlayerManager @Inject constructor(
         val totalDurationSec = PlaybackQueue.totalDurationSec(data.files)
         val index = resume?.let { r -> data.files.indexOfFirst { it.id == r.currentFileId }.coerceAtLeast(0) } ?: 0
         val positionMs = ((resume?.positionSeconds ?: 0.0) * 1000).toLong()
-        c.setMediaItems(data.mediaItems, index, positionMs)
-        c.prepare()
-        c.setPlaybackSpeed(speed)
-        if (autoPlay) c.play()
+        val loaded = c.sendCustomCommand(
+            BookQueueCommand.command,
+            BookQueueCommand.encode(BookQueueCommand.Load(data.mediaItems, index, positionMs, speed, autoPlay)),
+        )
+        loaded.addListener({
+            val success = runCatching { loaded.get().resultCode == SessionResult.RESULT_SUCCESS }.getOrDefault(false)
+            if (!success && _state.value.currentBook?.id == data.book.id) {
+                _state.update { it.copy(playerError = UiText.of(R.string.player_err_load), buffering = false) }
+            }
+        }, ContextCompat.getMainExecutor(context))
 
         _state.update {
             it.copy(
