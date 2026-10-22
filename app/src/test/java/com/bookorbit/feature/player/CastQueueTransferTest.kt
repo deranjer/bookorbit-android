@@ -63,4 +63,13 @@ class CastQueueTransferTest {
         val queue = CastProxyServer.SourceQueue(realItems, realItems, 0, 0)
         assertEquals(1 to 80_000L, castReturnPosition(queue, realItems, 1, 80_000))
     }
+
+    @Test fun `127 item queue with unloaded distant windows still matches its active file`() {
+        val originals = (0 until 127).map { MediaItem.Builder().setMediaId("$it").build() }
+        val partial = originals.mapIndexed { index, item -> if (index == 40) item else MediaItem.EMPTY }
+        assertTrue(matchesCurrentQueueItem(originals, partial.size, 40, partial[40]))
+        assertFalse(matchesCurrentQueueItem(originals, partial.size, 41, partial[41]))
+        val queue = CastProxyServer.SourceQueue(originals, originals, 0, 0)
+        assertEquals(40 to 15_000L, castReturnPosition(queue, partial, 40, 15_000))
+    }
 }

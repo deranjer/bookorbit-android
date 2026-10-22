@@ -92,7 +92,9 @@ class PlaybackService : MediaLibraryService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? =
         mediaSession
 
-    private fun wrap(p: Player) = BookAggregatingPlayer(p, livePrefs.settings).also { activeBookPlayer.current = it }
+    private fun wrap(p: Player, cast: Boolean = false) = BookAggregatingPlayer(
+        p, livePrefs.settings, if (cast) ({ castProxyServer.sourceQueue?.castItems }) else null,
+    ).also { activeBookPlayer.current = it }
 
     /** Moves playback from the local [player] to [cast], preserving position and play state. */
     private fun switchToCast(cast: Player) {
@@ -117,7 +119,7 @@ class PlaybackService : MediaLibraryService() {
         }
 
         outgoing.detach()
-        val incoming = wrap(cast)
+        val incoming = wrap(cast, cast = true)
         session.setPlayer(incoming)
         usingCast = true
     }

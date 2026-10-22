@@ -31,10 +31,20 @@ internal fun castReturnPosition(
     receiverIndex: Int,
     receiverPositionMs: Long,
 ): Pair<Int, Long> {
-    val matches = receiverItems.size == queue.castItems.size && receiverItems.indices.all { i ->
-        receiverItems[i].mediaId == queue.castItems[i].mediaId &&
-            receiverItems[i].localConfiguration?.uri == queue.castItems[i].localConfiguration?.uri
-    }
-    return if (matches && receiverIndex in queue.items.indices) receiverIndex to receiverPositionMs
+    val matches = matchesCurrentQueueItem(queue.castItems, receiverItems.size, receiverIndex, receiverItems.getOrNull(receiverIndex))
+    return if (matches) receiverIndex to receiverPositionMs
     else queue.startIndex to queue.startPositionMs
+}
+
+/** Cast loads distant queue entries lazily. Only the active item can establish queue identity. */
+@UnstableApi
+internal fun matchesCurrentQueueItem(
+    expected: List<MediaItem>,
+    receiverCount: Int,
+    receiverIndex: Int,
+    receiverItem: MediaItem?,
+): Boolean {
+    val item = expected.getOrNull(receiverIndex) ?: return false
+    return receiverCount == expected.size && receiverItem != null &&
+        receiverItem.mediaId == item.mediaId && receiverItem.localConfiguration?.uri == item.localConfiguration?.uri
 }

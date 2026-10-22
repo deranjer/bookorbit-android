@@ -109,3 +109,19 @@ navigation. Confirm cover art, then repeat from a server-only book. Look for
 chapter-position requests disappear. A fallback logs zero patches or unavailable and retains the
 original representation. Finally select a different book without disconnecting and test returning
 to phone playback. Physical startup improvement remains pending this retest.
+
+### Multi-file MP3 progress retest
+
+Physical testing now confirms the filtered M4A starts in seconds with matching time and working
+start/stop controls. A separate 127-file MP3 book exposed frozen phone time and a scrubber that
+snaps back while the receiver seeks correctly. Media3 1.5.1 lazily represents distant Cast queue
+entries as placeholders; requiring every file ID to match prevented the app progress poller from
+accepting any updates. Placeholder metadata also omitted durations needed for whole-book time.
+
+Progress identity now checks the active file plus queue size and proxy-generation URI. The Cast
+wrapper obtains durations/chapters from the complete source queue, while preserving Cast's real
+queue and active index. Disconnect uses the active item rather than requiring all distant items.
+Regression coverage uses a 127-file partial queue, a cross-file seek, advancing playback, chapter
+mode, old-generation rejection and return-position preservation. On device, play the MP3 for ten
+seconds, scrub into another file/chapter, confirm the phone keeps advancing at the new time, then
+pause and disconnect to verify position continuity.

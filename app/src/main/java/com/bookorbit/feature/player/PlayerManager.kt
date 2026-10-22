@@ -153,9 +153,9 @@ class PlayerManager @Inject constructor(
         val active = activeBookPlayer.current ?: return null
         val files = _state.value.files
         // A Cast queue load is asynchronous. Do not write the old book's position into the new book.
-        if (active.mediaItemCount != files.size || files.indices.any {
-                active.getMediaItemAt(it).mediaId != files[it].id.toString()
-            }) return null
+        val index = active.currentMediaItemIndex
+        if (!active.hasCurrentSourceQueue() || active.mediaItemCount != files.size ||
+            active.currentMediaItem?.mediaId != files.getOrNull(index)?.id?.toString()) return null
         return active.bookPositionMs()
     }
 
