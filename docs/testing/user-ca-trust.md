@@ -58,6 +58,13 @@ traffic (full flavor). Repeat with the fdroid build for login, covers, downloads
 An OIDC browser has its own trust policy; the app does not change it. Redirect destinations
 also need their own hostname consent; consent never propagates to another host automatically.
 
+### Settings layout check
+
+On a narrow phone, open Settings with a long server hostname. Confirm the certificate-trust
+title and description wrap, the complete switch stays within the screen padding, and toggling
+it still works. Repeat with a large system font size and in an RTL locale. Check the Wi-Fi-only
+switch and download-location Change button too, since they share the same row layout.
+
 ## Cleanup
 
 Remove **BookOrbit temporary test CA** from Android's user credentials and delete the downloaded
