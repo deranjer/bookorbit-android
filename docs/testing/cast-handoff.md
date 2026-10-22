@@ -54,3 +54,39 @@ transfers generally complete in tens of milliseconds. This strongly implicates r
 preloading rather than upstream latency or end-of-file moov placement. Next controlled test:
 serve an audio-only version to Cast while retaining the app's own chapters, then compare startup
 and seeking with the original. That mitigation has not yet been implemented or verified.
+
+### Controlled metadata-overlay experiment
+
+A local HTTP fixture reused only the real file's `ftyp`/`moov` header and original layout,
+with invented chapter labels and simulated zero media payload. It retrieved no source audio
+and did not modify the downloaded book. FFprobe 8.0.1 results:
+
+| Header / parser mode | HTTP requests | Chapter reads beyond header | Parsed chapters |
+| --- | ---: | ---: | ---: |
+| Original header | 500 | 498 | 498 |
+| Original header, ignore_chapters control | 2 | 0 | 0 |
+| Chapter track + reference hidden as free boxes | 2 | 0 | 0 |
+
+The overlay changed two four-byte box types (8 bytes total). File size, audio sample tables,
+audio offsets, AAC settings and declared duration remained unchanged; cover metadata remained
+available. This is a parsing/request-count experiment, not an audio decoding or Chromecast
+playback test, and its PC timings do not predict device startup time.
+
+This matches FFmpeg's `mov_read_chapters` behavior: it loops through chapter sample index entries,
+seeks to each sample's byte offset, reads its text, then seeks back. FFmpeg's documented
+`ignore_chapters` input option suppresses chapter parsing, but no equivalent sender option was
+found in the Cast track-selection documentation inspected. References:
+- https://github.com/FFmpeg/FFmpeg/blob/master/libavformat/mov.c
+- https://ffmpeg.org/ffmpeg-formats.html#mov_002fmp4_002f3gp
+- https://ffmpeg.org/pipermail/ffmpeg-devel/2017-August/214826.html
+
+Recommended implementation: a Cast-proxy-only metadata overlay that hides referenced chapter
+tracks, leaving original book bytes untouched. Preserve byte positions and content length, apply
+patches consistently to every overlapping range, and use the same representation for streamed
+and downloaded sources. Keep BookOrbit's existing server/book chapter metadata and controls.
+The production parser needs bounded, validated box traversal and chapter-reference matching;
+unsupported/malformed layouts should pass through unchanged. Validate range boundaries,
+seeking, resume, chapters, cover art and queue replacement before Chromecast acceptance.
+Full remuxing is a fallback if a metadata overlay is incompatible with a receiver, but requires
+processing/caching the complete book. Fast-start relocation alone does not address this file,
+whose moov is already at the front.
