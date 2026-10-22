@@ -1,5 +1,15 @@
 # Test PR #84: Chromecast queue MIME type
 
+## Physical retest result — 2026-10-22
+
+On Pixel 9 Pro / Android 17 with a real Chromecast, the user confirmed the latest debug build
+works as expected when switching MP3 → M4B → MP3 while remaining connected: no crash, correct
+displayed time and working seeks. Earlier physical retests confirmed the inspected 648 MB M4A
+starts in seconds with matching time and start/stop controls, and multi-file MP3 progress works.
+The combined PR 84–86 build passed 13 automated Android tests plus lint/JVM/build checks.
+This confirms the reported Cast regressions; it does not sign off the separate storage-recovery
+or private-CA acceptance matrix. The sections below retain the investigation and test procedure.
+
 Install the **full debug** APK (`com.bookorbit.debug`); fdroid builds intentionally have no Cast.
 Use the same Wi-Fi network as the Chromecast and sign into your server in the debug app.
 
