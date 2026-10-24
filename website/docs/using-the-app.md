@@ -20,6 +20,18 @@ supports EPUB, MOBI, AZW3, FB2 and CBZ ebooks, plus a separate native PDF reader
 you left off on another device or in the web client. The reader includes adjustable themes, font
 size, and layout settings.
 
+In **Settings → Reading**, **Reader interface** defaults to **App**. You can opt into
+**Server web reader** to use your server's familiar reading interface for ebooks, PDFs, and comics.
+Web mode requires a connection to the server and uses the server reader's settings and progress
+saving behavior. Downloaded files remain available through App mode. The floating web-reader
+options button lets you reload, return to the app, or choose **Open in App** for the current book
+without changing your saved preference.
+
+**Full-screen reading** hides Android's status and navigation bars in either interface. It is
+enabled by default; swipe from a screen edge to reveal the system bars temporarily, or disable it
+in Settings → Reading. In App mode, tap the center of an ebook page to show or hide the reader
+controls in either paginated or scrolling layouts.
+
 ## Listening to audiobooks
 
 Audiobook playback uses Media3/ExoPlayer, with:

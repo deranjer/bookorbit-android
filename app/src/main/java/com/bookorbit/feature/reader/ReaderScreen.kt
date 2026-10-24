@@ -134,7 +134,7 @@ fun ReaderScreen(
 
     val surface = themeBackgroundColor(ui.settings.themeName, ui.settings.isDark)
     val paginated = ui.settings.flow == "paginated"
-    val showChrome = chromeVisible || !paginated
+    val showChrome = chromeVisible
     val onSurface = if (ui.settings.isDark) Color.White else Color.Black
 
     Box(

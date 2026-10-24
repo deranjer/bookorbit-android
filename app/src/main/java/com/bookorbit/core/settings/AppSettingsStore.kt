@@ -14,6 +14,8 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
 enum class SeriesViewMode { LIST, GRID }
 
+enum class ReaderInterface { APP, SERVER_WEB }
+
 private val Context.appSettingsDataStore by preferencesDataStore("app_settings")
 
 /**
@@ -32,6 +34,23 @@ class AppSettingsStore @Inject constructor(
     private val comicRtlKey = booleanPreferencesKey("comic_rtl")
     private val seriesViewModeKey = stringPreferencesKey("series_view_mode")
     private val navItemsKey = stringPreferencesKey("nav_items")
+    private val readerInterfaceKey = stringPreferencesKey("reader_interface")
+    private val readingFullscreenKey = booleanPreferencesKey("reading_fullscreen")
+
+    val readerInterface = context.appSettingsDataStore.data.map { prefs ->
+        prefs[readerInterfaceKey]?.let { runCatching { ReaderInterface.valueOf(it) }.getOrNull() }
+            ?: ReaderInterface.APP
+    }
+
+    val readingFullscreen = context.appSettingsDataStore.data.map { it[readingFullscreenKey] ?: true }
+
+    suspend fun setReaderInterface(value: ReaderInterface) {
+        context.appSettingsDataStore.edit { it[readerInterfaceKey] = value.name }
+    }
+
+    suspend fun setReadingFullscreen(enabled: Boolean) {
+        context.appSettingsDataStore.edit { it[readingFullscreenKey] = enabled }
+    }
 
     val themeMode = context.appSettingsDataStore.data.map { prefs ->
         prefs[themeModeKey]?.let { raw -> runCatching { ThemeMode.valueOf(raw) }.getOrNull() } ?: ThemeMode.SYSTEM
