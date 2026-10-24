@@ -3,6 +3,9 @@ package com.bookorbit.feature.reader
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.util.Log
+import android.view.ViewGroup
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -59,6 +62,7 @@ fun ServerReaderScreen(kind: ReaderKind, vm: ReaderHostViewModel, onBack: () -> 
     var loading by remember { mutableStateOf(true) }
     var menu by remember { mutableStateOf(false) }
     var webView by remember { mutableStateOf<WebView?>(null) }
+    val destroyedViews = remember { mutableSetOf<WebView>() }
     val currentBack by rememberUpdatedState(onBack)
     BackHandler { currentBack() }
     val view = LocalView.current
@@ -107,6 +111,18 @@ fun ServerReaderScreen(kind: ReaderKind, vm: ReaderHostViewModel, onBack: () -> 
                         settings.allowContentAccess = false
                         // No JavascriptInterface and no native refresh cookies in the WebView.
                         webViewClient = object : WebViewClient() {
+                            override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                                Log.e("BookOrbitWebView", "Server reader renderer gone: crashed=${detail.didCrash()}, " +
+                                    "priority=${detail.rendererPriorityAtExit()}, provider=${WebView.getCurrentWebViewPackage()?.versionName}")
+                                if (webView === view) webView = null
+                                destroyedViews.add(view)
+                                (view.parent as? ViewGroup)?.removeView(view)
+                                view.destroy()
+                                failed = true
+                                loading = false
+                                return true
+                            }
+
                             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
                                 val url = request.url.toString().toHttpUrlOrNull() ?: return null
                                 if (!activePolicy.isRefresh(url, request.method)) return null
@@ -162,9 +178,11 @@ fun ServerReaderScreen(kind: ReaderKind, vm: ReaderHostViewModel, onBack: () -> 
                 },
                 onRelease = {
                     if (webView === it) webView = null
-                    it.onPause()
-                    it.stopLoading()
-                    it.destroy()
+                    if (!destroyedViews.remove(it)) {
+                        it.onPause()
+                        it.stopLoading()
+                        it.destroy()
+                    }
                 },
             )
         }
