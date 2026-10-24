@@ -12,6 +12,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.media3.session.SessionResult
 import com.bookorbit.core.model.AudioProgress
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFileRef
@@ -149,7 +150,15 @@ class PlayerManager @Inject constructor(
     }
 
     /** Whole-book position; the controller's own position may be chapter-relative (see BookAggregatingPlayer). */
-    private fun bookPositionMs(): Long? = activeBookPlayer.current?.bookPositionMs()
+    private fun bookPositionMs(): Long? {
+        val active = activeBookPlayer.current ?: return null
+        val files = _state.value.files
+        // A Cast queue load is asynchronous. Do not write the old book's position into the new book.
+        val index = active.currentMediaItemIndex
+        if (!active.hasCurrentSourceQueue() || active.mediaItemCount != files.size ||
+            active.currentMediaItem?.mediaId != files.getOrNull(index)?.id?.toString()) return null
+        return active.bookPositionMs()
+    }
 
     private suspend fun controller(): MediaController {
         controller?.let { return it }
@@ -168,11 +177,12 @@ class PlayerManager @Inject constructor(
     }
 
     fun loadAndPlay(bookId: Int) {
-        loadGeneration.incrementAndGet()
+        val generation = loadGeneration.incrementAndGet()
         cancelSleepTimer()
         _state.update { it.copy(playerError = null) }
         scope.launch {
             val data = repo.resolve(bookId)
+            if (generation != loadGeneration.get()) return@launch
             if (data == null) {
                 Log.e(TAG, "unable to resolve playback data for bookId=$bookId")
                 _state.update {
@@ -183,6 +193,7 @@ class PlayerManager @Inject constructor(
             val c = controller()
             val resume = audioProgress.resolveResume(bookId)
             val bookSpeed = settingsStore.bookSpeed(bookId)
+            if (generation != loadGeneration.get()) return@launch
             applyQueue(c, data, resume, autoPlay = true, bookSpeed = bookSpeed)
         }
     }
@@ -232,14 +243,18 @@ class PlayerManager @Inject constructor(
     ) {
         val speed = resolveSpeed(settings.speed, bookSpeed)
         val totalDurationSec = PlaybackQueue.totalDurationSec(data.files)
-        c.setMediaItems(data.mediaItems)
-        c.prepare()
-        c.setPlaybackSpeed(speed)
-        if (resume != null) {
-            val idx = data.files.indexOfFirst { it.id == resume.currentFileId }.coerceAtLeast(0)
-            c.seekTo(idx, (resume.positionSeconds * 1000).toLong())
-        }
-        if (autoPlay) c.play()
+        val index = resume?.let { r -> data.files.indexOfFirst { it.id == r.currentFileId }.coerceAtLeast(0) } ?: 0
+        val positionMs = ((resume?.positionSeconds ?: 0.0) * 1000).toLong()
+        val loaded = c.sendCustomCommand(
+            BookQueueCommand.command,
+            BookQueueCommand.encode(BookQueueCommand.Load(data.mediaItems, index, positionMs, speed, autoPlay)),
+        )
+        loaded.addListener({
+            val success = runCatching { loaded.get().resultCode == SessionResult.RESULT_SUCCESS }.getOrDefault(false)
+            if (!success && _state.value.currentBook?.id == data.book.id) {
+                _state.update { it.copy(playerError = UiText.of(R.string.player_err_load), buffering = false) }
+            }
+        }, ContextCompat.getMainExecutor(context))
 
         _state.update {
             it.copy(
@@ -386,12 +401,14 @@ class PlayerManager @Inject constructor(
      * process otherwise never re-fetches after the initial [loadAndPlay].
      */
     fun refreshIfStale() = scope.launch {
+        val generation = loadGeneration.get()
         val c = controller ?: return@launch
         if (c.isPlaying) return@launch
         val book = _state.value.currentBook ?: return@launch
         val files = _state.value.files
         if (files.isEmpty()) return@launch
         val resume = audioProgress.resolveResume(book.id) ?: return@launch
+        if (generation != loadGeneration.get() || c.isPlaying) return@launch
         val resumeIdx = files.indexOfFirst { it.id == resume.currentFileId }.coerceAtLeast(0)
         val resumeAbs = PlaybackQueue.toAbsoluteSec(files, resumeIdx, resume.positionSeconds)
         val currentAbs = (bookPositionMs() ?: return@launch) / 1000.0

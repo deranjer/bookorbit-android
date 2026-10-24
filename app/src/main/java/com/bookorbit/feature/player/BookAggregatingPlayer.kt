@@ -33,6 +33,7 @@ import java.util.concurrent.CopyOnWriteArraySet
 class BookAggregatingPlayer(
     player: Player,
     private val prefs: StateFlow<AudioSettings>,
+    private val sourceQueue: (() -> List<MediaItem>?)? = null,
 ) : ForwardingPlayer(player) {
 
     private val window = Timeline.Window()
@@ -146,14 +147,17 @@ class BookAggregatingPlayer(
         ChapterClock(fileDurationsSec(), chaptersFromExtras(), mode)
 
     private fun chaptersFromExtras(): List<ResolvedChapter> {
-        val extras = currentMediaItem?.mediaMetadata?.extras ?: return emptyList()
+        val extras = currentSourceItems()?.getOrNull(currentMediaItemIndex)?.mediaMetadata?.extras
+            ?: currentMediaItem?.mediaMetadata?.extras ?: return emptyList()
         val starts = extras.getDoubleArray(EXTRA_CHAPTER_STARTS_SEC) ?: return emptyList()
         val titles = extras.getStringArray(EXTRA_CHAPTER_TITLES)
         return starts.mapIndexed { i, s -> ResolvedChapter(titles?.getOrNull(i) ?: "Chapter ${i + 1}", s) }
             .takeIf { it.size >= 2 } ?: emptyList()
     }
 
-    fun bookPositionMs(): Long = absoluteMs(super.getCurrentPosition())
+    fun filePositionMs(): Long = super.getCurrentPosition()
+    fun hasCurrentSourceQueue(): Boolean = sourceQueue == null || currentSourceItems() != null
+    fun bookPositionMs(): Long = absoluteMs(filePositionMs())
     fun bookBufferedPositionMs(): Long = absoluteMs(super.getBufferedPosition())
     fun bookDurationMs(): Long = clock().bookDurationMs
 
@@ -220,11 +224,19 @@ class BookAggregatingPlayer(
     }
 
     private fun fileDurationsSec(): List<Double> {
+        currentSourceItems()?.let { items ->
+            return items.map { it.mediaMetadata.extras?.getDouble(EXTRA_DURATION_SEC) ?: 0.0 }
+        }
         val timeline = currentTimeline
         if (timeline.isEmpty) return emptyList()
         return (0 until timeline.windowCount).map { i ->
             timeline.getWindow(i, window).mediaItem.mediaMetadata.extras?.getDouble(EXTRA_DURATION_SEC) ?: 0.0
         }
+    }
+
+    /** Retain durations/chapters for Cast's placeholder windows without fabricating its timeline. */
+    private fun currentSourceItems(): List<MediaItem>? = sourceQueue?.invoke()?.takeIf {
+        matchesCurrentQueueItem(it, mediaItemCount, currentMediaItemIndex, currentMediaItem)
     }
 
     companion object {

@@ -14,15 +14,20 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSession.ControllerInfo
 import androidx.media3.session.MediaSession.MediaItemsWithStartPosition
 import androidx.media3.session.SessionError
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
 import com.bookorbit.feature.downloads.DownloadsRepository
+import com.bookorbit.feature.cast.CastProxyServer
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
+import com.google.common.util.concurrent.Futures
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -40,9 +45,43 @@ class MediaLibraryCallback @Inject constructor(
     private val playerRepo: PlayerRepository,
     private val audioProgress: AudioProgressRepository,
     private val playerManager: PlayerManager,
+    private val castProxyServer: CastProxyServer,
 ) : MediaLibrarySession.Callback {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var queueRequestGeneration = 0L
+
+    override fun onConnect(session: MediaSession, controller: ControllerInfo): MediaSession.ConnectionResult {
+        val base = super<MediaLibrarySession.Callback>.onConnect(session, controller)
+        if (!base.isAccepted || controller.packageName != context.packageName) return base
+        return MediaSession.ConnectionResult.accept(
+            base.availableSessionCommands.buildUpon().add(BookQueueCommand.command).build(),
+            base.availablePlayerCommands,
+        )
+    }
+
+    override fun onCustomCommand(
+        session: MediaSession,
+        controller: ControllerInfo,
+        command: SessionCommand,
+        args: Bundle,
+    ): ListenableFuture<SessionResult> {
+        if (command != BookQueueCommand.command || controller.packageName != context.packageName) {
+            return Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))
+        }
+        val generation = ++queueRequestGeneration
+        return future {
+            val load = try { BookQueueCommand.decode(args) } catch (_: IllegalArgumentException) {
+                return@future SessionResult(SessionError.ERROR_BAD_VALUE)
+            }
+            withContext(Dispatchers.Main.immediate) {
+                if (generation != queueRequestGeneration) return@withContext SessionResult(SessionResult.RESULT_SUCCESS)
+                val routed = routeQueue(MediaItemsWithStartPosition(load.items, load.index, load.positionMs))
+                BookQueueCommand.apply(session.player, load.copy(items = routed.mediaItems))
+                SessionResult(SessionResult.RESULT_SUCCESS)
+            }
+        }
+    }
 
     override fun onGetLibraryRoot(
         session: MediaLibrarySession,
@@ -106,12 +145,12 @@ class MediaLibraryCallback @Inject constructor(
         val chapterRef = mediaItems.firstNotNullOfOrNull { AutoBrowseTree.parseChapterId(it.mediaId) }
         if (chapterRef != null) {
             val (chapterBookId, index) = chapterRef
-            return@future resolveQueue(chapterBookId, startAtChapterIndex = index)
-                ?: MediaItemsWithStartPosition(mediaItems, startIndex, startPositionMs)
+            return@future routeQueue(resolveQueue(chapterBookId, startAtChapterIndex = index)
+                ?: MediaItemsWithStartPosition(mediaItems, startIndex, startPositionMs))
         }
         val bookId = mediaItems.firstNotNullOfOrNull { AutoBrowseTree.parseBookId(it.mediaId) }
-        bookId?.let { resolveQueue(it) }
-            ?: MediaItemsWithStartPosition(mediaItems, startIndex, startPositionMs)
+        routeQueue(bookId?.let { resolveQueue(it) }
+            ?: MediaItemsWithStartPosition(mediaItems, startIndex, startPositionMs))
     }
 
     /** Pressing play with an empty queue (e.g. "resume" from the car): replay the last book. */
@@ -119,9 +158,21 @@ class MediaLibraryCallback @Inject constructor(
         mediaSession: MediaSession,
         controller: ControllerInfo,
     ): ListenableFuture<MediaItemsWithStartPosition> = future {
-        audioProgress.recent().firstNotNullOfOrNull { resolveQueue(it.bookId) }
-            ?: MediaItemsWithStartPosition(emptyList(), 0, 0)
+        routeQueue(audioProgress.recent().firstNotNullOfOrNull { resolveQueue(it.bookId) }
+            ?: MediaItemsWithStartPosition(emptyList(), 0, 0))
     }
+
+    /** Queue replacement follows the active output, including a second book in the same session. */
+    private suspend fun routeQueue(queue: MediaItemsWithStartPosition): MediaItemsWithStartPosition =
+        withContext(Dispatchers.Main.immediate) {
+            if (castProxyServer.isRunning) {
+                MediaItemsWithStartPosition(
+                    castProxyServer.rewriteForCast(queue.mediaItems, queue.startIndex, queue.startPositionMs),
+                    queue.startIndex,
+                    queue.startPositionMs,
+                )
+            } else queue
+        }
 
     /** Built on each request, so the car follows the device language even if it changes while connected. */
     private fun labels() = AutoBrowseTree.Labels(

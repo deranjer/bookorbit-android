@@ -1,5 +1,6 @@
 package com.bookorbit.feature.player
 
+import android.util.Log
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
@@ -62,6 +63,7 @@ class PlaybackService : MediaLibraryService() {
     private var lastNotifiedBookId: Int? = null
 
     private var mediaSession: MediaLibrarySession? = null
+    private var usingCast = false
 
     override fun onCreate() {
         super.onCreate()
@@ -90,46 +92,60 @@ class PlaybackService : MediaLibraryService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? =
         mediaSession
 
-    private fun wrap(p: Player) = BookAggregatingPlayer(p, livePrefs.settings).also { activeBookPlayer.current = it }
+    private fun wrap(p: Player, cast: Boolean = false) = BookAggregatingPlayer(
+        p, livePrefs.settings, if (cast) ({ castProxyServer.sourceQueue?.castItems }) else null,
+    ).also { activeBookPlayer.current = it }
 
     /** Moves playback from the local [player] to [cast], preserving position and play state. */
     private fun switchToCast(cast: Player) {
+        if (usingCast) return
         val session = mediaSession ?: return
         val current = session.player
 
         val outgoing = activeBookPlayer.current ?: return
-        val absoluteMs = outgoing.bookPositionMs()
-        val wasPlaying = current.playWhenReady
         val items = current.currentTimeline.mediaItems()
         if (items.isEmpty()) return
 
-        castProxyServer.start()
-        val rewritten = castProxyServer.rewriteForCast(items)
-
-        cast.setMediaItems(rewritten)
-        cast.prepare()
+        // A failure here (no LAN address, unconvertible item) must not take the app down from inside a
+        // Cast SDK callback; stay on the local player instead.
+        val prepared = runCatching {
+            castProxyServer.start()
+            transferQueueToCast(player, cast, castProxyServer.rewriteForCast(items, player.currentMediaItemIndex, player.currentPosition))
+        }
+        if (prepared.isFailure) {
+            Log.w("PlaybackService", "Cast handoff failed; retaining local playback", prepared.exceptionOrNull())
+            castProxyServer.stop()
+            return
+        }
 
         outgoing.detach()
-        val incoming = wrap(cast)
+        val incoming = wrap(cast, cast = true)
         session.setPlayer(incoming)
-        incoming.seekToBookMs(absoluteMs)
-        incoming.playWhenReady = wasPlaying
+        usingCast = true
     }
 
     /** Moves playback back from the cast player to the local [player], preserving position and play state. */
     private fun switchToLocal() {
+        if (!usingCast) return
         val session = mediaSession ?: return
         val current = session.player
 
         val outgoing = activeBookPlayer.current ?: return
-        val absoluteMs = outgoing.bookPositionMs()
+        val queue = castProxyServer.sourceQueue ?: return
+        // Cast can still expose the previous book while its replacement is loading. In that case
+        // restore the requested new queue and its resume point, never the stale receiver timeline.
+        val location = castReturnPosition(queue, current.currentTimeline.mediaItems(), current.currentMediaItemIndex, outgoing.filePositionMs())
         val wasPlaying = current.playWhenReady
 
+        current.pause()
         outgoing.detach()
+        player.setMediaItems(queue.items, location.first, location.second)
+        player.playbackParameters = current.playbackParameters
+        player.prepare()
         val incoming = wrap(player)
         session.setPlayer(incoming)
-        incoming.seekToBookMs(absoluteMs)
         incoming.playWhenReady = wasPlaying
+        usingCast = false
 
         castProxyServer.stop()
     }
