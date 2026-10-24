@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import coil.ImageLoader
 import com.bookorbit.core.appinfo.AppInfoRepository
 import com.bookorbit.core.auth.SessionManager
+import com.bookorbit.core.network.UserCaSettings
 import com.bookorbit.feature.main.NavConfig
 import com.bookorbit.feature.main.NavItem
 import com.bookorbit.feature.main.canUseBookDrop
@@ -24,6 +25,7 @@ import com.bookorbit.feature.player.ProgressBarMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,6 +45,7 @@ class SettingsViewModel @Inject constructor(
     private val locationStore: DownloadLocationStore,
     private val appInfoRepository: AppInfoRepository,
     private val session: SessionManager,
+    private val userCaSettings: UserCaSettings,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
     val appInfo: StateFlow<AppInfo?> = appInfoRepository.appInfo
@@ -74,6 +77,15 @@ class SettingsViewModel @Inject constructor(
 
     val wifiOnlyDownloads: StateFlow<Boolean> = appSettings.wifiOnlyDownloads
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    val certificateHost: String get() = UserCaSettings.httpsHost(session.serverUrl).orEmpty()
+
+    val trustUserCas: StateFlow<Boolean> = userCaSettings.hosts.map { userCaSettings.isEnabledForUrl(session.serverUrl) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun setTrustUserCas(enabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) { userCaSettings.setEnabledForUrl(session.serverUrl, enabled) }
+    }
 
     val downloadsSummary: StateFlow<DownloadsSummary> = downloadsRepo.downloads
         .map { downloads -> DownloadsSummary(count = downloads.size, totalBytes = downloads.sumOf { it.sizeBytes }) }

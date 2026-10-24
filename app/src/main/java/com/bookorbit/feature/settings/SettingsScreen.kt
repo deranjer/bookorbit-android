@@ -67,6 +67,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val navItems by vm.navItems.collectAsStateWithLifecycle()
     val wifiOnly by vm.wifiOnlyDownloads.collectAsStateWithLifecycle()
     val dynamicColor by vm.dynamicColor.collectAsStateWithLifecycle()
+    val trustUserCas by vm.trustUserCas.collectAsStateWithLifecycle()
     val downloadsSummary by vm.downloadsSummary.collectAsStateWithLifecycle()
     val defaultSpeed by vm.defaultSpeed.collectAsStateWithLifecycle()
     val progressBarMode by vm.progressBarMode.collectAsStateWithLifecycle()
@@ -176,6 +177,16 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                         Text(stringResource(R.string.settings_nav_reset))
                     }
                 }
+            }
+            item { HorizontalDivider() }
+
+            item { SectionHeader(stringResource(R.string.settings_security)) }
+            item {
+                SettingsRow(
+                    title = stringResource(R.string.settings_trust_user_cas),
+                    subtitle = stringResource(R.string.settings_trust_user_cas_desc, vm.certificateHost),
+                    trailing = { Switch(checked = trustUserCas, enabled = vm.certificateHost.isNotBlank(), onCheckedChange = vm::setTrustUserCas) },
+                )
             }
             item { HorizontalDivider() }
 
@@ -347,7 +358,7 @@ private fun SettingsRow(title: String, subtitle: String, trailing: @Composable (
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Column(modifier = Modifier.padding(end = 12.dp)) {
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

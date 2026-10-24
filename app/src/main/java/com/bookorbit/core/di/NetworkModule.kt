@@ -11,6 +11,7 @@ import com.bookorbit.core.network.MainClient
 import com.bookorbit.core.network.PersistentCookieJar
 import com.bookorbit.core.network.RefreshClient
 import com.bookorbit.core.network.TokenAuthenticator
+import com.bookorbit.core.network.UserCaTrust
 import dagger.Module
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.Provides
@@ -55,7 +56,8 @@ object NetworkModule {
     fun provideRefreshClient(
         cookieJar: PersistentCookieJar,
         logging: HttpLoggingInterceptor,
-    ): OkHttpClient = OkHttpClient.Builder()
+        userCaTrust: UserCaTrust,
+    ): OkHttpClient = userCaTrust.applyTo(OkHttpClient.Builder())
         .cookieJar(cookieJar)
         .addInterceptor(logging)
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -71,7 +73,8 @@ object NetworkModule {
         authInterceptor: AuthInterceptor,
         authenticator: TokenAuthenticator,
         logging: HttpLoggingInterceptor,
-    ): OkHttpClient = OkHttpClient.Builder()
+        userCaTrust: UserCaTrust,
+    ): OkHttpClient = userCaTrust.applyTo(OkHttpClient.Builder())
         .cookieJar(cookieJar)
         .addInterceptor(baseUrlInterceptor)
         .addInterceptor(authInterceptor)
@@ -90,7 +93,8 @@ object NetworkModule {
         cookieJar: PersistentCookieJar,
         authInterceptor: AuthInterceptor,
         logging: HttpLoggingInterceptor,
-    ): OkHttpClient = OkHttpClient.Builder()
+        userCaTrust: UserCaTrust,
+    ): OkHttpClient = userCaTrust.applyTo(OkHttpClient.Builder())
         .cookieJar(cookieJar)
         .addInterceptor(authInterceptor)
         .addInterceptor(logging)
