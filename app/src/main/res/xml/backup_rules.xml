@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- See data_extraction_rules.xml: Keystore-encrypted prefs must not be restored onto another install. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="bookorbit_secure_prefs.xml" />
+</full-backup-content>
