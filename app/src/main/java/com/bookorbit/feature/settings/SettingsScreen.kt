@@ -55,6 +55,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bookorbit.BuildConfig
 import com.bookorbit.core.settings.ThemeMode
+import com.bookorbit.core.settings.ReaderInterface
 import com.bookorbit.feature.player.ProgressBarMode
 import com.bookorbit.feature.player.SPEED_PRESETS
 import kotlin.math.abs
@@ -63,6 +64,8 @@ import kotlin.math.pow
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
+    val readerInterface by vm.readerInterface.collectAsStateWithLifecycle()
+    val readingFullscreen by vm.readingFullscreen.collectAsStateWithLifecycle()
     val themeMode by vm.themeMode.collectAsStateWithLifecycle()
     val navItems by vm.navItems.collectAsStateWithLifecycle()
     val wifiOnly by vm.wifiOnlyDownloads.collectAsStateWithLifecycle()
@@ -115,6 +118,33 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                         trailing = { Switch(checked = dynamicColor, onCheckedChange = vm::setDynamicColor) },
                     )
                 }
+            }
+            item { HorizontalDivider() }
+
+            item { SectionHeader(stringResource(R.string.settings_reading)) }
+            item {
+                SettingsRow(
+                    title = stringResource(R.string.settings_reader_interface),
+                    subtitle = stringResource(R.string.settings_reader_interface_desc),
+                    trailing = {},
+                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    ReaderInterface.entries.forEachIndexed { index, mode ->
+                        SegmentedButton(
+                            selected = readerInterface == mode,
+                            onClick = { vm.setReaderInterface(mode) },
+                            shape = SegmentedButtonDefaults.itemShape(index, ReaderInterface.entries.size),
+                            label = { Text(stringResource(if (mode == ReaderInterface.APP) R.string.reader_interface_app else R.string.reader_interface_web)) },
+                        )
+                    }
+                }
+            }
+            item {
+                SettingsRow(
+                    title = stringResource(R.string.settings_reading_fullscreen),
+                    subtitle = stringResource(R.string.settings_reading_fullscreen_desc),
+                    trailing = { Switch(checked = readingFullscreen, onCheckedChange = vm::setReadingFullscreen) },
+                )
             }
             item { HorizontalDivider() }
 
@@ -340,14 +370,14 @@ private fun SectionHeader(title: String) {
 }
 
 @Composable
-private fun SettingsRow(title: String, subtitle: String, trailing: @Composable () -> Unit) {
+internal fun SettingsRow(title: String, subtitle: String, trailing: @Composable () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Column(modifier = Modifier.padding(end = 12.dp)) {
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

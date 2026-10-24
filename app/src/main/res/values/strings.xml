@@ -435,4 +435,15 @@
     <string name="settings_nav_move_down">Move %1$s down</string>
     <string name="settings_nav_remove">Remove %1$s from the bar</string>
     <string name="settings_nav_add">Add %1$s to the bar</string>
+    <string name="settings_reading">Reading</string>
+    <string name="settings_reader_interface">Reader interface</string>
+    <string name="settings_reader_interface_desc">App is the default and supports downloaded books. Server web reader uses your server’s interface and requires a connection. Applies the next time you open a book.</string>
+    <string name="reader_interface_app">App (default)</string>
+    <string name="reader_interface_web">Server web reader</string>
+    <string name="settings_reading_fullscreen">Full-screen reading</string>
+    <string name="settings_reading_fullscreen_desc">Hide the status and navigation bars in ebooks, PDFs, and comics. Swipe from the screen edge to reveal them.</string>
+    <string name="reader_web_unavailable">The server web reader could not be opened. Check your connection or open this book in the app.</string>
+    <string name="reader_open_app">Open in App</string>
+    <string name="reader_web_menu">Web reader options</string>
+    <string name="reader_web_reload">Reload web reader</string>
 </resources>

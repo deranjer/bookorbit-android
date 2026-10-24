@@ -17,6 +17,7 @@ import com.bookorbit.core.model.AppInfo
 import com.bookorbit.core.settings.AppSettingsStore
 import com.bookorbit.core.settings.DownloadLocationStore
 import com.bookorbit.core.settings.ThemeMode
+import com.bookorbit.core.settings.ReaderInterface
 import com.bookorbit.feature.downloads.DownloadsRepository
 import com.bookorbit.feature.player.AudioSettingsStore
 import com.bookorbit.feature.player.DEFAULT_SPEED
@@ -46,6 +47,19 @@ class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
     val appInfo: StateFlow<AppInfo?> = appInfoRepository.appInfo
+
+    val readerInterface = appSettings.readerInterface
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReaderInterface.APP)
+    val readingFullscreen = appSettings.readingFullscreen
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    fun setReaderInterface(value: ReaderInterface) {
+        viewModelScope.launch { appSettings.setReaderInterface(value) }
+    }
+
+    fun setReadingFullscreen(enabled: Boolean) {
+        viewModelScope.launch { appSettings.setReadingFullscreen(enabled) }
+    }
 
     /** The bottom-bar buttons the user has chosen, in order. */
     val navItems: StateFlow<List<NavItem>> = appSettings.navItems

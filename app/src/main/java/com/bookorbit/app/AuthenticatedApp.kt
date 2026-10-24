@@ -13,9 +13,8 @@ import com.bookorbit.core.model.AuthUser
 import com.bookorbit.feature.main.MainShell
 import com.bookorbit.feature.player.PlayerScreen
 import com.bookorbit.feature.player.PlayerViewModel
-import com.bookorbit.feature.reader.ReaderScreen
-import com.bookorbit.feature.reader.comic.ComicReaderScreen
-import com.bookorbit.feature.reader.pdf.PdfReaderScreen
+import com.bookorbit.feature.reader.ReaderDestination
+import com.bookorbit.feature.reader.ReaderKind
 
 /**
  * App-level navigation host for the signed-in area. Holds full-screen destinations that sit OUTSIDE
@@ -57,19 +56,19 @@ fun AuthenticatedApp(user: AuthUser, onSignOut: () -> Unit) {
             route = AppRoutes.READER,
             arguments = listOf(navArgument("id") { type = NavType.IntType }),
         ) {
-            ReaderScreen(onBack = dropUnlessResumed { navController.popBackStack() })
+            ReaderDestination(ReaderKind.EBOOK, onBack = dropUnlessResumed { navController.popBackStack() })
         }
         composable(
             route = AppRoutes.PDF,
             arguments = listOf(navArgument("id") { type = NavType.IntType }),
         ) {
-            PdfReaderScreen(onBack = dropUnlessResumed { navController.popBackStack() })
+            ReaderDestination(ReaderKind.PDF, onBack = dropUnlessResumed { navController.popBackStack() })
         }
         composable(
             route = AppRoutes.COMIC,
             arguments = listOf(navArgument("id") { type = NavType.IntType }),
         ) {
-            ComicReaderScreen(onBack = dropUnlessResumed { navController.popBackStack() })
+            ReaderDestination(ReaderKind.COMIC, onBack = dropUnlessResumed { navController.popBackStack() })
         }
         composable(AppRoutes.PLAYER) {
             PlayerScreen(onBack = dropUnlessResumed { navController.popBackStack() })

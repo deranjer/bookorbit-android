@@ -45,6 +45,14 @@ class ReaderProgressRepository @Inject constructor(
         return dao.dirtyEntries().isNotEmpty()
     }
 
+    /** Do not let a web reader start behind a pending offline position for this file. */
+    suspend fun syncBeforeWeb(fileId: Int) {
+        val local = dao.get(fileId) ?: return
+        if (!local.dirty) return
+        api.saveFileProgress(fileId, SaveFileProgress(local.cfi, local.percentage))
+        dao.markSynced(fileId)
+    }
+
     /**
      * Where to resume: a not-yet-synced local position wins (most recent reading), otherwise the
      * server's, otherwise the start.
