@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.7.0](https://github.com/deranjer/bookorbit-android/compare/v0.6.0...v0.7.0) (2026-10-24)
+
+
+### Features
+
+* **network:** opt-in trust for user-installed CA certificates ([4bfdbd1](https://github.com/deranjer/bookorbit-android/commit/4bfdbd1073c33afab993ef5653993561bc37b208))
+* **network:** opt-in trust for user-installed CA certificates ([4751479](https://github.com/deranjer/bookorbit-android/commit/4751479ce74c8ceb8f689b0df00e302bb321b51a))
+* **reader:** add opt-in server web reader and immersive reading ([9334fe6](https://github.com/deranjer/bookorbit-android/commit/9334fe6928da83723d94dc887d06bea3faad0bdf))
+* **reader:** add opt-in server web reader and immersive reading ([9bf6253](https://github.com/deranjer/bookorbit-android/commit/9bf6253ff994974ac0a610eb1579048f73f1692a))
+
+
+### Bug Fixes
+
+* **auth:** drain pending preference writes before key recovery ([7316934](https://github.com/deranjer/bookorbit-android/commit/73169342b87979c83367ebfafaa5227b893ec216))
+* **auth:** recover from an undecryptable secure store and exclude it from backup ([3390932](https://github.com/deranjer/bookorbit-android/commit/3390932ab323e1aaaaf9f0a7224dda28c079e7bc))
+* **auth:** recover from undecryptable secure store, exclude from backup ([e24e97b](https://github.com/deranjer/bookorbit-android/commit/e24e97bd7dd4fcd61800cf76a9424697f71a39f5))
+* **auth:** retain database ownership across credential recovery ([5c04d6d](https://github.com/deranjer/bookorbit-android/commit/5c04d6dabfa0db1d79e69ee8a7bfb7644cd4ccf8))
+* **cast:** apply book queue loads through the playback service ([39e74bc](https://github.com/deranjer/bookorbit-android/commit/39e74bc80c34e5e07e12bacff695872ce52c7bcd))
+* **cast:** hide embedded chapter tracks without changing audio offsets ([8fd90bd](https://github.com/deranjer/bookorbit-android/commit/8fd90bddb810e735dee46396c9fefd54e3f14202))
+* **cast:** pause local playback and load the resume position atomically ([c3bab7b](https://github.com/deranjer/bookorbit-android/commit/c3bab7ba127025334e605e0d8204b5c1979da9d9))
+* **cast:** preserve audiobook format for extensionless streams ([d0f76d8](https://github.com/deranjer/bookorbit-android/commit/d0f76d8e50a98428857c16f42cc859d14867bf95))
+* **cast:** prevent chapter scans and preserve playback across book changes ([960fe33](https://github.com/deranjer/bookorbit-android/commit/960fe337d4436b898f8171b3e1101b5b92d751c8))
+* **cast:** route replacement books and restore the latest source queue ([e06d36d](https://github.com/deranjer/bookorbit-android/commit/e06d36d00e334b2a48f35e28353902fc9de90a9e))
+* **cast:** set a MIME type on cast queue items and survive handoff failures ([4107776](https://github.com/deranjer/bookorbit-android/commit/4107776dacf1970365285472a241f72c41d71267))
+* **cast:** track progress through partially loaded multi-file queues ([5cca1b9](https://github.com/deranjer/bookorbit-android/commit/5cca1b9e516d140d28bbe0279c4cfb3d8d679cf3))
+* **network:** scope user CA consent to server setup hostname ([dd5097d](https://github.com/deranjer/bookorbit-android/commit/dd5097d6f78e5ddb2aa0f3fed3ef31d6afb717ae))
+* **settings:** reserve space for trailing controls ([7e821a0](https://github.com/deranjer/bookorbit-android/commit/7e821a040eadc29addc331bc3527f4d637c55c59))
+
 ## [0.6.0](https://github.com/deranjer/bookorbit-android/compare/v0.5.1...v0.6.0) (2026-10-08)
 
 
