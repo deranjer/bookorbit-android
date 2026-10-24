@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.1](https://github.com/deranjer/bookorbit-android/compare/v0.7.0...v0.7.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* **reader:** recover from WebView renderer termination ([9c1170f](https://github.com/deranjer/bookorbit-android/commit/9c1170f45ffaeb92b84f6614cbf0c1734d875057))
+* **reader:** recover from WebView renderer termination ([240b40b](https://github.com/deranjer/bookorbit-android/commit/240b40b1990ba1e3ea27ab1c604f4b5306fd17b4))
+
 ## [0.7.0](https://github.com/deranjer/bookorbit-android/compare/v0.6.0...v0.7.0) (2026-10-24)
 
 
