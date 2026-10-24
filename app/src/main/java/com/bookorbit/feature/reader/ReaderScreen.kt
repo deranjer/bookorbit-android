@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -59,6 +60,7 @@ fun ReaderScreen(
     val controller = remember { ReaderController() }
     var ready by remember { mutableStateOf(false) }
     var opened by remember { mutableStateOf(false) }
+    var rendererFailed by remember { mutableStateOf(false) }
     var chromeVisible by remember { mutableStateOf(true) }
     var tocVisible by remember { mutableStateOf(false) }
     var settingsVisible by remember { mutableStateOf(false) }
@@ -123,8 +125,8 @@ fun ReaderScreen(
     }
 
     val resolved = ui.resolved
-    LaunchedEffect(ready, resolved) {
-        if (ready && resolved != null && !opened) {
+    LaunchedEffect(ready, resolved, rendererFailed) {
+        if (ready && resolved != null && !opened && !rendererFailed) {
             opened = true
             withContext(Dispatchers.IO) {
                 controller.open(openParamsFor(resolved.ref, resolved.format, resolved.initial, ui.settings), context)
@@ -142,7 +144,16 @@ fun ReaderScreen(
             .fillMaxSize()
             .background(surface),
     ) {
-        ReaderWebView(controller = controller, modifier = Modifier.fillMaxSize())
+        if (!rendererFailed) {
+            ReaderWebView(
+                controller = controller,
+                modifier = Modifier.fillMaxSize(),
+                onRendererGone = {
+                    rendererFailed = true
+                    vm.onRendererGone()
+                },
+            )
+        }
 
         if (showChrome) {
             Row(
@@ -215,7 +226,7 @@ fun ReaderScreen(
             )
         }
 
-        if (!ui.loaded && ui.error == null) {
+        if ((!ui.loaded || !ready) && ui.error == null && !rendererFailed) {
             Box(modifier = Modifier.fillMaxSize().background(surface), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
@@ -227,8 +238,24 @@ fun ReaderScreen(
             }
         }
 
+        if (rendererFailed) {
+            androidx.compose.foundation.layout.Column(
+                modifier = Modifier.fillMaxSize().background(surface).padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+            ) {
+                Text(stringResource(R.string.reader_renderer_unavailable), color = onSurface)
+                Button(onClick = {
+                    ready = false
+                    opened = false
+                    rendererFailed = false
+                }) { Text(stringResource(R.string.retry)) }
+                Button(onClick = onBack) { Text(stringResource(R.string.back)) }
+            }
+        }
+
         // One-time coach overlay teaching the (invisible) paginated tap zones.
-        if (paginated && ui.loaded && ui.showPagingHint) {
+        if (!rendererFailed && paginated && ui.loaded && ui.showPagingHint) {
             PagingHintOverlay(onDismiss = { vm.dismissPagingHint() })
         }
     }

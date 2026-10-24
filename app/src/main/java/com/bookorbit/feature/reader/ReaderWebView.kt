@@ -5,8 +5,10 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Base64
+import android.util.Log
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -52,6 +54,7 @@ private const val CHUNK_BYTES = CHUNK_CHARS / 4 * 3
  * protocol, buffering an open requested before the bridge signals ready.
  */
 class ReaderController {
+    @Volatile
     private var webView: WebView? = null
 
     /** Set by the screen to receive parsed reader events. */
@@ -61,14 +64,17 @@ class ReaderController {
         this.webView = webView
     }
 
-    fun detach() {
-        webView = null
+    fun detach(view: WebView) {
+        if (webView === view) webView = null
     }
 
     /** Called from the JS interface (binder thread); marshals events to the main thread. */
-    fun handleMessage(data: String) {
+    fun handleMessage(view: WebView, data: String) {
+        if (webView !== view) return
         val event = ReaderBridge.parseEvent(data) ?: return
-        Handler(Looper.getMainLooper()).post { listener?.invoke(event) }
+        Handler(Looper.getMainLooper()).post {
+            if (webView === view) listener?.invoke(event)
+        }
     }
 
     /**
@@ -138,7 +144,7 @@ class ReaderController {
 
     private fun eval(js: String) {
         val wv = webView ?: return
-        wv.post { wv.evaluateJavascript(js, null) }
+        wv.post { if (webView === wv) wv.evaluateJavascript(js, null) }
     }
 }
 
@@ -180,7 +186,9 @@ private class EmptyActionModeCallback(private val delegate: android.view.ActionM
 fun ReaderWebView(
     controller: ReaderController,
     modifier: Modifier = Modifier,
+    onRendererGone: () -> Unit,
 ) {
+    val destroyedViews = androidx.compose.runtime.remember { mutableSetOf<WebView>() }
     AndroidView(
         modifier = modifier,
         factory = { context ->
@@ -200,6 +208,17 @@ fun ReaderWebView(
                 isHorizontalScrollBarEnabled = false
 
                 webViewClient = object : WebViewClientCompat() {
+                    override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                        Log.e("BookOrbitWebView", "Local reader renderer gone: crashed=${detail.didCrash()}, " +
+                            "priority=${detail.rendererPriorityAtExit()}, provider=${WebView.getCurrentWebViewPackage()?.versionName}")
+                        controller.detach(view)
+                        destroyedViews.add(view)
+                        (view.parent as? ViewGroup)?.removeView(view)
+                        view.destroy()
+                        onRendererGone()
+                        return true
+                    }
+
                     override fun shouldInterceptRequest(
                         view: WebView,
                         request: WebResourceRequest,
@@ -209,7 +228,7 @@ fun ReaderWebView(
                 addJavascriptInterface(
                     object {
                         @JavascriptInterface
-                        fun postMessage(message: String) = controller.handleMessage(message)
+                        fun postMessage(message: String) = controller.handleMessage(this@apply, message)
                     },
                     "AndroidReaderBridge",
                 )
@@ -218,7 +237,13 @@ fun ReaderWebView(
                 loadUrl("https://appassets.androidplatform.net/assets/reader/index.html")
             }
         },
-        onRelease = { controller.detach() },
+        onRelease = { view ->
+            controller.detach(view)
+            if (!destroyedViews.remove(view)) {
+                (view.parent as? ViewGroup)?.removeView(view)
+                view.destroy()
+            }
+        },
     )
 }
 

@@ -134,6 +134,23 @@ class ReaderViewModel @Inject constructor(
         _ui.update { it.copy(loaded = true, toc = toc, chapterTitle = it.chapterTitle ?: title) }
     }
 
+    /** Keep the last reading position and reset page state before a fresh WebView is created. */
+    fun onRendererGone() {
+        _ui.update { state ->
+            state.copy(
+                loaded = false,
+                toolbar = null,
+                search = null,
+                resolved = state.resolved?.let { resolved ->
+                    resolved.copy(initial = InitialProgress(
+                        currentCfi ?: resolved.initial.cfi,
+                        if (state.loaded) state.percentage / 100.0 else resolved.initial.fraction,
+                    ))
+                },
+            )
+        }
+    }
+
     fun onRelocate(cfi: String?, fraction: Double?, chapterTitle: String?) {
         _ui.update {
             it.copy(
