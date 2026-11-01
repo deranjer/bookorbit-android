@@ -204,7 +204,7 @@
     <string name="where_you_read">Where you read</string>
     <string name="year">Year</string>
     <string name="settings_material_you">Material You colours</string>
-    <string name="settings_material_you_desc">Match your wallpaper instead of BookOrbit blue</string>
+    <string name="settings_material_you_desc">Match your wallpaper instead of the BookOrbit theme</string>
     <string name="settings_security">Security</string>
     <string name="settings_trust_user_cas">Trust user-installed certificates</string>
     <string name="settings_trust_user_cas_desc">Allow device-installed CAs for %1$s only. Enable only if you trust every CA in your device\'s user store. Certificate validity and server names are still checked. Turning this off blocks new requests; transfers already in progress can finish.</string>

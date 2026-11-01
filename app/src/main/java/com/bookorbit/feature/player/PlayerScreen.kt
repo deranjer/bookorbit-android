@@ -181,7 +181,7 @@ fun PlayerScreen(
                     .fillMaxWidth(0.78f)
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surface),
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
             )
             Text(
                 book.title ?: stringResource(R.string.player_audiobook),

@@ -1,5 +1,6 @@
 package com.bookorbit.feature.settings
 
+import com.bookorbit.ui.components.SectionLabel
 import com.bookorbit.ui.asString
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -49,7 +50,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -370,14 +370,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
 
 @Composable
 private fun SectionHeader(title: String) {
-    Text(
-        title,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-    )
+    SectionLabel(title)
 }
 
 @Composable

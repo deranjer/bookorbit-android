@@ -42,7 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bookorbit.ui.theme.WarningOrange
+import com.bookorbit.ui.theme.BookOrbitTheme
 import com.bookorbit.core.network.LocalNetworkAccess
 import com.bookorbit.core.network.UserCaSettings
 
@@ -107,12 +107,12 @@ fun ServerSetupScreen(
                 Icon(
                     Icons.Outlined.WarningAmber,
                     contentDescription = null,
-                    tint = WarningOrange,
+                    tint = BookOrbitTheme.tokens.warning,
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
                     stringResource(R.string.server_http_warning),
-                    color = WarningOrange,
+                    color = BookOrbitTheme.tokens.warning,
                     style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
                 )
             }

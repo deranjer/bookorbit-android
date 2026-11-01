@@ -1,5 +1,6 @@
 package com.bookorbit.feature.notes
 
+import com.bookorbit.ui.components.ErrorState
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.compose.foundation.background
@@ -20,7 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -82,10 +82,7 @@ fun NotesScreen(
         when {
             ui.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
             ui.error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(stringResource(R.string.couldn_t_load_your_highlights), color = MaterialTheme.colorScheme.error)
-                    Button(onClick = { vm.reload() }, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.retry)) }
-                }
+                ErrorState(stringResource(R.string.couldn_t_load_your_highlights), onRetry = { vm.reload() })
             }
             ui.items.isEmpty() -> Box(Modifier.fillMaxSize().padding(32.dp), Alignment.Center) {
                 Text(

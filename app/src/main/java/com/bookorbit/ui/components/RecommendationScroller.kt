@@ -59,7 +59,7 @@ fun RecommendationScroller(
                             .fillMaxWidth()
                             .aspectRatio(2f / 3f)
                             .clip(RoundedCornerShape(6.dp))
-                            .background(MaterialTheme.colorScheme.surface),
+                            .background(MaterialTheme.colorScheme.surfaceContainer),
                         contentAlignment = Alignment.Center,
                     ) {
                         if (rec.hasCover) {

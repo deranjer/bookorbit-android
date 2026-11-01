@@ -1,5 +1,7 @@
 package com.bookorbit.feature.dashboard
 
+import androidx.compose.foundation.BorderStroke
+import com.bookorbit.ui.components.ErrorState
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
@@ -24,7 +26,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -73,11 +74,8 @@ fun DashboardScreen(
             HomeHeader(userName = userName, onOpenProfile = onOpenProfile)
 
             when {
-                ui.error -> Box(Modifier.fillMaxWidth().padding(vertical = 64.dp), Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(R.string.couldn_t_load_your_dashboard), color = MaterialTheme.colorScheme.error)
-                        Button(onClick = { vm.refresh() }, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.retry)) }
-                    }
+                ui.error -> Box(Modifier.fillMaxWidth(), Alignment.Center) {
+                    ErrorState(stringResource(R.string.couldn_t_load_your_dashboard), onRetry = { vm.refresh() })
                 }
                 isEmpty -> Box(Modifier.fillMaxWidth().padding(vertical = 64.dp), Alignment.Center) {
                     Text(
@@ -168,7 +166,8 @@ private fun StatCard(modifier: Modifier, content: @Composable () -> Unit) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) { content() }
@@ -251,7 +250,8 @@ private fun ContinueCard(book: BookCard, label: String, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(Modifier.padding(16.dp)) {
