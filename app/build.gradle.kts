@@ -46,7 +46,7 @@ android {
     defaultConfig {
         applicationId = "com.bookorbit"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         // versionCode/versionName are bumped automatically by a companion step in
         // .github/workflows/release-please.yml (release-please's own generic-file updater is
         // unreliable for this -- see the commit that introduced this comment). Both must stay
