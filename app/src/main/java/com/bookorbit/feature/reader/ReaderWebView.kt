@@ -32,6 +32,7 @@ data class OpenParams(
     val fraction: Double?,
     val settings: ReaderSettings,
     val fontFaceCss: String = "",
+    val pageTurn: PageTurn = PageTurn.SLIDE,
 )
 
 @Serializable
@@ -109,10 +110,10 @@ class ReaderController {
 
     fun clearSelection() = command(buildJsonObject { put("type", "clearSelection") }.toString())
 
-    fun applyStyles(settings: ReaderSettings, fontFaceCss: String = "") {
+    fun applyStyles(settings: ReaderSettings, fontFaceCss: String = "", pageTurn: PageTurn = PageTurn.SLIDE) {
         val cmd = buildJsonObject {
             put("type", "applyStyles")
-            put("settings", ReaderBridge.stylePayload(settings, fontFaceCss))
+            put("settings", ReaderBridge.stylePayload(settings, fontFaceCss, pageTurn))
         }
         command(cmd.toString())
     }
@@ -124,7 +125,7 @@ class ReaderController {
     // the chunk size instead of the whole file (a naive readBytes()+encodeToString() on a 90MB
     // EPUB peaks at ~450MB and reliably OOMs on default heap sizes).
     private fun runOpen(params: OpenParams, context: Context) {
-        val meta = OpenMeta(params.format, params.cfi, params.fraction, ReaderBridge.stylePayload(params.settings, params.fontFaceCss))
+        val meta = OpenMeta(params.format, params.cfi, params.fraction, ReaderBridge.stylePayload(params.settings, params.fontFaceCss, params.pageTurn))
         val metaJson = ReaderBridge.json.encodeToString(OpenMeta.serializer(), meta)
         eval(ReaderBridge.jsBegin(metaJson))
 
@@ -257,4 +258,5 @@ fun openParamsFor(
     initial: InitialProgress,
     settings: ReaderSettings,
     fontFaceCss: String = "",
-): OpenParams = OpenParams(ref, format, initial.cfi, initial.fraction, settings, fontFaceCss)
+    pageTurn: PageTurn = PageTurn.SLIDE,
+): OpenParams = OpenParams(ref, format, initial.cfi, initial.fraction, settings, fontFaceCss, pageTurn)

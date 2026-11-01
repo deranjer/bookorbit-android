@@ -108,8 +108,8 @@ fun ReaderScreen(
     }
 
     // Restyle the page whenever the settings (or an uploaded font's rules) change.
-    LaunchedEffect(ui.settings, ui.fontFaceCss, ui.loaded) {
-        if (ui.loaded) controller.applyStyles(ui.settings, ui.fontFaceCss)
+    LaunchedEffect(ui.settings, ui.fontFaceCss, ui.pageTurn, ui.loaded) {
+        if (ui.loaded) controller.applyStyles(ui.settings, ui.fontFaceCss, ui.pageTurn)
     }
 
     // Draw the book's highlights in the page whenever they (or the loaded page) change.
@@ -134,7 +134,7 @@ fun ReaderScreen(
         if (ready && resolved != null && !opened && !rendererFailed) {
             opened = true
             withContext(Dispatchers.IO) {
-                controller.open(openParamsFor(resolved.ref, resolved.format, resolved.initial, ui.settings, ui.fontFaceCss), context)
+                controller.open(openParamsFor(resolved.ref, resolved.format, resolved.initial, ui.settings, ui.fontFaceCss, ui.pageTurn), context)
             }
         }
     }
@@ -310,10 +310,12 @@ fun ReaderScreen(
     if (settingsVisible) {
         ReaderSettingsSheet(
             settings = ui.settings,
+            pageTurn = ui.pageTurn,
             uploadedFonts = ui.uploadedFonts,
             bookCustomized = ui.bookCustomized,
             sync = ui.syncSettings,
             onChange = vm::updateSettings,
+            onPageTurn = vm::setPageTurn,
             onSync = vm::setSettingsSync,
             onSaveAsDefaults = vm::saveSettingsAsDefaults,
             onResetBook = vm::resetBookSettings,

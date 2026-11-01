@@ -58,18 +58,20 @@ import com.bookorbit.ui.theme.BookOrbitTheme
 import kotlin.math.roundToInt
 
 /**
- * The reader's settings, laid out as the web reader's settings panel: page colour and mode, flow,
- * text size and spacing, the font (built in, the server's, the user's), then spacing and layout
+ * The reader's settings, laid out as the web reader's settings panel: page colour and mode, flow
+ * (and, on this app only, how pages turn), text size and spacing, the font (built in, the server's, the user's), then spacing and layout
  * folded away, the footer, and where the settings are kept.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ReaderSettingsSheet(
     settings: ReaderSettings,
+    pageTurn: PageTurn,
     uploadedFonts: List<UploadedFontFamily>,
     bookCustomized: Boolean,
     sync: Boolean,
     onChange: (ReaderSettings) -> Unit,
+    onPageTurn: (PageTurn) -> Unit,
     onSync: (Boolean) -> Unit,
     onSaveAsDefaults: () -> Unit,
     onResetBook: () -> Unit,
@@ -122,6 +124,14 @@ fun ReaderSettingsSheet(
                 onSelect = { onChange(settings.copy(flow = if (it == 0) "paginated" else "scrolled")) },
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
+            if (settings.flow == "paginated") {
+                SectionLabel(stringResource(R.string.rs_page_turn))
+                Segments(
+                    PageTurn.entries.map { stringResource(it.label) to (it == pageTurn) },
+                    onSelect = { onPageTurn(PageTurn.entries[it]) },
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
 
             SectionLabel(stringResource(R.string.rs_text_size))
             Stepper(

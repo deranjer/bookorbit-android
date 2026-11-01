@@ -120,14 +120,20 @@ object ReaderBridge {
 
     /**
      * The settings as the bridge styles the page with them: the synced fields, plus the CSS family
-     * [fontCss] renders [ReaderSettings.fontFamily] as here and the @font-face rules of an uploaded one.
+     * [fontCss] renders [ReaderSettings.fontFamily] as here, the @font-face rules of an uploaded one,
+     * and how pages turn on this device.
      */
-    fun stylePayload(settings: ReaderSettings, fontFaceCss: String): kotlinx.serialization.json.JsonObject {
+    fun stylePayload(
+        settings: ReaderSettings,
+        fontFaceCss: String,
+        pageTurn: PageTurn = PageTurn.SLIDE,
+    ): kotlinx.serialization.json.JsonObject {
         val fields = json.encodeToJsonElement(ReaderSettings.serializer(), settings).jsonObject
         return kotlinx.serialization.json.JsonObject(
             fields + mapOf(
                 "fontFamilyCss" to kotlinx.serialization.json.JsonPrimitive(fontCss(settings.fontFamily)),
                 "fontFaceCss" to kotlinx.serialization.json.JsonPrimitive(fontFaceCss),
+                "pageTurn" to kotlinx.serialization.json.JsonPrimitive(pageTurn.value),
             ),
         )
     }

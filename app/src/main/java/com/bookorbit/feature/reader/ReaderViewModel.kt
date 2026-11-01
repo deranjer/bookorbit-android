@@ -63,6 +63,7 @@ class ReaderViewModel @Inject constructor(
         val settings: ReaderSettings = ReaderSettings(),
         /** The @font-face rules for an uploaded family in [settings], or "". */
         val fontFaceCss: String = "",
+        val pageTurn: PageTurn = PageTurn.SLIDE,
         /** True when this book has settings of its own on top of the defaults. */
         val bookCustomized: Boolean = false,
         /** True when reader settings are kept on the server and shared with the web reader. */
@@ -116,7 +117,7 @@ class ReaderViewModel @Inject constructor(
     private fun load() {
         viewModelScope.launch {
             // Device defaults until the book's file is known and its own settings can be read.
-            _ui.update { it.copy(settings = settingsStore.load()) }
+            _ui.update { it.copy(settings = settingsStore.load(), pageTurn = settingsStore.loadPageTurn()) }
 
             // Fall back to the offline-downloaded copy when the network is unavailable.
             val book = runCatching { bookRepo.detail(bookId) }.getOrNull() ?: downloads.cachedBook(bookId)
@@ -348,6 +349,12 @@ class ReaderViewModel @Inject constructor(
             }
             preferences.updateBook(fileId, previous, next, _ui.value.syncSettings)
         }
+    }
+
+    /** How pages turn; a device setting for every book, never sent to the server. */
+    fun setPageTurn(pageTurn: PageTurn) {
+        _ui.update { it.copy(pageTurn = pageTurn) }
+        viewModelScope.launch { settingsStore.savePageTurn(pageTurn) }
     }
 
     /** Footer: page and percent, then time read and left in the book, then chapter and time left in it. */

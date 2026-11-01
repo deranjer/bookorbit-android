@@ -37,6 +37,21 @@ data class ReaderSettings(
     val footerDisplayMode: Int = 0,
 )
 
+/**
+ * How a paginated page turns. Kept on this device rather than in [ReaderSettings]: the web reader
+ * has no such setting, so it stays out of the synced rows.
+ */
+enum class PageTurn(val value: String, @StringRes val label: Int) {
+    SLIDE("slide", R.string.rs_page_turn_slide),
+    FADE("fade", R.string.rs_page_turn_fade),
+    NONE("none", R.string.rs_page_turn_none),
+    ;
+
+    companion object {
+        fun of(value: String?): PageTurn = entries.firstOrNull { it.value == value } ?: SLIDE
+    }
+}
+
 val FONT_SIZE_RANGE = 6..32
 val LINE_HEIGHT_RANGE = 0.8..3.0
 val PARAGRAPH_SPACING_RANGE = 0.0..2.0

@@ -60,6 +60,8 @@ const DEFAULT_SETTINGS = {
   // and the @font-face rules for an uploaded family. Set by the host; not synced.
   fontFamilyCss: null,
   fontFaceCss: '',
+  // How a paginated page turns: 'slide' | 'fade' | 'none'. Set by the host; not synced.
+  pageTurn: 'slide',
   fontWeight: 400,
   fontStyle: 'normal',
   paragraphSpacing: 0,
@@ -178,8 +180,8 @@ function applyStyles(settings) {
   r.setAttribute('max-block-size', `${s.maxBlockSize}px`);
   if (s.flow === 'paginated') r.setAttribute('margin', '40px');
   else r.removeAttribute('margin');
-  // Pages slide rather than snap; the web reader leaves this off.
-  if (s.flow === 'paginated') r.setAttribute('animated', '');
+  // How pages turn (the paginator reads the value); the web reader leaves this off.
+  if (s.flow === 'paginated' && s.pageTurn !== 'none') r.setAttribute('animated', s.pageTurn);
   else r.removeAttribute('animated');
   r.setAttribute('flow', s.flow);
   // The host page takes the section's colour scheme and the page colour. A section iframe whose

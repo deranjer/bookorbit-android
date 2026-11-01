@@ -27,6 +27,7 @@ class ReaderSettingsStore @Inject constructor(
 ) {
     private val key = stringPreferencesKey("settings")
     private val pagingHintSeenKey = booleanPreferencesKey("paging_hint_seen")
+    private val pageTurnKey = stringPreferencesKey("page_turn")
     private fun bookKey(fileId: Int) = stringPreferencesKey("book_$fileId")
 
     /** The defaults every book starts from. */
@@ -57,5 +58,12 @@ class ReaderSettingsStore @Inject constructor(
 
     suspend fun markPagingHintSeen() {
         context.readerDataStore.edit { it[pagingHintSeenKey] = true }
+    }
+
+    /** How pages turn, for every book on this device. */
+    suspend fun loadPageTurn(): PageTurn = PageTurn.of(context.readerDataStore.data.first()[pageTurnKey])
+
+    suspend fun savePageTurn(pageTurn: PageTurn) {
+        context.readerDataStore.edit { it[pageTurnKey] = pageTurn.value }
     }
 }

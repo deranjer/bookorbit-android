@@ -14,28 +14,16 @@ const debounce = (f, wait, immediate) => {
   }
 }
 
-const lerp = (min, max, x) => x * (max - min) + min
-const easeOutQuad = (x) => 1 - (1 - x) * (1 - x)
-const animate = (a, b, duration, ease, render) =>
-  new Promise((resolve) => {
-    let start
-    const step = (now) => {
-      if (document.hidden) {
-        render(lerp(a, b, 1))
-        return resolve()
-      }
-      start ??= now
-      const fraction = Math.min(1, (now - start) / duration)
-      render(lerp(a, b, ease(fraction)))
-      if (fraction < 1) requestAnimationFrame(step)
-      else resolve()
-    }
-    if (document.hidden) {
-      render(lerp(a, b, 1))
-      return resolve()
-    }
-    requestAnimationFrame(step)
-  })
+// Page turns are Web Animations of transform and opacity, which Chromium runs on the compositor:
+// they stay smooth while the page's own thread is busy, say laying out the next section.
+const SLIDE_MS = 300
+const FADE_OUT_MS = 120
+const FADE_IN_MS = 180
+const EASE_OUT_QUAD = 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+// How far a finger has to travel to turn the page when the turn doesn't follow it.
+const SWIPE_PX = 30
+// An animation's end, whether it ran out, was finished early, or was cancelled.
+const settled = (animation) => animation?.finished.catch(() => {})
 
 // collapsed range doesn't return client rects sometimes (or always?)
 // try make get a non-collapsed range or element
@@ -450,6 +438,10 @@ export class Paginator extends HTMLElement {
   #mediaQueryListener
   #scrollBounds
   #touchState
+  #animations = new Set()
+  // A page turn into the section beside this one: { edge }, and once the outgoing section is
+  // pinned in place, { ghost, rect, from, fadeOut } too.
+  #crossing = null
   #touchScrolled
   #lastVisibleRange
   constructor() {
@@ -510,6 +502,8 @@ export class Paginator extends HTMLElement {
             grid-column: 2 / 5;
             grid-row: 2;
             overflow: hidden;
+            /* holds the outgoing section, taken out of the flow, during a turn into the next one */
+            position: relative;
         }
         :host([flow="scrolled"]) #container {
             grid-column: 1 / -1;
@@ -815,20 +809,45 @@ export class Paginator extends HTMLElement {
     const d = velocity * (this.#rtl ? -size : size)
     const page = Math.floor(Math.max(min, Math.min(max, (start + end) / 2 + (isNaN(d) ? 0 : d))) / size)
 
-    this.#scrollToPage(page, 'snap').then(() => {
-      const dir = page <= 0 ? -1 : page >= pages - 1 ? 1 : null
-      if (dir)
-        return this.#goTo({
-          index: this.#adjacentIndex(dir),
-          anchor: dir < 0 ? () => 1 : () => 0,
-        })
-    })
+    // Let go over the blank margin beside the text: the next section takes over from where the
+    // finger left the page, rather than the page first settling on the blank.
+    const dir = page <= 0 ? -1 : page >= pages - 1 ? 1 : null
+    if (dir && this.#adjacentIndex(dir) == null) return this.#scrollToPage(page - dir, 'snap')
+    if (dir) {
+      if (this.#locked) return
+      this.#locked = true
+      return this.#crossTo(dir, page)
+        .catch(() => {})
+        .finally(() => (this.#locked = false))
+    }
+    this.#scrollToPage(page, 'snap')
+  }
+  // 'slide', 'fade', or null for none. A page in the background skips the animation: its frames
+  // wouldn't run, and the turn would wait on them.
+  get #pageTurn() {
+    if (!this.hasAttribute('animated') || document.hidden) return null
+    return this.getAttribute('animated') === 'fade' ? 'fade' : 'slide'
+  }
+  #translate(px) {
+    return `translate${this.#vertical ? 'Y' : 'X'}(${px}px)`
+  }
+  // Starts an animation that holds its last frame until cancelled, so the caller decides when the
+  // element goes back to its own style.
+  #play(element, keyframes, duration, easing = 'linear') {
+    const animation = element.animate(keyframes, { duration, easing, fill: 'both' })
+    this.#animations.add(animation)
+    settled(animation).then(() => this.#animations.delete(animation))
+    return animation
   }
   #onTouchStart(e) {
+    // A touch takes the page where it was going: a turn still running ends now.
+    for (const animation of this.#animations) animation.finish()
     const touch = e.changedTouches[0]
     this.#touchState = {
       x: touch?.screenX,
       y: touch?.screenY,
+      x0: touch?.screenX,
+      y0: touch?.screenY,
       t: e.timeStamp,
       vx: 0,
       xy: 0,
@@ -856,6 +875,8 @@ export class Paginator extends HTMLElement {
     state.vx = dx / dt
     state.vy = dy / dt
     this.#touchScrolled = true
+    // Only a slide follows the finger; a fade or a plain turn waits for the swipe to end.
+    if (this.#crossing || this.#pageTurn !== 'slide') return
     this.scrollBy(dx, dy)
   }
   #onTouchEnd() {
@@ -873,7 +894,11 @@ export class Paginator extends HTMLElement {
     // at this point I'm basically throwing `requestAnimationFrame` at
     // anything that doesn't work
     requestAnimationFrame(() => {
-      if (globalThis.visualViewport.scale === 1) this.snap(this.#touchState.vx, this.#touchState.vy)
+      if (globalThis.visualViewport.scale !== 1 || this.#crossing) return
+      const state = this.#touchState
+      if (this.#pageTurn === 'slide') return this.snap(state.vx, state.vy)
+      const moved = this.#vertical ? state.y0 - state.y : state.x0 - state.x
+      if (Math.abs(moved) >= SWIPE_PX) this.#turnPage(moved > 0 !== this.#rtl ? 1 : -1)
     })
   }
   // allows one to process rects as if they were LTR and horizontal
@@ -910,16 +935,30 @@ export class Paginator extends HTMLElement {
     }
     // FIXME: vertical-rl only, not -lr
     if (this.scrolled && this.#vertical) offset = -offset
-    if ((reason === 'snap' || smooth) && this.hasAttribute('animated'))
-      return animate(element[scrollProp], offset, 300, easeOutQuad, (x) => (element[scrollProp] = x)).then(() => {
-        this.#scrollBounds = [offset, this.atStart ? 0 : size, this.atEnd ? 0 : size]
-        this.#afterScroll(reason)
-      })
-    else {
+    const turn = (reason === 'snap' || smooth) && !this.scrolled ? this.#pageTurn : null
+    if (turn === 'fade') {
+      const view = this.#view.element
+      const fadeOut = this.#play(view, [{ opacity: 1 }, { opacity: 0 }], FADE_OUT_MS)
+      await settled(fadeOut)
       element[scrollProp] = offset
-      this.#scrollBounds = [offset, this.atStart ? 0 : size, this.atEnd ? 0 : size]
-      this.#afterScroll(reason)
+      const fadeIn = this.#play(view, [{ opacity: 0 }, { opacity: 1 }], FADE_IN_MS)
+      fadeOut.cancel()
+      await settled(fadeIn)
+      fadeIn.cancel()
+    } else if (turn === 'slide') {
+      const view = this.#view.element
+      const from = element[scrollProp]
+      element[scrollProp] = offset
+      // The page is in its new place already; a transform from where it was carries it there.
+      const slide = this.#play(view, [{ transform: this.#translate(element[scrollProp] - from) }, { transform: 'none' }], SLIDE_MS, EASE_OUT_QUAD)
+      await settled(slide)
+      slide.cancel()
+    } else {
+      element[scrollProp] = offset
+      this.#pinGhost()
     }
+    this.#scrollBounds = [offset, this.atStart ? 0 : size, this.atEnd ? 0 : size]
+    this.#afterScroll(reason)
   }
   async #scrollToPage(page, reason, smooth) {
     const offset = this.size * (this.#rtl ? -page : page)
@@ -930,6 +969,8 @@ export class Paginator extends HTMLElement {
   }
   async #scrollToAnchor(anchor, reason = 'anchor') {
     this.#anchor = anchor
+    // Nothing to hold to while a turn loads the incoming section (see #freeze).
+    if (anchor == null) return
     const rects = uncollapse(anchor)?.getClientRects?.()
     // if anchor is an element or a range
     if (rects) {
@@ -993,7 +1034,10 @@ export class Paginator extends HTMLElement {
     this.#index = index
     const hasFocus = this.#view?.document?.hasFocus()
     if (src) {
+      // A page turn keeps the outgoing section on screen until this one can take its place.
+      if (this.#crossing) this.#freeze()
       const view = this.#createView()
+      if (this.#crossing) view.element.style.opacity = '0'
       const afterLoad = (doc) => {
         if (doc.head) {
           const $styleBefore = doc.createElement('style')
@@ -1018,7 +1062,79 @@ export class Paginator extends HTMLElement {
       this.#view = view
     }
     await this.scrollToAnchor((typeof anchor === 'function' ? anchor(this.#view.document) : anchor) ?? 0, select)
+    if (this.#crossing?.ghost) await this.#reveal()
     if (hasFocus) this.focusView()
+  }
+  // Turns into the section beside this one (dir -1 before, 1 after). `edge` is the blank page on
+  // that side of this section's text, which the incoming section's first page stands in for.
+  async #crossTo(dir, edge) {
+    const index = this.#adjacentIndex(dir)
+    if (index == null) return
+    const anchor = dir < 0 ? () => 1 : () => 0
+    if (!this.#view || this.scrolled) return this.#goTo({ index, anchor })
+    this.#crossing = { edge }
+    try {
+      await this.#goTo({ index, anchor })
+    } finally {
+      this.#endCrossing()
+    }
+  }
+  // Takes the outgoing section out of the flow, pinned where it is on screen, so the incoming one
+  // can load beneath it.
+  #freeze() {
+    const view = this.#view
+    this.#view = null
+    // Its resize observer would otherwise re-anchor the paginator on the incoming section.
+    view.destroy()
+    const el = view.element
+    const crossing = this.#crossing
+    // The anchor is in the outgoing section, which stays on screen now: holding to it while the
+    // incoming one lays out would scroll to wherever it falls and report that as the position.
+    this.#anchor = null
+    // Where the incoming page starts, relative to where it comes to rest: over the blank page on
+    // that side, which a swipe let go of halfway has already brought partly into view.
+    crossing.from = (this.#rtl ? -1 : 1) * this.size * crossing.edge - this.#container[this.scrollProp]
+    crossing.ghost = el
+    crossing.rect = el.getBoundingClientRect()
+    Object.assign(el.style, { position: 'absolute', insetBlockStart: '0', insetInlineStart: '0' })
+    this.#pinGhost()
+    if (this.#pageTurn === 'fade') crossing.fadeOut = this.#play(el, [{ opacity: 1 }, { opacity: 0 }], FADE_OUT_MS)
+  }
+  // Holds the outgoing section still on screen while the container scrolls to the incoming one.
+  #pinGhost() {
+    const crossing = this.#crossing
+    if (!crossing?.ghost) return
+    const el = crossing.ghost
+    el.style.translate = ''
+    const { left, top } = el.getBoundingClientRect()
+    el.style.translate = `${crossing.rect.left - left}px ${crossing.rect.top - top}px`
+  }
+  // Brings the incoming section in over the outgoing one, which #endCrossing then drops.
+  async #reveal() {
+    const { ghost, from, fadeOut } = this.#crossing
+    const incoming = this.#view.element
+    const turn = this.#pageTurn
+    if (turn === 'slide') {
+      const slideIn = this.#play(incoming, [{ transform: this.#translate(from) }, { transform: 'none' }], SLIDE_MS, EASE_OUT_QUAD)
+      incoming.style.opacity = ''
+      const slideOut = this.#play(ghost, [{ transform: 'none' }, { transform: this.#translate(-from) }], SLIDE_MS, EASE_OUT_QUAD)
+      await Promise.all([settled(slideIn), settled(slideOut)])
+      slideIn.cancel()
+    } else if (turn === 'fade') {
+      await settled(fadeOut)
+      const fadeIn = this.#play(incoming, [{ opacity: 0 }, { opacity: 1 }], FADE_IN_MS)
+      incoming.style.opacity = ''
+      await settled(fadeIn)
+      fadeIn.cancel()
+    }
+  }
+  #endCrossing() {
+    const crossing = this.#crossing
+    this.#crossing = null
+    if (!crossing?.ghost) return
+    for (const animation of crossing.ghost.getAnimations()) animation.cancel()
+    crossing.ghost.remove()
+    if (this.#view) this.#view.element.style.opacity = ''
   }
   #canGoToIndex(index) {
     return index >= 0 && index <= this.sections.length - 1
@@ -1059,7 +1175,9 @@ export class Paginator extends HTMLElement {
     }
     if (this.atStart) return
     const page = this.page - 1
-    return this.#scrollToPage(page, 'page', true).then(() => page <= 0)
+    // The page before is the blank margin beside the section before: turn straight into that.
+    if (page <= 0) return true
+    return this.#scrollToPage(page, 'page', true).then(() => false)
   }
   #scrollNext(distance) {
     if (!this.#view) return true
@@ -1069,8 +1187,9 @@ export class Paginator extends HTMLElement {
     }
     if (this.atEnd) return
     const page = this.page + 1
-    const pages = this.pages
-    return this.#scrollToPage(page, 'page', true).then(() => page >= pages - 1)
+    // The page after is the blank margin beside the next section: turn straight into that.
+    if (page >= this.pages - 1) return true
+    return this.#scrollToPage(page, 'page', true).then(() => false)
   }
   get atStart() {
     return this.#adjacentIndex(-1) == null && this.page <= 1
@@ -1086,11 +1205,7 @@ export class Paginator extends HTMLElement {
     this.#locked = true
     const prev = dir === -1
     const shouldGo = await (prev ? this.#scrollPrev(distance) : this.#scrollNext(distance))
-    if (shouldGo)
-      await this.#goTo({
-        index: this.#adjacentIndex(dir),
-        anchor: prev ? () => 1 : () => 0,
-      })
+    if (shouldGo) await this.#crossTo(dir, this.page + dir).catch(() => {})
     if (shouldGo || !this.hasAttribute('animated')) await wait(100)
     this.#locked = false
   }

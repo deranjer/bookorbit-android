@@ -20,6 +20,10 @@
     <string name="rs_title">Reading settings</string>
     <string name="rs_page_color">Page colour</string>
     <string name="rs_reading_flow">Reading flow</string>
+    <string name="rs_page_turn">Page turn</string>
+    <string name="rs_page_turn_slide">Slide</string>
+    <string name="rs_page_turn_fade">Fade</string>
+    <string name="rs_page_turn_none">None</string>
     <string name="rs_text_size">Text size</string>
     <string name="rs_line_spacing">Line spacing</string>
     <string name="rs_font">Font</string>
