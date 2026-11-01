@@ -1,12 +1,14 @@
 package com.bookorbit.app
 
 import android.os.Bundle
+import androidx.activity.viewModels
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalView
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -24,7 +26,11 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+    /** The same instance BookOrbitApp gets from hiltViewModel(): both are scoped to this activity. */
+    private val rootVm: RootViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen().setKeepOnScreenCondition { !rootVm.ready }
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {

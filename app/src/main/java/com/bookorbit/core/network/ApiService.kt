@@ -79,6 +79,12 @@ interface ApiService {
     @GET("auth/setup-status")
     suspend fun getSetupStatus(): com.bookorbit.core.model.SetupStatus
 
+    @GET("auth/login-options")
+    suspend fun getLoginOptions(): com.bookorbit.core.model.LoginOptions
+
+    @GET("server-identity")
+    suspend fun getServerIdentity(): com.bookorbit.core.model.ServerIdentity
+
     @GET("app-settings/oidc/providers/public")
     suspend fun getPublicOidcProviders(): List<OidcProviderPublic>
 

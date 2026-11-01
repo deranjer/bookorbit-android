@@ -160,6 +160,7 @@ roborazzi {
 dependencies {
     // Core / lifecycle / activity
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     // Theme.BookOrbit (themes.xml) needs an AppCompat parent theme. Previously this arrived only
     // transitively via androidx.mediarouter (full flavor only); made explicit and shared so the
     // fdroid flavor keeps a working base theme too.

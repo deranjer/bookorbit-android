@@ -6,7 +6,9 @@ import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bookorbit.core.auth.SessionManager
+import com.bookorbit.core.model.LoginOptions
 import com.bookorbit.core.model.OidcProviderPublic
+import kotlinx.coroutines.CancellationException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,11 +23,16 @@ class LoginViewModel @Inject constructor(
     session: SessionManager,
 ) : ViewModel() {
 
+    /**
+     * [options] is null until the server has said how it allows sign-in; the screen shows no form
+     * until then, so a password form never flashes up on a server that has turned it off.
+     */
     data class UiState(
         val submitting: Boolean = false,
         val oidcLoadingSlug: String? = null,
         val error: UiText? = null,
-        val providers: List<OidcProviderPublic> = emptyList(),
+        val options: LoginOptions? = null,
+        val optionsFailed: Boolean = false,
     )
 
     private val _ui = MutableStateFlow(UiState())
@@ -34,13 +41,25 @@ class LoginViewModel @Inject constructor(
     val serverUrl: String? = session.serverUrl
 
     init {
+        loadOptions()
+    }
+
+    fun loadOptions() {
+        _ui.update { it.copy(optionsFailed = false) }
         viewModelScope.launch {
-            _ui.update { it.copy(providers = repo.oidcProviders()) }
+            try {
+                val options = repo.loginOptions()
+                _ui.update { it.copy(options = options) }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                _ui.update { it.copy(optionsFailed = true) }
+            }
         }
     }
 
     /** A successful login flips SessionManager state to SignedIn, which swaps in the main shell. */
     fun login(username: String, password: String) {
+        if (_ui.value.options?.passwordLoginEnabled != true) return
         if (username.isBlank() || password.isEmpty()) return
         _ui.update { it.copy(submitting = true, error = null) }
         viewModelScope.launch {

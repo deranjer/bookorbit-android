@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Server setup, sign-in and the first-run tour (redesign phase 2). -->
+<resources>
+    <!-- Server setup -->
+    <string name="server_title">Connect to your library</string>
+    <string name="server_connecting">Connecting…</string>
+    <string name="server_err_not_bookorbit">Something answered at that address, but it isn\'t a BookOrbit server. Check the URL, including any path.</string>
+
+    <!-- Sign-in -->
+    <string name="login_continue_with">Continue with %1$s</string>
+    <string name="login_opening">Opening %1$s…</string>
+    <string name="login_or_password">or with a password</string>
+    <string name="login_signing_in">Signing in…</string>
+    <string name="login_err_options">Couldn\'t reach the server to see how it signs in</string>
+    <string name="login_no_methods">This server has password sign-in turned off and no sign-in provider set up. Ask its admin to add one.</string>
+
+    <!-- First-run tour -->
+    <string name="tour_skip">Skip</string>
+    <string name="tour_next">Next</string>
+    <string name="tour_done">Start reading</string>
+    <string name="tour_page">Page %1$d of %2$d</string>
+    <string name="tour_look_title">Pick a look</string>
+    <string name="tour_look_body">Light, dark, or follow the system. You can change it later in Settings.</string>
+    <string name="tour_look_system">System</string>
+    <string name="tour_look_light">Light</string>
+    <string name="tour_look_dark">Dark</string>
+    <string name="tour_reading_title">Reading</string>
+    <string name="tour_reading_body">Tap the left or right edge of the page to turn it, and the middle to show the bars. Press and hold text to highlight it. The Aa button sets the font, spacing and page colour, and those follow you to the web reader.</string>
+    <string name="tour_downloads_title">Offline</string>
+    <string name="tour_downloads_body">Download a book from its page to read without a connection. Progress and highlights made offline sync when you\'re back. Downloads lists what\'s on this device.</string>
+</resources>

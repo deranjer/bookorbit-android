@@ -38,6 +38,25 @@ data class RefreshResponse(val accessToken: String)
 @Serializable
 data class SetupStatus(val needsSetup: Boolean)
 
+/**
+ * `GET auth/login-options`: how this server lets people sign in. [passwordLoginEnabled] is false when
+ * the server runs with DISABLE_LOCAL_AUTH, and then only [oidcProviders] can sign in.
+ */
+@Serializable
+data class LoginOptions(
+    val passwordLoginEnabled: Boolean = true,
+    val allowRegistration: Boolean = false,
+    val oidcProviders: List<OidcProviderPublic> = emptyList(),
+)
+
+/** `GET server-identity`: answers "bookorbit" as [product] on any BookOrbit server. */
+@Serializable
+data class ServerIdentity(
+    val product: String? = null,
+    val protocolVersion: Int? = null,
+    val instanceId: String? = null,
+)
+
 @Serializable
 data class OidcProviderPublic(
     val slug: String,
