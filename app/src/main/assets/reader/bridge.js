@@ -149,7 +149,9 @@ function generateCSS(s) {
     pre { white-space: pre-wrap !important; tab-size: 2; }
     ${
       forceBg
-        ? `html, body { color: ${mode.fg} !important; background: none !important; }
+        ? `html { background-color: ${mode.bg} !important; }
+           html, body { color: ${mode.fg} !important; }
+           body { background: none !important; }
            body * { color: inherit !important; border-color: currentColor !important; background-color: ${mode.bg} !important; }
            a:any-link { color: ${mode.link} !important; }
            svg, img { background-color: transparent !important; ${!dark ? 'mix-blend-mode: multiply;' : ''} }`
@@ -180,6 +182,13 @@ function applyStyles(settings) {
   if (s.flow === 'paginated') r.setAttribute('animated', '');
   else r.removeAttribute('animated');
   r.setAttribute('flow', s.flow);
+  // The host page takes the section's colour scheme and the page colour. A section iframe whose
+  // color-scheme differs from its host's is given an opaque backdrop by the browser (near-black in
+  // dark mode), which drew bands of a second grey around the text.
+  const theme = themeFor(s.themeName);
+  const mode = s.isDark ? theme.dark : theme.light;
+  document.documentElement.style.colorScheme = s.isDark ? 'dark' : 'light';
+  document.documentElement.style.backgroundColor = mode.bg;
   if (typeof r.setStyles === 'function') r.setStyles(generateCSS(s));
 }
 

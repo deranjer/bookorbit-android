@@ -31,13 +31,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -83,7 +85,7 @@ fun BoxScope.ReaderTopBar(
         exit = fadeOut(Motion.exit()) + slideOutVertically(Motion.exit()) { -it / 3 },
         modifier = Modifier.align(Alignment.TopCenter),
     ) {
-        Column(Modifier.fillMaxWidth().background(colors.background.copy(alpha = 0.97f))) {
+        Column(Modifier.fillMaxWidth().background(colors.background)) {
             Row(
                 Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 4.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -135,7 +137,7 @@ fun BoxScope.ReaderBottomBar(
         exit = fadeOut(Motion.exit()) + slideOutVertically(Motion.exit()) { it / 3 },
         modifier = Modifier.align(Alignment.BottomCenter),
     ) {
-        Column(Modifier.fillMaxWidth().background(colors.background.copy(alpha = 0.97f))) {
+        Column(Modifier.fillMaxWidth().background(colors.background)) {
             HorizontalDivider(color = colors.hairline)
             Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 4.dp, end = 4.dp, top = 6.dp, bottom = 4.dp)) {
                 FooterLine(footer, colors, onCycleFooter, Modifier.padding(horizontal = 16.dp))
@@ -182,7 +184,10 @@ private fun FooterLine(footer: Pair<String, String>, colors: ReaderChromeColors,
     }
 }
 
-/** A slider over the whole book. The thumb follows a drag; the book jumps when it's let go. */
+/**
+ * A slider over the whole book: a thin track in the page's text colour with a mark where each
+ * chapter starts, and a round thumb. The thumb follows a drag; the book jumps when it's let go.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Scrubber(
@@ -195,13 +200,6 @@ private fun Scrubber(
     var dragging by remember { mutableStateOf<Float?>(null) }
     val description = stringResource(R.string.reader_position)
     Box(modifier.height(40.dp), contentAlignment = Alignment.Center) {
-        // Chapter starts, as small marks on the track.
-        Canvas(Modifier.fillMaxWidth().padding(horizontal = 10.dp).height(10.dp)) {
-            sectionFractions.drop(1).forEach { f ->
-                val x = (f.toFloat().coerceIn(0f, 1f)) * size.width
-                drawLine(colors.content.copy(alpha = 0.35f), Offset(x, 0f), Offset(x, size.height), strokeWidth = 1.dp.toPx())
-            }
-        }
         Slider(
             value = dragging ?: fraction.toFloat(),
             onValueChange = { dragging = it },
@@ -209,19 +207,31 @@ private fun Scrubber(
                 dragging?.let { onSeek(it.toDouble()) }
                 dragging = null
             },
-            colors = SliderDefaults.colors(
-                thumbColor = colors.content,
-                activeTrackColor = colors.content.copy(alpha = 0.75f),
-                inactiveTrackColor = colors.content.copy(alpha = 0.15f),
-            ),
-            modifier = Modifier.fillMaxWidth().semantics { contentDescription = description },
+            thumb = {
+                Box(Modifier.size(16.dp).background(colors.content, CircleShape))
+            },
+            track = { state ->
+                val value = state.value.coerceIn(0f, 1f)
+                Canvas(Modifier.fillMaxWidth().height(12.dp)) {
+                    val y = size.height / 2
+                    val stroke = 3.dp.toPx()
+                    drawLine(colors.content.copy(alpha = 0.18f), Offset(0f, y), Offset(size.width, y), stroke, StrokeCap.Round)
+                    drawLine(colors.content.copy(alpha = 0.8f), Offset(0f, y), Offset(size.width * value, y), stroke, StrokeCap.Round)
+                    // Chapter starts.
+                    sectionFractions.drop(1).forEach { f ->
+                        val x = f.toFloat().coerceIn(0f, 1f) * size.width
+                        drawLine(colors.content.copy(alpha = 0.45f), Offset(x, y - 4.dp.toPx()), Offset(x, y + 4.dp.toPx()), 1.dp.toPx())
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).semantics { contentDescription = description },
         )
         dragging?.let {
             Text(
                 "${(it * 100).roundToInt()}%",
                 style = MaterialTheme.typography.labelSmall,
                 color = colors.content,
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 0.dp),
+                modifier = Modifier.align(Alignment.TopCenter),
             )
         }
     }
