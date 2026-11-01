@@ -419,4 +419,36 @@ interface ApiService {
     // --- App info ---
     @GET("app-info")
     suspend fun getAppInfo(): AppInfo
+
+    // --- Reader preferences (shared with the web reader; only used when the user syncs them) ---
+    @GET("reader/preferences/{bookFileId}")
+    suspend fun getReaderPreference(@Path("bookFileId") bookFileId: Int): com.bookorbit.core.model.ReaderPreferenceResponse
+
+    /** Merges [body]'s `set` into the stored row field by field and drops its `unset` keys. */
+    @PATCH("reader/preferences/{bookFileId}")
+    suspend fun patchReaderPreference(@Path("bookFileId") bookFileId: Int, @Body body: kotlinx.serialization.json.JsonObject)
+
+    @DELETE("reader/preferences/{bookFileId}")
+    suspend fun deleteReaderPreference(@Path("bookFileId") bookFileId: Int)
+
+    /** Format group ("epub", "pdf", "cbx") to that group's default settings. */
+    @GET("reader/defaults")
+    suspend fun getReaderDefaults(): Map<String, kotlinx.serialization.json.JsonObject>
+
+    @PATCH("reader/defaults/{group}")
+    suspend fun patchReaderDefaults(@Path("group") group: String, @Body body: kotlinx.serialization.json.JsonObject)
+
+    @PATCH("users/me/reader-storage-mode")
+    suspend fun setReaderStorageMode(@Body body: com.bookorbit.core.model.ReaderStorageModeRequest)
+
+    // --- Fonts (the user's own uploads, and the server's shared ones) ---
+    @GET("fonts")
+    suspend fun getUserFonts(): List<com.bookorbit.core.model.ReaderFont>
+
+    @GET("server-fonts")
+    suspend fun getServerFonts(): List<com.bookorbit.core.model.ReaderFont>
+
+    @Streaming
+    @GET("{scope}/{id}/file")
+    suspend fun getFontFile(@Path("scope") scope: String, @Path("id") id: Int): ResponseBody
 }

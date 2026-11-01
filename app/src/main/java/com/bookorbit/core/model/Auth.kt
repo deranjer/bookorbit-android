@@ -15,6 +15,14 @@ data class AuthUser(
     val avatarUrl: String? = null,
     val provisioningMethod: String = "local",
     val permissions: List<String> = emptyList(),
+    val settings: UserSettings? = null,
+)
+
+/** The few account settings the app acts on; the server keeps many more. */
+@Serializable
+data class UserSettings(
+    /** Reader settings live on the server (and follow the user across clients) rather than per device. */
+    val syncReaderPreferences: Boolean? = null,
 )
 
 @Serializable

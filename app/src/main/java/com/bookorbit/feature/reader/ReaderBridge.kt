@@ -30,16 +30,31 @@ data class TocItem(
 /** A box in the WebView's own coordinate space; CSS px equal dp, so it can be used as dp directly. */
 data class ViewportRect(val left: Double, val top: Double, val right: Double, val bottom: Double)
 
+/**
+ * Where the page is, as foliate counts it: [location] in "pages" of the whole book, the spine
+ * [section], and minutes left in the section and the book at foliate's reading pace.
+ */
+data class ReadingPosition(
+    val location: Int = 0,
+    val locationTotal: Int = 0,
+    val section: Int = 0,
+    val sectionTotal: Int = 0,
+    val minutesLeftInSection: Double = 0.0,
+    val minutesLeftInBook: Double = 0.0,
+)
+
 /** One in-book search match, with the text around it. */
 data class SearchHit(val cfi: String, val pre: String, val match: String, val post: String)
 
 sealed interface ReaderEvent {
     data object Ready : ReaderEvent
-    data class Loaded(val toc: List<TocItem>, val title: String?) : ReaderEvent
+    /** [sectionFractions] is where each spine section starts, 0..1, for chapter ticks. */
+    data class Loaded(val toc: List<TocItem>, val title: String?, val sectionFractions: List<Double> = emptyList()) : ReaderEvent
     data class Relocate(
         val cfi: String?,
         val fraction: Double?,
         val chapterTitle: String?,
+        val position: ReadingPosition = ReadingPosition(),
     ) : ReaderEvent
     data class Error(val message: String) : ReaderEvent
 
@@ -87,6 +102,36 @@ object ReaderBridge {
         )
     }.getOrNull()
 
+    private fun parsePosition(obj: kotlinx.serialization.json.JsonObject): ReadingPosition {
+        fun part(name: String) = (obj[name] as? kotlinx.serialization.json.JsonObject)
+        fun num(o: kotlinx.serialization.json.JsonObject?, key: String) = o?.get(key)?.jsonPrimitive?.doubleOrNull ?: 0.0
+        val location = part("location")
+        val section = part("section")
+        val time = part("time")
+        return ReadingPosition(
+            location = num(location, "current").toInt(),
+            locationTotal = num(location, "total").toInt(),
+            section = num(section, "current").toInt(),
+            sectionTotal = num(section, "total").toInt(),
+            minutesLeftInSection = num(time, "section"),
+            minutesLeftInBook = num(time, "total"),
+        )
+    }
+
+    /**
+     * The settings as the bridge styles the page with them: the synced fields, plus the CSS family
+     * [fontCss] renders [ReaderSettings.fontFamily] as here and the @font-face rules of an uploaded one.
+     */
+    fun stylePayload(settings: ReaderSettings, fontFaceCss: String): kotlinx.serialization.json.JsonObject {
+        val fields = json.encodeToJsonElement(ReaderSettings.serializer(), settings).jsonObject
+        return kotlinx.serialization.json.JsonObject(
+            fields + mapOf(
+                "fontFamilyCss" to kotlinx.serialization.json.JsonPrimitive(fontCss(settings.fontFamily)),
+                "fontFaceCss" to kotlinx.serialization.json.JsonPrimitive(fontFaceCss),
+            ),
+        )
+    }
+
     fun parseEvent(data: String): ReaderEvent? = runCatching {
         val obj = json.parseToJsonElement(data).jsonObject
         when (obj["type"]?.jsonPrimitive?.contentOrNull) {
@@ -97,12 +142,14 @@ object ReaderBridge {
                         .getOrDefault(emptyList())
                 } ?: emptyList()
                 val title = obj["metadata"]?.jsonObject?.get("title")?.jsonPrimitive?.contentOrNull
-                ReaderEvent.Loaded(toc, title)
+                val sections = obj["sectionFractions"]?.jsonArray?.mapNotNull { it.jsonPrimitive.doubleOrNull }.orEmpty()
+                ReaderEvent.Loaded(toc, title, sections)
             }
             "relocate" -> ReaderEvent.Relocate(
                 cfi = obj["cfi"]?.jsonPrimitive?.contentOrNull,
                 fraction = obj["fraction"]?.jsonPrimitive?.doubleOrNull,
                 chapterTitle = obj["chapterTitle"]?.jsonPrimitive?.contentOrNull,
+                position = parsePosition(obj),
             )
             "error" -> ReaderEvent.Error(obj["message"]?.jsonPrimitive?.contentOrNull ?: "Reader error")
             "tap" -> obj["x"]?.jsonPrimitive?.doubleOrNull?.let { ReaderEvent.Tap(it) }

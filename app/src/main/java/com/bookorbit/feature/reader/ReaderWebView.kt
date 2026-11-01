@@ -31,6 +31,7 @@ data class OpenParams(
     val cfi: String?,
     val fraction: Double?,
     val settings: ReaderSettings,
+    val fontFaceCss: String = "",
 )
 
 @Serializable
@@ -38,7 +39,7 @@ private data class OpenMeta(
     val format: String,
     val cfi: String?,
     val fraction: Double?,
-    val settings: ReaderSettings,
+    val settings: kotlinx.serialization.json.JsonObject,
 )
 
 // Base64 is streamed in slices so a large book never rides in a single evaluateJavascript call.
@@ -84,6 +85,8 @@ class ReaderController {
     fun open(params: OpenParams, context: Context) = runOpen(params, context)
 
     fun goTo(target: String) = command(buildJsonObject { put("type", "goTo"); put("target", target) }.toString())
+    /** Opens spine section [index] at its start. */
+    fun goToSection(index: Int) = command(buildJsonObject { put("type", "goTo"); put("target", index) }.toString())
     fun goToFraction(value: Double) = command(buildJsonObject { put("type", "goToFraction"); put("value", value) }.toString())
     fun next() = command(buildJsonObject { put("type", "next") }.toString())
     fun prev() = command(buildJsonObject { put("type", "prev") }.toString())
@@ -106,10 +109,10 @@ class ReaderController {
 
     fun clearSelection() = command(buildJsonObject { put("type", "clearSelection") }.toString())
 
-    fun applyStyles(settings: ReaderSettings) {
+    fun applyStyles(settings: ReaderSettings, fontFaceCss: String = "") {
         val cmd = buildJsonObject {
             put("type", "applyStyles")
-            put("settings", ReaderBridge.json.encodeToJsonElement(ReaderSettings.serializer(), settings))
+            put("settings", ReaderBridge.stylePayload(settings, fontFaceCss))
         }
         command(cmd.toString())
     }
@@ -121,7 +124,7 @@ class ReaderController {
     // the chunk size instead of the whole file (a naive readBytes()+encodeToString() on a 90MB
     // EPUB peaks at ~450MB and reliably OOMs on default heap sizes).
     private fun runOpen(params: OpenParams, context: Context) {
-        val meta = OpenMeta(params.format, params.cfi, params.fraction, params.settings)
+        val meta = OpenMeta(params.format, params.cfi, params.fraction, ReaderBridge.stylePayload(params.settings, params.fontFaceCss))
         val metaJson = ReaderBridge.json.encodeToString(OpenMeta.serializer(), meta)
         eval(ReaderBridge.jsBegin(metaJson))
 
@@ -253,4 +256,5 @@ fun openParamsFor(
     format: String,
     initial: InitialProgress,
     settings: ReaderSettings,
-): OpenParams = OpenParams(ref, format, initial.cfi, initial.fraction, settings)
+    fontFaceCss: String = "",
+): OpenParams = OpenParams(ref, format, initial.cfi, initial.fraction, settings, fontFaceCss)
