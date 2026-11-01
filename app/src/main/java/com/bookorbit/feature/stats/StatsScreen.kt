@@ -1,5 +1,18 @@
 package com.bookorbit.feature.stats
 
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoStories
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Devices
+import androidx.compose.material.icons.outlined.PlayCircleOutline
+import androidx.compose.material.icons.outlined.Speed
+import androidx.compose.material.icons.outlined.TaskAlt
+import com.bookorbit.feature.dashboard.StatTile
+import com.bookorbit.ui.components.Panel
+import com.bookorbit.ui.components.PanelHeader
 import androidx.compose.foundation.BorderStroke
 import com.bookorbit.ui.components.SectionHeader
 import com.bookorbit.ui.components.ErrorState
@@ -51,21 +64,28 @@ import java.time.LocalDate
 @Composable
 fun StatsScreen(vm: StatsViewModel = hiltViewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
+    StatsContent(ui, onRetry = vm::refresh)
+}
 
+@Composable
+internal fun StatsContent(ui: StatsViewModel.UiState, onRetry: () -> Unit) {
     when {
         ui.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
         ui.failed -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-            ErrorState(stringResource(R.string.couldn_t_load_your_reading), onRetry = vm::refresh)
+            ErrorState(stringResource(R.string.couldn_t_load_your_reading), onRetry = onRetry)
         }
-        else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
+        else -> Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 8.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             ui.summary?.let { s ->
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Tile(stringResource(R.string.started), s.startedBooks.toString(), Modifier.weight(1f))
-                    Tile(stringResource(R.string.in_progress), s.inProgressBooks.toString(), Modifier.weight(1f))
+                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    StatTile(stringResource(R.string.started), s.startedBooks.toString(), Icons.Outlined.PlayCircleOutline, Modifier.weight(1f).fillMaxHeight())
+                    StatTile(stringResource(R.string.in_progress), s.inProgressBooks.toString(), Icons.Outlined.AutoStories, Modifier.weight(1f).fillMaxHeight())
                 }
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Tile(stringResource(R.string.completed), s.completedBooks.toString(), Modifier.weight(1f))
-                    Tile(stringResource(R.string.avg_progress), "${s.meanProgressPercent.toInt()}%", Modifier.weight(1f))
+                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    StatTile(stringResource(R.string.completed), s.completedBooks.toString(), Icons.Outlined.TaskAlt, Modifier.weight(1f).fillMaxHeight(), iconTint = BookOrbitTheme.tokens.success)
+                    StatTile(stringResource(R.string.avg_progress), "${s.meanProgressPercent.toInt()}%", Icons.Outlined.Speed, Modifier.weight(1f).fillMaxHeight())
                 }
             }
 
@@ -74,52 +94,36 @@ fun StatsScreen(vm: StatsViewModel = hiltViewModel()) {
             if (ui.daily.isNotEmpty()) {
                 val last30 = ui.daily.entries.toList().takeLast(30)
                 val total = last30.sumOf { it.value }
-                SectionTitle(stringResource(R.string.last_30_days))
-                Text(
-                    stringResource(R.string.total_a_day, formatSeconds(total), formatSeconds(total / 30)),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-                BarChart(last30.map { it.value }, Modifier.fillMaxWidth().padding(16.dp).height(110.dp))
-
-                SectionTitle(stringResource(R.string.reading_heatmap))
-                Heatmap(ui.daily, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                Panel(Modifier.fillMaxWidth()) {
+                    PanelHeader(stringResource(R.string.last_30_days), icon = Icons.Outlined.BarChart)
+                    Text(
+                        stringResource(R.string.total_a_day, formatSeconds(total), formatSeconds(total / 30)),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = BookOrbitTheme.tokens.mutedForeground,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                    BarChart(last30.map { it.value }, Modifier.fillMaxWidth().padding(top = 16.dp).height(110.dp))
+                }
+                Panel(Modifier.fillMaxWidth()) {
+                    PanelHeader(stringResource(R.string.reading_heatmap), icon = Icons.Outlined.CalendarMonth)
+                    Heatmap(ui.daily, Modifier.padding(top = 14.dp))
+                }
             }
 
             ui.sources?.takeIf { it.totalSeconds > 0 }?.let {
-                SectionTitle(stringResource(R.string.where_you_read))
-                SourceSplit(it, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                Panel(Modifier.fillMaxWidth()) {
+                    PanelHeader(stringResource(R.string.where_you_read), icon = Icons.Outlined.Devices)
+                    SourceSplit(it, Modifier.padding(top = 14.dp))
+                }
             }
         }
     }
-}
-
-@Composable
-private fun Tile(label: String, value: String, modifier: Modifier) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    ) {
-        Column(Modifier.fillMaxWidth().padding(12.dp)) {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    SectionHeader(text, Modifier.padding(top = 8.dp))
 }
 
 @Composable
 private fun BarChart(values: List<Long>, modifier: Modifier) {
-    val bar = MaterialTheme.colorScheme.primary
-    val empty = MaterialTheme.colorScheme.outlineVariant
+    val bar = BookOrbitTheme.tokens.primary
+    val empty = BookOrbitTheme.tokens.muted
     val max = (values.maxOrNull() ?: 0L).coerceAtLeast(1L)
     Canvas(modifier) {
         val gap = 3.dp.toPx()
@@ -145,8 +149,8 @@ private fun Heatmap(daily: Map<LocalDate, Long>, modifier: Modifier) {
     val lead = (days.first().dayOfWeek.value - DayOfWeek.MONDAY.value)
     val cells: List<LocalDate?> = List(lead) { null } + days
     val weeks = cells.chunked(7)
-    val base = MaterialTheme.colorScheme.primary
-    val none = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    val base = BookOrbitTheme.tokens.success
+    val none = BookOrbitTheme.tokens.muted
 
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         weeks.forEach { week ->

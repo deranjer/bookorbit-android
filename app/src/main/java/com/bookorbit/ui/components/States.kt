@@ -13,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -52,7 +51,7 @@ fun ErrorState(
     icon: ImageVector = Icons.Outlined.CloudOff,
 ) {
     StateMessage(icon, title, message, BookOrbitTheme.tokens.destructive, modifier) {
-        OutlinedButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+        SecondaryButton(stringResource(R.string.retry), onClick = onRetry)
     }
 }
 

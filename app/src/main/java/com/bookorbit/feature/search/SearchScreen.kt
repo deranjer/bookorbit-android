@@ -1,37 +1,37 @@
 package com.bookorbit.feature.search
 
-import androidx.compose.ui.res.stringResource
-import com.bookorbit.R
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
-import com.bookorbit.core.model.SearchResult
+import com.bookorbit.R
 import com.bookorbit.ui.LocalImageUrls
+import com.bookorbit.ui.components.BookRow
+import com.bookorbit.ui.components.EmptyState
+import com.bookorbit.ui.components.PageHeader
+import com.bookorbit.ui.components.Pill
+import com.bookorbit.ui.components.SearchField
+import com.bookorbit.ui.theme.BookOrbitTheme
 
 @Composable
 fun SearchScreen(
@@ -40,93 +40,57 @@ fun SearchScreen(
 ) {
     val query by vm.query.collectAsStateWithLifecycle()
     val state by vm.state.collectAsStateWithLifecycle()
+    SearchContent(query, state, vm::onQueryChange, onBookClick)
+}
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        OutlinedTextField(
+@Composable
+internal fun SearchContent(
+    query: String,
+    state: SearchViewModel.UiState,
+    onQueryChange: (String) -> Unit,
+    onBookClick: (Int) -> Unit,
+) {
+    val imageUrls = LocalImageUrls.current
+    val tokens = BookOrbitTheme.tokens
+    Column(Modifier.fillMaxSize()) {
+        PageHeader(title = stringResource(R.string.title_search))
+        SearchField(
             value = query,
-            onValueChange = vm::onQueryChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            singleLine = true,
-            placeholder = { Text(stringResource(R.string.search_books)) },
+            onValueChange = onQueryChange,
+            placeholder = stringResource(R.string.search_books),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         )
+        if (state.loading) LinearProgressIndicator(Modifier.padding(horizontal = 16.dp).fillMaxWidth())
 
         when {
-            state.showHint -> CenteredHint(stringResource(R.string.search_hint))
-            state.results.isEmpty() && !state.loading ->
-                CenteredHint(stringResource(R.string.search_no_results, query.trim()))
-            else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
+            state.showHint -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                EmptyState(Icons.Outlined.Search, stringResource(R.string.search_hint))
+            }
+            state.results.isEmpty() && !state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                EmptyState(Icons.Outlined.SearchOff, stringResource(R.string.search_no_results, query.trim()))
+            }
+            else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
                 items(state.results, key = { it.id }) { result ->
-                    SearchResultRow(result = result, onClick = { onBookClick(result.id) })
-                    HorizontalDivider()
+                    BookRow(
+                        title = result.title ?: stringResource(R.string.card_unknown_title),
+                        subtitle = result.authors.joinToString(", "),
+                        coverModel = imageUrls.cover(result.id),
+                        onClick = { onBookClick(result.id) },
+                        extra = {
+                            result.seriesName?.let {
+                                Text(it, style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic, color = tokens.mutedForeground, maxLines = 1)
+                            }
+                        },
+                        trailing = {
+                            Column(horizontalAlignment = Alignment.End) {
+                                result.formats.firstOrNull()?.let { Pill(it.uppercase(), tokens.formatColor(it)) }
+                                Text(result.libraryName, style = MaterialTheme.typography.labelSmall, color = tokens.mutedForeground, modifier = Modifier.padding(top = 4.dp))
+                            }
+                        },
+                    )
+                    HorizontalDivider(Modifier.padding(start = 74.dp), color = tokens.border)
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun CenteredHint(text: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun SearchResultRow(result: SearchResult, onClick: () -> Unit) {
-    val imageUrls = LocalImageUrls.current
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AsyncImage(
-            model = imageUrls.cover(result.id),
-            contentDescription = result.title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(width = 44.dp, height = 66.dp)
-                .clip(RoundedCornerShape(4.dp)),
-        )
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 12.dp),
-        ) {
-            Text(
-                result.title ?: stringResource(R.string.card_unknown_title),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (result.authors.isNotEmpty()) {
-                Text(
-                    result.authors.joinToString(", "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            result.seriesName?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontStyle = FontStyle.Italic,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        Text(
-            result.libraryName,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }

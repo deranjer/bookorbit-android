@@ -1,17 +1,16 @@
 package com.bookorbit.feature.dashboard
 
-import androidx.compose.foundation.BorderStroke
-import com.bookorbit.ui.components.ErrorState
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
-import com.bookorbit.R
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,16 +20,15 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.outlined.AutoStories
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Headphones
+import androidx.compose.material.icons.outlined.LocalFireDepartment
+import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -39,22 +37,30 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
+import com.bookorbit.R
 import com.bookorbit.core.model.BookCard
 import com.bookorbit.core.model.ReadingGoalWidget
 import com.bookorbit.core.model.ReadingStreakWidget
 import com.bookorbit.ui.LocalImageUrls
-import com.bookorbit.ui.components.HorizontalBookScroller
+import com.bookorbit.ui.components.BookCover
+import com.bookorbit.ui.components.BookShelf
+import com.bookorbit.ui.components.CoverBackdrop
+import com.bookorbit.ui.components.EmptyState
+import com.bookorbit.ui.components.ErrorState
+import com.bookorbit.ui.components.IconTile
+import com.bookorbit.ui.components.Panel
+import com.bookorbit.ui.components.PanelShape
+import com.bookorbit.ui.components.PrimaryButton
+import com.bookorbit.ui.theme.BookOrbitTheme
 import java.time.LocalTime
 
-/** Home: greeting, streak/goal strip, one "continue" card, then the usual shelves. */
-@OptIn(ExperimentalMaterial3Api::class)
+/** Home: greeting, the book to pick up next, streak and goal, then the shelves. */
 @Composable
 fun DashboardScreen(
     userName: String,
@@ -63,78 +69,102 @@ fun DashboardScreen(
     vm: DashboardViewModel = hiltViewModel(),
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
+    DashboardContent(ui, userName, greeting(), onRefresh = vm::refresh, onOpenProfile = onOpenProfile, onBookClick = onBookClick)
+}
+
+/** Wider than this, the continue card and the stat tiles sit side by side. */
+private val SideBySideWidth = 700.dp
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun DashboardContent(
+    ui: DashboardViewModel.UiState,
+    userName: String,
+    greeting: String,
+    onRefresh: () -> Unit,
+    onOpenProfile: () -> Unit,
+    onBookClick: (Int) -> Unit,
+) {
     val isEmpty = !ui.loading && ui.continueReading.isEmpty() && ui.continueListening.isEmpty() && ui.recentlyAdded.isEmpty()
 
-    PullToRefreshBox(
-        isRefreshing = ui.loading,
-        onRefresh = { vm.refresh() },
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            HomeHeader(userName = userName, onOpenProfile = onOpenProfile)
+    PullToRefreshBox(isRefreshing = ui.loading, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val wide = maxWidth >= SideBySideWidth
+            Column(
+                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                HomeHeader(greeting = greeting, userName = userName, onOpenProfile = onOpenProfile)
 
-            when {
-                ui.error -> Box(Modifier.fillMaxWidth(), Alignment.Center) {
-                    ErrorState(stringResource(R.string.couldn_t_load_your_dashboard), onRetry = { vm.refresh() })
-                }
-                isEmpty -> Box(Modifier.fillMaxWidth().padding(vertical = 64.dp), Alignment.Center) {
-                    Text(
-                        stringResource(R.string.nothing_here_yet_add_books),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                else -> {
-                    StatsStrip(streak = ui.streak, goal = ui.goal)
-
-                    // The hero is the book to pick up next: reading first, then listening.
-                    val heroFromReading = ui.continueReading.firstOrNull()
-                    val hero = heroFromReading ?: ui.continueListening.firstOrNull()
-                    if (hero != null) {
-                        ContinueCard(
-                            book = hero,
-                            label = stringResource(if (heroFromReading != null) R.string.home_continue_reading else R.string.continue_listening),
-                            onClick = { onBookClick(hero.id) },
-                        )
+                when {
+                    ui.error -> Box(Modifier.fillMaxWidth(), Alignment.Center) {
+                        ErrorState(stringResource(R.string.couldn_t_load_your_dashboard), onRetry = onRefresh)
                     }
+                    isEmpty -> Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), Alignment.Center) {
+                        EmptyState(Icons.Outlined.AutoStories, stringResource(R.string.nothing_here_yet_add_books))
+                    }
+                    else -> {
+                        // The hero is the book to pick up next: reading first, then listening.
+                        val heroFromReading = ui.continueReading.firstOrNull()
+                        val hero = heroFromReading ?: ui.continueListening.firstOrNull()
+                        val heroCard: (@Composable (Modifier) -> Unit)? = hero?.let { book ->
+                            { modifier ->
+                                ContinueCard(
+                                    book = book,
+                                    label = stringResource(if (heroFromReading != null) R.string.home_continue_reading else R.string.continue_listening),
+                                    onClick = { onBookClick(book.id) },
+                                    modifier = modifier,
+                                )
+                            }
+                        }
+                        val hasStats = ui.streak != null || ui.goal != null
+                        if (wide && heroCard != null && hasStats) {
+                            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                heroCard(Modifier.weight(1.5f).fillMaxHeight())
+                                Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    ui.streak?.let { StreakTile(it, Modifier.weight(1f).fillMaxWidth()) }
+                                    ui.goal?.let { GoalTile(it, Modifier.weight(1f).fillMaxWidth()) }
+                                }
+                            }
+                        } else {
+                            heroCard?.invoke(Modifier.fillMaxWidth())
+                            StatsStrip(streak = ui.streak, goal = ui.goal)
+                        }
 
-                    val moreReading = if (heroFromReading != null) ui.continueReading.drop(1) else ui.continueReading
-                    val moreListening = if (heroFromReading != null) ui.continueListening else ui.continueListening.drop(1)
-                    if (moreReading.isNotEmpty()) HorizontalBookScroller(stringResource(R.string.up_next_to_read), moreReading, onBookClick)
-                    if (moreListening.isNotEmpty()) HorizontalBookScroller(stringResource(R.string.continue_listening), moreListening, onBookClick)
-                    if (ui.recentlyAdded.isNotEmpty()) HorizontalBookScroller(stringResource(R.string.recently_added), ui.recentlyAdded, onBookClick)
+                        val moreReading = if (heroFromReading != null) ui.continueReading.drop(1) else ui.continueReading
+                        val moreListening = if (heroFromReading != null) ui.continueListening else ui.continueListening.drop(1)
+                        if (moreReading.isNotEmpty()) BookShelf(stringResource(R.string.up_next_to_read), Icons.AutoMirrored.Outlined.MenuBook, moreReading, onBookClick)
+                        if (moreListening.isNotEmpty()) BookShelf(stringResource(R.string.continue_listening), Icons.Outlined.Headphones, moreListening, onBookClick)
+                        if (ui.recentlyAdded.isNotEmpty()) BookShelf(stringResource(R.string.recently_added), Icons.Outlined.NewReleases, ui.recentlyAdded, onBookClick)
+                    }
                 }
+                Spacer(Modifier.height(8.dp))
             }
-            Spacer(Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
-private fun HomeHeader(userName: String, onOpenProfile: () -> Unit) {
+private fun HomeHeader(greeting: String, userName: String, onOpenProfile: () -> Unit) {
+    val tokens = BookOrbitTheme.tokens
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+        modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(start = 4.dp, top = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(greeting(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(userName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(greeting, style = MaterialTheme.typography.bodyMedium, color = tokens.mutedForeground)
+            Text(userName, style = MaterialTheme.typography.headlineLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Box(
             modifier = Modifier
-                .size(36.dp)
+                .size(42.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer)
+                .background(tokens.accentTint)
+                .border(1.dp, tokens.border, CircleShape)
                 .clickable(onClickLabel = stringResource(R.string.open_profile), onClick = onOpenProfile),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                userName.firstOrNull()?.uppercase() ?: "",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
+            Text(userName.firstOrNull()?.uppercase() ?: "", style = MaterialTheme.typography.titleLarge)
         }
     }
 }
@@ -150,145 +180,139 @@ private fun greeting(): String = stringResource(
 
 /** Streak and yearly goal side by side; each hides itself if the server doesn't provide it. */
 @Composable
-internal fun StatsStrip(streak: ReadingStreakWidget?, goal: ReadingGoalWidget?) {
+internal fun StatsStrip(streak: ReadingStreakWidget?, goal: ReadingGoalWidget?, modifier: Modifier = Modifier) {
     if (streak == null && goal == null) return
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = modifier.fillMaxWidth().height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        if (streak != null) StreakCard(streak, Modifier.weight(1f))
-        if (goal != null) GoalCard(goal, Modifier.weight(1f))
+        if (streak != null) StreakTile(streak, Modifier.weight(1f).fillMaxHeight())
+        if (goal != null) GoalTile(goal, Modifier.weight(1f).fillMaxHeight())
     }
 }
 
+/** A stat in a panel: an icon tile and label, then the figure in the serif. */
 @Composable
-private fun StatCard(modifier: Modifier, content: @Composable () -> Unit) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) { content() }
-    }
-}
-
-@Composable
-private fun StreakCard(streak: ReadingStreakWidget, modifier: Modifier) {
-    StatCard(modifier) {
+internal fun StatTile(
+    label: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier,
+    iconTint: androidx.compose.ui.graphics.Color = BookOrbitTheme.tokens.foreground,
+    footer: (@Composable () -> Unit)? = null,
+) {
+    Panel(modifier = modifier, contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Filled.LocalFireDepartment,
-                contentDescription = null,
-                tint = if (streak.currentStreak > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(18.dp),
+            IconTile(icon, tint = iconTint)
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = BookOrbitTheme.tokens.mutedForeground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 8.dp),
             )
-            Text(stringResource(R.string.streak), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 6.dp))
         }
-        Text(
-            pluralStringResource(R.plurals.home_streak_days, streak.currentStreak, streak.currentStreak),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(top = 4.dp),
-        )
-        if (streak.lastSevenDays.isNotEmpty()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 8.dp)) {
-                streak.lastSevenDays.takeLast(7).forEach { active ->
-                    Box(
-                        Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
-                    )
+        Spacer(Modifier.weight(1f, fill = false).height(10.dp))
+        Text(value, style = MaterialTheme.typography.headlineMedium, maxLines = 1)
+        footer?.let { Box(Modifier.padding(top = 8.dp)) { it() } }
+    }
+}
+
+@Composable
+private fun StreakTile(streak: ReadingStreakWidget, modifier: Modifier) {
+    val tokens = BookOrbitTheme.tokens
+    StatTile(
+        label = stringResource(R.string.streak),
+        value = pluralStringResource(R.plurals.home_streak_days, streak.currentStreak, streak.currentStreak),
+        icon = Icons.Outlined.LocalFireDepartment,
+        iconTint = if (streak.currentStreak > 0) tokens.warning else tokens.mutedForeground,
+        modifier = modifier,
+        footer = if (streak.lastSevenDays.isNotEmpty()) {
+            {
+                Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    streak.lastSevenDays.takeLast(7).forEach { active ->
+                        Box(Modifier.size(10.dp).clip(CircleShape).background(if (active) tokens.warning else tokens.muted))
+                    }
                 }
             }
-        }
-    }
+        } else null,
+    )
 }
 
 @Composable
-private fun GoalCard(goal: ReadingGoalWidget, modifier: Modifier) {
-    StatCard(modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.Flag, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-            Text(
-                if (goal.year > 0) stringResource(R.string.home_goal_title, goal.year.toString()) else stringResource(R.string.home_goal_yearly),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 6.dp),
-            )
-        }
-        val target = goal.goalBooks
-        if (target != null && target > 0) {
-            Text(
-                stringResource(R.string.home_goal_progress, goal.completedBooks, target),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-            LinearProgressIndicator(
-                progress = { (goal.completedBooks.toFloat() / target).coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(6.dp).clip(CircleShape),
-            )
-        } else {
-            Text(
-                stringResource(R.string.read_2, goal.completedBooks),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-            Text(stringResource(R.string.no_goal_set), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
-        }
+private fun GoalTile(goal: ReadingGoalWidget, modifier: Modifier) {
+    val target = goal.goalBooks
+    val label = if (goal.year > 0) stringResource(R.string.home_goal_title, goal.year.toString()) else stringResource(R.string.home_goal_yearly)
+    if (target != null && target > 0) {
+        StatTile(
+            label = label,
+            value = stringResource(R.string.home_goal_progress, goal.completedBooks, target),
+            icon = Icons.Outlined.Flag,
+            modifier = modifier,
+            footer = { ProgressLine(goal.completedBooks.toFloat() / target) },
+        )
+    } else {
+        StatTile(
+            label = label,
+            value = stringResource(R.string.read_2, goal.completedBooks),
+            icon = Icons.Outlined.Flag,
+            modifier = modifier,
+            footer = { Text(stringResource(R.string.no_goal_set), style = MaterialTheme.typography.bodySmall, color = BookOrbitTheme.tokens.mutedForeground) },
+        )
     }
 }
 
-/** The one book to pick up next: cover, title, progress, and an open button. */
+/** A thin rounded progress bar in the foreground colour, as the web draws its meters. */
 @Composable
-private fun ContinueCard(book: BookCard, label: String, onClick: () -> Unit) {
+internal fun ProgressLine(fraction: Float, modifier: Modifier = Modifier) {
+    val tokens = BookOrbitTheme.tokens
+    Box(modifier.fillMaxWidth().height(6.dp).clip(CircleShape).background(tokens.muted)) {
+        Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).height(6.dp).clip(CircleShape).background(tokens.primary))
+    }
+}
+
+/** The one book to pick up next, on its own blurred cover: cover, title, progress and a Continue button. */
+@Composable
+private fun ContinueCard(book: BookCard, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val imageUrls = LocalImageUrls.current
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    val tokens = BookOrbitTheme.tokens
+    val coverModel = if (book.hasCover) imageUrls.cover(book.id) else null
+    val progress = (book.readingProgress ?: 0.0).coerceIn(0.0, 100.0)
+    Box(
+        modifier
+            .clip(PanelShape)
+            .background(tokens.card)
+            .border(1.dp, tokens.accentLine, PanelShape)
+            .clickable(onClick = onClick),
     ) {
-        Column(Modifier.padding(16.dp)) {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-            Row(Modifier.padding(top = 10.dp)) {
-                Box(
-                    modifier = Modifier
-                        .width(84.dp)
-                        .height(124.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                ) {
-                    if (book.hasCover) {
-                        AsyncImage(
-                            model = imageUrls.cover(book.id),
-                            contentDescription = book.title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    }
+        CoverBackdrop(coverModel, Modifier.matchParentSize())
+        Row(Modifier.padding(18.dp).height(IntrinsicSize.Min)) {
+            BookCover(
+                model = coverModel,
+                title = book.title,
+                elevated = true,
+                titleSize = MaterialTheme.typography.titleMedium.fontSize,
+                modifier = Modifier.width(104.dp).height(156.dp),
+            )
+            Column(Modifier.weight(1f).fillMaxHeight().padding(start = 18.dp)) {
+                Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = tokens.mutedForeground)
+                Text(
+                    book.title ?: stringResource(R.string.home_untitled),
+                    style = MaterialTheme.typography.headlineSmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+                book.authors.firstOrNull()?.let {
+                    Text(it, style = MaterialTheme.typography.bodyMedium, color = tokens.mutedForeground, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
                 }
-                Column(Modifier.weight(1f).padding(start = 16.dp)) {
-                    Text(book.title ?: stringResource(R.string.home_untitled), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    book.authors.firstOrNull()?.let {
-                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                    Spacer(Modifier.weight(1f))
-                    val progress = (book.readingProgress ?: 0.0).coerceIn(0.0, 100.0)
-                    LinearProgressIndicator(
-                        progress = { (progress / 100.0).toFloat() },
-                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
-                    )
-                    Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("${progress.toInt()}%", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(stringResource(R.string.open), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
-                    }
+                Spacer(Modifier.weight(1f).height(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ProgressLine((progress / 100.0).toFloat(), Modifier.weight(1f))
+                    Text("${progress.toInt()}%", style = MaterialTheme.typography.labelMedium, color = tokens.mutedForeground, modifier = Modifier.padding(start = 10.dp))
                 }
+                PrimaryButton(stringResource(R.string.open), onClick = onClick, modifier = Modifier.padding(top = 12.dp))
             }
         }
     }

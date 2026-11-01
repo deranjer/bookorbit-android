@@ -26,10 +26,11 @@ fun StarRating(
     onChange: ((Int?) -> Unit)? = null,
     enabled: Boolean = true,
     size: Dp = 28.dp,
+    modifier: Modifier = Modifier,
 ) {
     val current = value ?: 0.0
     val tokens = BookOrbitTheme.tokens
-    Row {
+    Row(modifier) {
         (1..5).forEach { star ->
             val icon = when {
                 current >= star -> Icons.Filled.Star

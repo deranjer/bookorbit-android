@@ -31,4 +31,8 @@
         <item quantity="one">%1$d book, %2$s</item>
         <item quantity="other">%1$d books, %2$s</item>
     </plurals>
+    <plurals name="notes_count">
+        <item quantity="one">%1$d highlight</item>
+        <item quantity="other">%1$d highlights</item>
+    </plurals>
 </resources>

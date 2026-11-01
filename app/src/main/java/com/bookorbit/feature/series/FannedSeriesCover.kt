@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.bookorbit.ui.theme.BookOrbitTheme
 import coil3.compose.AsyncImage
 import com.bookorbit.ui.LocalImageUrls
 import kotlin.math.abs
@@ -43,7 +44,7 @@ fun FannedSeriesCover(
             .fillMaxWidth()
             .aspectRatio(16f / 10f)
             .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(BookOrbitTheme.tokens.muted),
         contentAlignment = Alignment.Center,
     ) {
         if (covers.isEmpty()) {
