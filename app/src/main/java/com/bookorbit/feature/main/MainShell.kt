@@ -174,6 +174,10 @@ fun MainShell(
 
     val backStackEntry by tabNav.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+    // The tab the current screen belongs to: the nearest tab root under it in the back stack, so a
+    // book opened from Home still counts as Home.
+    val backStack by tabNav.currentBackStack.collectAsStateWithLifecycle()
+    val currentTab = backStack.lastOrNull { it.destination.route in barRoutes }?.destination?.route
     val twoPane = directive.maxHorizontalPartitions > 1 && currentRoute in LIST_ROUTES
     val onBookClick: (Int) -> Unit = { id -> tabNav.navigate(SubRoute.bookDetail(id)) }
     // In two-pane mode a tap on a list row opens the book in the detail pane instead of a new screen.
@@ -192,6 +196,13 @@ fun MainShell(
     val onSeriesClick: (Int, String) -> Unit = { id, name -> tabNav.navigate(SubRoute.series(id, name)) }
 
     fun navigateTab(route: String) {
+        if (route == currentTab) {
+            // Tapping the tab you're in goes back to its first screen. Navigating to it again would
+            // restore its saved stack, book and all, so nothing would change.
+            tabNav.popBackStack(route, inclusive = false)
+            detailNav.popBackStack(PANE_EMPTY, inclusive = false)
+            return
+        }
         tabNav.navigate(route) {
             popUpTo(tabNav.graph.findStartDestination().id) { saveState = true }
             launchSingleTop = true
@@ -199,13 +210,14 @@ fun MainShell(
         }
     }
 
-    // The tab to highlight: the You sub-screens count as You; book detail highlights nothing.
-    // A screen that isn't in the bar is opened from You: it counts as You and gets a back button.
+    // The tab to highlight: the You sub-screens count as You, and a book, author or series page
+    // counts as the tab it was opened from. A screen that isn't in the bar is opened from You: it
+    // counts as You and gets a back button.
     val openedFromYou = currentRoute != null && currentRoute !in barRoutes && unpinned.any { it.route == currentRoute }
     val selectedRoute = when {
         currentRoute in barRoutes -> currentRoute
         openedFromYou -> NavItem.YOU.route
-        else -> currentRoute
+        else -> currentTab
     }
 
     val title = when (currentRoute) {
