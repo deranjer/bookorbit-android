@@ -3,6 +3,8 @@ package com.bookorbit.feature.auth
 import com.bookorbit.ui.asString
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,6 +28,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,9 +40,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bookorbit.ui.theme.WarningOrange
+import com.bookorbit.core.network.LocalNetworkAccess
 import com.bookorbit.core.network.UserCaSettings
 
 @Composable
@@ -55,6 +59,16 @@ fun ServerSetupScreen(
     var trustUserCas by remember(certificateHost) { mutableStateOf(vm.trustsUserCas(url)) }
 
     fun submit() = vm.connect(url, trustUserCas, onConnected)
+
+    val localNetworkPrompt = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        vm.onLocalNetworkResult(it)
+    }
+    LaunchedEffect(ui.askLocalNetwork) {
+        if (ui.askLocalNetwork) {
+            vm.onLocalNetworkPromptShown()
+            localNetworkPrompt.launch(LocalNetworkAccess.PERMISSION)
+        }
+    }
 
     Column(
         modifier = modifier

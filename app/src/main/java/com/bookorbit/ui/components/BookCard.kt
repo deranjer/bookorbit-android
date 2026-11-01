@@ -22,7 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.bookorbit.R
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.bookorbit.core.model.BookCard
 import com.bookorbit.core.model.BookFiles
 import com.bookorbit.ui.LocalImageUrls

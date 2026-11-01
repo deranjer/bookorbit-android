@@ -55,10 +55,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -72,6 +73,7 @@ fun PdfReaderScreen(
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     var chromeVisible by remember { mutableStateOf(true) }
     var settingsVisible by remember { mutableStateOf(false) }
@@ -98,11 +100,11 @@ fun PdfReaderScreen(
                         scope.launch {
                             val text = core.pageText(page)
                             if (text.isBlank()) {
-                                Toast.makeText(context, context.getString(R.string.pdf_no_text), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, resources.getString(R.string.pdf_no_text), Toast.LENGTH_SHORT).show()
                             } else {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(ClipData.newPlainText(context.getString(R.string.pdf_clip_label), text))
-                                Toast.makeText(context, context.getString(R.string.pdf_text_copied), Toast.LENGTH_SHORT).show()
+                                clipboard.setPrimaryClip(ClipData.newPlainText(resources.getString(R.string.pdf_clip_label), text))
+                                Toast.makeText(context, resources.getString(R.string.pdf_text_copied), Toast.LENGTH_SHORT).show()
                             }
                         }
                     }

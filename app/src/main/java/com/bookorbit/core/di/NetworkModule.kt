@@ -2,7 +2,9 @@ package com.bookorbit.core.di
 
 import com.bookorbit.BuildConfig
 import android.content.Context
-import coil.ImageLoader
+import coil3.ImageLoader
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.request.crossfade
 import com.bookorbit.core.network.ApiService
 import com.bookorbit.core.network.AuthInterceptor
 import com.bookorbit.core.network.BaseUrlInterceptor
@@ -108,7 +110,7 @@ object NetworkModule {
         @ApplicationContext context: Context,
         @ImageClient client: OkHttpClient,
     ): ImageLoader = ImageLoader.Builder(context)
-        .okHttpClient(client)
+        .components { add(OkHttpNetworkFetcherFactory(callFactory = { client })) }
         .crossfade(true)
         .build()
 

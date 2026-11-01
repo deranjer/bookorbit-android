@@ -10,6 +10,9 @@
     <!-- Book downloads run as a WorkManager foreground service so leaving the app doesn't stop them. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Android 17: a self-hosted server on the LAN and Cast discovery both need this; the app asks
+         at runtime (core/network/LocalNetworkAccess.kt). -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
 
     <application
         android:name=".app.BookOrbitApplication"

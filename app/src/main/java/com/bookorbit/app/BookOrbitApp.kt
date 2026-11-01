@@ -1,19 +1,24 @@
 package com.bookorbit.app
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.bookorbit.app.RootViewModel.LocalNetworkGate
 import com.bookorbit.core.auth.SessionState
+import com.bookorbit.core.network.LocalNetworkAccess
 import com.bookorbit.feature.auth.LoginScreen
 import com.bookorbit.feature.auth.ServerSetupScreen
 import com.bookorbit.ui.LocalImageUrls
@@ -32,6 +37,18 @@ private object AuthRoutes {
 fun BookOrbitApp() {
     val rootVm: RootViewModel = hiltViewModel()
     val state by rootVm.state.collectAsStateWithLifecycle()
+    val gate by rootVm.localNetworkGate.collectAsStateWithLifecycle()
+
+    val localNetworkPrompt = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        rootVm.onLocalNetworkAnswered()
+    }
+    LaunchedEffect(gate) {
+        if (gate == LocalNetworkGate.Ask) localNetworkPrompt.launch(LocalNetworkAccess.PERMISSION)
+    }
+    if (gate != LocalNetworkGate.Ready) {
+        LoadingScreen()
+        return
+    }
 
     when (val s = state) {
         SessionState.Loading -> LoadingScreen()

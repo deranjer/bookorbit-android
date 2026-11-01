@@ -339,6 +339,8 @@
     <string name="comic_err_read">Couldn\'t read this comic. CBR and CB7 comics need a connection to your server.</string>
     <string name="login_err_invalid">Invalid username or password.</string>
     <string name="login_err_oidc">OIDC login failed</string>
+    <string name="server_err_local_network">BookOrbit needs the Nearby devices permission to reach a server on your local network. Allow it when asked, or in Android Settings → Apps → BookOrbit → Permissions.</string>
+    <string name="cast_allow_local_network">Cast: allow access to devices on your network</string>
     <string name="server_err_connect">Could not connect. Check the URL (including the port, e.g. :3000) and try again.</string>
     <string name="server_http_warning">Insecure connection. HTTP traffic — including your login — is sent unencrypted and can be read by others on the network. Use HTTPS whenever possible.</string>
     <string name="player_err_load">Couldn\'t load this audiobook. Check your connection, or that it finished downloading for offline use.</string>

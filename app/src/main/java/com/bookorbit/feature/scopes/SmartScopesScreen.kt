@@ -4,7 +4,7 @@ import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.bookorbit.ui.components.ChipBooksScreen
