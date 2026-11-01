@@ -1,5 +1,7 @@
 package com.bookorbit.feature.library
 
+import androidx.compose.foundation.layout.Box
+import com.bookorbit.ui.components.ErrorState
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
@@ -14,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.Badge
-import androidx.compose.material3.Button
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -107,19 +108,12 @@ fun LibrariesScreen(
         HorizontalDivider()
 
         when (status) {
-            LibrariesViewModel.Status.ERROR -> Column(
-                modifier = Modifier.fillMaxSize().padding(32.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(stringResource(R.string.couldn_t_load_your_libraries), color = MaterialTheme.colorScheme.error)
-                Text(
-                    stringResource(R.string.check_your_connection_books_you),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp),
+            LibrariesViewModel.Status.ERROR -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                ErrorState(
+                    stringResource(R.string.couldn_t_load_your_libraries),
+                    onRetry = vm::loadLibraries,
+                    message = stringResource(R.string.check_your_connection_books_you),
                 )
-                Button(onClick = vm::loadLibraries, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.retry)) }
             }
             LibrariesViewModel.Status.EMPTY -> Column(
                 modifier = Modifier.fillMaxSize().padding(32.dp),

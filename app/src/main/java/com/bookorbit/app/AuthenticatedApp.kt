@@ -1,5 +1,6 @@
 package com.bookorbit.app
 
+import com.bookorbit.ui.theme.Motion
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -35,7 +36,14 @@ fun AuthenticatedApp(user: AuthUser, onSignOut: () -> Unit) {
     // manager makes this a once-per-process no-op, so recompositions and recreations are harmless.
     LaunchedEffect(Unit) { playerVm.restoreLastBook() }
 
-    NavHost(navController = navController, startDestination = AppRoutes.MAIN) {
+    NavHost(
+        navController = navController,
+        startDestination = AppRoutes.MAIN,
+        enterTransition = { Motion.ScreenEnter },
+        exitTransition = { Motion.ScreenExit },
+        popEnterTransition = { Motion.ScreenEnter },
+        popExitTransition = { Motion.ScreenExit },
+    ) {
         composable(AppRoutes.MAIN) {
             // Book detail lives INSIDE the shell (so the bottom bar + mini-player persist); only the
             // immersive reader/player are full-screen app-level destinations.

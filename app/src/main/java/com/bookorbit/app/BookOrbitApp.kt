@@ -1,5 +1,6 @@
 package com.bookorbit.app
 
+import com.bookorbit.ui.theme.Motion
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -65,6 +66,10 @@ private fun AuthFlow(startAtServerSetup: Boolean) {
     NavHost(
         navController = navController,
         startDestination = if (startAtServerSetup) AuthRoutes.SERVER_SETUP else AuthRoutes.LOGIN,
+        enterTransition = { Motion.ScreenEnter },
+        exitTransition = { Motion.ScreenExit },
+        popEnterTransition = { Motion.ScreenEnter },
+        popExitTransition = { Motion.ScreenExit },
     ) {
         composable(AuthRoutes.SERVER_SETUP) {
             ServerSetupScreen(

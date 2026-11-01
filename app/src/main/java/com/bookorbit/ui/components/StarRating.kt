@@ -14,8 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.bookorbit.ui.theme.Accent
-import com.bookorbit.ui.theme.TextMuted
+import com.bookorbit.ui.theme.BookOrbitTheme
 
 /**
  * 1–5 star rating. When [onChange] is provided, tapping a star sets that rating; tapping the current
@@ -29,6 +28,7 @@ fun StarRating(
     size: Dp = 28.dp,
 ) {
     val current = value ?: 0.0
+    val tokens = BookOrbitTheme.tokens
     Row {
         (1..5).forEach { star ->
             val icon = when {
@@ -36,7 +36,7 @@ fun StarRating(
                 current >= star - 0.5 -> Icons.AutoMirrored.Filled.StarHalf
                 else -> Icons.Outlined.StarBorder
             }
-            val tint = if (current >= star - 0.5) Accent else TextMuted
+            val tint = if (current >= star - 0.5) tokens.starHighlight else tokens.mutedForeground
             Icon(
                 imageVector = icon,
                 contentDescription = stringResource(R.string.stars, star),

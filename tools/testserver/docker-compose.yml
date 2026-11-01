@@ -1,0 +1,46 @@
+# A disposable BookOrbit server for developing the app: `./seed.sh` brings it up and fills it.
+# Trimmed from bookorbit/bookorbit's docker-compose.yml at the server version pinned in .env.
+name: bookorbit-testserver
+
+services:
+  app:
+    image: ${APP_IMAGE?required}
+    init: true
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: bookorbit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?required}
+      POSTGRES_DB: bookorbit
+      JWT_SECRET: ${JWT_SECRET?required}
+      SETUP_BOOTSTRAP_TOKEN: ${SETUP_BOOTSTRAP_TOKEN?required}
+      # The emulator reaches the host at 10.0.2.2.
+      APP_URL: http://10.0.2.2:3000
+      TZ: UTC
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./books:/books
+      - ./data/app:/data
+    tmpfs:
+      - /tmp
+
+  postgres:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_USER: bookorbit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?required}
+      POSTGRES_DB: bookorbit
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bookorbit -d bookorbit"]
+      interval: 5s
+      timeout: 5s
+      retries: 20

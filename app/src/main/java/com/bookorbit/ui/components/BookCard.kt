@@ -1,47 +1,40 @@
 package com.bookorbit.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.ui.text.style.LineBreak
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.bookorbit.R
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.bookorbit.R
 import com.bookorbit.core.model.BookCard
 import com.bookorbit.core.model.BookFiles
 import com.bookorbit.ui.LocalImageUrls
-import com.bookorbit.ui.theme.Accent
+import com.bookorbit.ui.theme.BookOrbitTheme
 
-private val FORMAT_COLORS: Map<String, Color> = mapOf(
-    "epub" to Color(0xFF2F9E44),
-    "mobi" to Color(0xFF1971C2),
-    "azw" to Color(0xFFE8590C),
-    "azw3" to Color(0xFFE67700),
-    "cbz" to Color(0xFF7048E8),
-    "cbr" to Color(0xFF7048E8),
-    "fb2" to Color(0xFF1098AD),
-    "pdf" to Color(0xFFC92A2A),
-    "mp3" to Color(0xFF0CA678),
-    "m4b" to Color(0xFF0CA678),
-)
-
-/** Cover card used in grids and scrollers. */
+/**
+ * Cover card for grids and scrollers, after the web client's: the cover is the card, rounded with a
+ * hairline edge so pale covers don't melt into the page, and the title and author sit below it.
+ * Format and reading progress are laid over the art.
+ */
 @Composable
 fun BookCard(
     book: BookCard,
@@ -49,19 +42,23 @@ fun BookCard(
     modifier: Modifier = Modifier,
 ) {
     val imageUrls = LocalImageUrls.current
+    val tokens = BookOrbitTheme.tokens
+    val shape = MaterialTheme.shapes.medium
     val primaryFormat = BookFiles.badgeFormat(book.files)
     val progress = book.readingProgress
 
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surface)
+            .clip(shape)
             .clickable(onClick = onClick),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(2f / 3f),
+                .aspectRatio(2f / 3f)
+                .clip(shape)
+                .background(tokens.muted)
+                .border(1.dp, tokens.border, shape),
         ) {
             if (book.hasCover) {
                 AsyncImage(
@@ -71,67 +68,56 @@ fun BookCard(
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(8.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        book.title ?: stringResource(R.string.card_unknown),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                Text(
+                    book.title ?: stringResource(R.string.card_unknown),
+                    // The serif title on a blank cover, small enough that long words fit a grid cell.
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 17.sp,
+                        lineHeight = 21.sp,
+                        hyphens = Hyphens.Auto,
+                        lineBreak = LineBreak.Paragraph,
+                    ),
+                    color = tokens.mutedForeground,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.align(Alignment.Center).padding(12.dp),
+                )
             }
 
             if (primaryFormat != null) {
-                Text(
-                    primaryFormat.uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(FORMAT_COLORS[primaryFormat] ?: Accent)
-                        .padding(horizontal = 5.dp, vertical = 2.dp),
-                )
+                FormatBadge(primaryFormat, Modifier.align(Alignment.TopEnd).padding(6.dp))
             }
-        }
 
-        if (progress != null && progress > 0) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.outline),
-            ) {
+            if (progress != null && progress > 0) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(fraction = (progress / 100.0).coerceIn(0.0, 1.0).toFloat())
-                        .background(Accent)
-                        .padding(vertical = 1.5.dp),
-                )
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .background(tokens.coverChip),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction = (progress / 100.0).coerceIn(0.0, 1.0).toFloat())
+                            .height(4.dp)
+                            .background(tokens.coverChipForeground),
+                    )
+                }
             }
         }
 
-        Column(modifier = Modifier.padding(6.dp)) {
+        Column(modifier = Modifier.padding(top = 8.dp, bottom = 4.dp, start = 2.dp, end = 2.dp)) {
             Text(
                 book.title ?: stringResource(R.string.card_unknown_title),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleSmall,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             if (book.authors.isNotEmpty()) {
                 Text(
                     book.authors.joinToString(", "),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = tokens.mutedForeground,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

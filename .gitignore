@@ -15,3 +15,6 @@ captures/
 *.jks
 keystore.properties
 play-service-account.json
+
+# Before/after emulator captures for comparing redesign work locally.
+.screenshots/

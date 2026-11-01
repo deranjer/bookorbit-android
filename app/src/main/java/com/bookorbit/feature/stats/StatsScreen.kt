@@ -1,7 +1,11 @@
 package com.bookorbit.feature.stats
 
+import androidx.compose.foundation.BorderStroke
+import com.bookorbit.ui.components.SectionHeader
+import com.bookorbit.ui.components.ErrorState
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
+import com.bookorbit.ui.theme.BookOrbitTheme
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +24,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -52,10 +55,7 @@ fun StatsScreen(vm: StatsViewModel = hiltViewModel()) {
     when {
         ui.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
         ui.failed -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(R.string.couldn_t_load_your_reading), color = MaterialTheme.colorScheme.error)
-                Button(onClick = vm::refresh, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.retry)) }
-            }
+            ErrorState(stringResource(R.string.couldn_t_load_your_reading), onRetry = vm::refresh)
         }
         else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
             ui.summary?.let { s ->
@@ -100,7 +100,8 @@ private fun Tile(label: String, value: String, modifier: Modifier) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(Modifier.fillMaxWidth().padding(12.dp)) {
@@ -112,12 +113,7 @@ private fun Tile(label: String, value: String, modifier: Modifier) {
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 4.dp),
-    )
+    SectionHeader(text, Modifier.padding(top = 8.dp))
 }
 
 @Composable
@@ -189,11 +185,10 @@ private val SOURCE_LABELS = mapOf(
     "kobo" to R.string.stats_src_kobo,
 )
 
-private val SOURCE_COLORS = listOf(Color(0xFF4A9EFF), Color(0xFF4ADE80), Color(0xFFFB923C), Color(0xFFF472B6), Color(0xFFC084FC), Color(0xFF22D3EE))
-
 @Composable
 private fun SourceSplit(dist: SourceDistribution, modifier: Modifier) {
     val slices = dist.slices.filter { it.readingSeconds > 0 }.sortedByDescending { it.readingSeconds }
+    val colors = BookOrbitTheme.tokens.pills.series
     Column(modifier) {
         Row(Modifier.fillMaxWidth().height(12.dp).clip(CircleShape)) {
             slices.forEachIndexed { i, s ->
@@ -201,13 +196,13 @@ private fun SourceSplit(dist: SourceDistribution, modifier: Modifier) {
                     Modifier
                         .weight(s.readingSeconds.toFloat())
                         .height(12.dp)
-                        .background(SOURCE_COLORS[i % SOURCE_COLORS.size]),
+                        .background(colors[i % colors.size]),
                 )
             }
         }
         slices.forEachIndexed { i, s ->
             Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(10.dp).clip(CircleShape).background(SOURCE_COLORS[i % SOURCE_COLORS.size]))
+                Box(Modifier.size(10.dp).clip(CircleShape).background(colors[i % colors.size]))
                 Text(
                     SOURCE_LABELS[s.bucket]?.let { stringResource(it) } ?: s.bucket.replaceFirstChar { it.uppercase() },
                     style = MaterialTheme.typography.bodyMedium,

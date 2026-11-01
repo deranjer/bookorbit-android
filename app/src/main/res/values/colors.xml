@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="background">#FF0A0A0A</color>
+    <!-- The web tokens' background and primary (ui/theme/Tokens.kt), for window chrome drawn before
+         Compose. "background"/"accent" follow the system's night mode (values-night); the _light and
+         _dark pairs are for themes that follow the app's own theme setting instead. -->
+    <color name="background">@color/background_light</color>
+    <color name="accent">@color/accent_light</color>
+    <color name="background_light">#FFFEFBF7</color>
+    <color name="accent_light">#FF1A1815</color>
+    <color name="background_dark">#FF0E0903</color>
+    <color name="accent_dark">#FFE7E0D5</color>
     <color name="ic_launcher_background">#FF0A0A0A</color>
-    <!-- Matches ui/theme/Color.kt's Accent; used as colorPrimary in themes.xml's MediaRouter overlay. -->
-    <color name="accent">#FF4A9EFF</color>
 </resources>

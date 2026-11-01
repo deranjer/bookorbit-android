@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.play.publisher)
+    alias(libs.plugins.roborazzi)
 }
 
 // Release signing is loaded from keystore.properties (gitignored, see keystore.properties.example)
@@ -41,6 +42,16 @@ android {
     testOptions {
         // Android framework calls such as Log.w are no-ops in JVM unit tests instead of throwing.
         unitTests.isReturnDefaultValues = true
+        // Robolectric renders the Compose screenshot tests (Roborazzi) and needs the merged resources.
+        unitTests.isIncludeAndroidResources = true
+        // Robolectric sets FileDescriptor internals through jdk.internal.access, which JDK 25
+        // (Android Studio's bundled runtime) only allows once java.base exports it.
+        unitTests.all {
+            it.jvmArgs(
+                "--add-opens=java.base/java.io=ALL-UNNAMED",
+                "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED",
+            )
+        }
     }
 
     defaultConfig {
@@ -141,6 +152,11 @@ kotlin {
     }
 }
 
+roborazzi {
+    // Committed next to the tests so a change in how a screen looks shows up in review.
+    outputDir.set(file("src/test/screenshots"))
+}
+
 dependencies {
     // Core / lifecycle / activity
     implementation(libs.androidx.core.ktx)
@@ -220,6 +236,14 @@ dependencies {
     testImplementation(libs.turbine)
     testImplementation(libs.mockk)
     testImplementation(libs.okhttp.mockwebserver)
+    // Screenshot tests: `./gradlew recordRoborazziFullDebug` writes app/src/test/screenshots,
+    // `verifyRoborazziFullDebug` fails on any pixel change.
+    testImplementation(libs.robolectric)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.junit.rule)
 
     // Instrumented test
     androidTestImplementation(libs.androidx.junit)

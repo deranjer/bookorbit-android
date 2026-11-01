@@ -1,5 +1,6 @@
 package com.bookorbit.feature.main
 
+import com.bookorbit.ui.theme.Motion
 import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
@@ -207,7 +208,15 @@ fun MainShell(
         },
     ) { padding ->
       val detailPane: @Composable () -> Unit = {
-          NavHost(navController = detailNav, startDestination = PANE_EMPTY, modifier = Modifier.fillMaxSize()) {
+          NavHost(
+              navController = detailNav,
+              startDestination = PANE_EMPTY,
+              modifier = Modifier.fillMaxSize(),
+              enterTransition = { Motion.ScreenEnter },
+              exitTransition = { Motion.ScreenExit },
+              popEnterTransition = { Motion.ScreenEnter },
+              popExitTransition = { Motion.ScreenExit },
+          ) {
               composable(PANE_EMPTY) { EmptyDetailPane() }
               composable(
                   route = SubRoute.BOOK_DETAIL,
@@ -248,6 +257,10 @@ fun MainShell(
         NavHost(
             navController = tabNav,
             startDestination = startRoute,
+            enterTransition = { Motion.ScreenEnter },
+            exitTransition = { Motion.ScreenExit },
+            popEnterTransition = { Motion.ScreenEnter },
+            popExitTransition = { Motion.ScreenExit },
             // Consume the insets Scaffold already applied, so a nested screen's own TopAppBar
             // (book detail) doesn't add the status-bar inset a second time.
             // Two-pane: a fixed-width list column, with the book pane hosted once below (not per destination).

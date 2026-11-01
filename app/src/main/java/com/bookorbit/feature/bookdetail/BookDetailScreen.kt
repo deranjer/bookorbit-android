@@ -1,8 +1,10 @@
 package com.bookorbit.feature.bookdetail
 
+import com.bookorbit.ui.components.ErrorState
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
+import com.bookorbit.ui.theme.BookOrbitTheme
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -124,10 +126,7 @@ fun BookDetailScreen(
             when {
                 ui.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
                 ui.error || ui.book == null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(R.string.failed_to_load_book_details), color = MaterialTheme.colorScheme.error)
-                        Button(onClick = vm::load, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.retry)) }
-                    }
+                    ErrorState(stringResource(R.string.failed_to_load_book_details), onRetry = vm::load)
                 }
                 else -> BookDetailContent(
                     book = ui.book!!,
@@ -352,8 +351,8 @@ private fun DownloadControl(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = com.bookorbit.ui.theme.SuccessGreen)
-            Text(stringResource(R.string.downloaded), color = com.bookorbit.ui.theme.SuccessGreen, modifier = Modifier.weight(1f))
+            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = BookOrbitTheme.tokens.success)
+            Text(stringResource(R.string.downloaded), color = BookOrbitTheme.tokens.success, modifier = Modifier.weight(1f))
             androidx.compose.material3.TextButton(onClick = onRemove) { Text(stringResource(R.string.remove)) }
         }
         "DOWNLOADING" -> Row(
@@ -477,7 +476,7 @@ private fun ShelfCards(
 ) {
     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Surface(
-            color = MaterialTheme.colorScheme.surface,
+            color = MaterialTheme.colorScheme.surfaceContainer,
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenStatusSheet),
         ) {
@@ -503,7 +502,7 @@ private fun ShelfCards(
         }
 
         if (vm.canRate || book.rating != null) {
-            Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
+            Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -520,7 +519,7 @@ private fun ShelfCards(
         }
 
         Surface(
-            color = MaterialTheme.colorScheme.surface,
+            color = MaterialTheme.colorScheme.surfaceContainer,
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenCollectionSheet),
         ) {

@@ -4,7 +4,6 @@ import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,7 +12,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -87,17 +85,8 @@ fun BookGrid(
 
         val refreshError = items.loadState.refresh is LoadState.Error && items.itemCount == 0
         if (refreshError) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    stringResource(R.string.couldn_t_load_books),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.error,
-                )
-                Button(onClick = { items.retry() }, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.retry)) }
+            Box(Modifier.fillMaxSize(), Alignment.Center) {
+                ErrorState(stringResource(R.string.couldn_t_load_books), onRetry = { items.retry() })
             }
         }
 
