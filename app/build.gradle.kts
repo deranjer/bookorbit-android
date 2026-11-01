@@ -55,16 +55,15 @@ android {
     }
 
     defaultConfig {
-        // Its own id, so this fork installs next to the community app and the official one.
-        applicationId = "com.pranavajk.bookorbit"
+        applicationId = "com.bookorbit"
         minSdk = 26
         targetSdk = 37
         // versionCode/versionName are bumped automatically by a companion step in
         // .github/workflows/release-please.yml (release-please's own generic-file updater is
         // unreliable for this -- see the commit that introduced this comment). Both must stay
         // plain literals so F-Droid's static manifest parser can find them too.
-        versionCode = 800
-        versionName = "0.8.0-redesign.1"
+        versionCode = 701
+        versionName = "0.7.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
