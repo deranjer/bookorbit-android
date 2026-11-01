@@ -3,8 +3,9 @@ package com.bookorbit.app
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import coil.ImageLoader
-import coil.ImageLoaderFactory
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
 import com.bookorbit.core.auth.SessionManager
 import com.bookorbit.core.sync.SyncScheduler
 import dagger.hilt.android.HiltAndroidApp
@@ -17,7 +18,7 @@ import javax.inject.Inject
  * the bearer token.
  */
 @HiltAndroidApp
-class BookOrbitApplication : Application(), Configuration.Provider, ImageLoaderFactory {
+class BookOrbitApplication : Application(), Configuration.Provider, SingletonImageLoader.Factory {
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
@@ -40,7 +41,7 @@ class BookOrbitApplication : Application(), Configuration.Provider, ImageLoaderF
         syncScheduler.schedule()
     }
 
-    override fun newImageLoader(): ImageLoader = imageLoader
+    override fun newImageLoader(context: PlatformContext): ImageLoader = imageLoader
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()

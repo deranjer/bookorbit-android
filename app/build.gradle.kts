@@ -1,8 +1,8 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
@@ -36,7 +36,7 @@ if (playServiceAccountFile.exists()) {
 
 android {
     namespace = "com.bookorbit"
-    compileSdk = 36
+    compileSdk = 37
 
     testOptions {
         // Android framework calls such as Log.w are no-ops in JVM unit tests instead of throwing.
@@ -121,10 +121,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -134,6 +130,14 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+}
+
+// AGP 9 compiles Kotlin itself (built-in Kotlin), so there is no kotlin-android plugin here; the root
+// build keeps it on the classpath only to pin the Kotlin Gradle plugin version.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
@@ -164,7 +168,7 @@ dependencies {
     // DI
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
 
@@ -183,6 +187,7 @@ dependencies {
     implementation(libs.androidx.media3.datasource.okhttp)
     implementation(libs.androidx.media3.common)
     implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
 
     // Cast (Chromecast) -- proprietary, "full" flavor only. See the flavor comment in `android {}`
     // and app/src/{full,fdroid}/java/com/bookorbit/feature/cast/.

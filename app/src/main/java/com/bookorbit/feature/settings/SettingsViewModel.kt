@@ -7,7 +7,7 @@ import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import coil.ImageLoader
+import coil3.ImageLoader
 import com.bookorbit.core.appinfo.AppInfoRepository
 import com.bookorbit.core.auth.SessionManager
 import com.bookorbit.core.network.UserCaSettings
