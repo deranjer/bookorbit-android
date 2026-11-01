@@ -1,47 +1,37 @@
 package com.bookorbit.feature.notes
 
-import com.bookorbit.ui.components.ErrorState
-import androidx.compose.ui.res.stringResource
-import com.bookorbit.R
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bookorbit.core.model.HubAnnotation
-import com.bookorbit.feature.reader.highlightColor
+import com.bookorbit.R
+import com.bookorbit.feature.bookdetail.HighlightCard
+import com.bookorbit.ui.components.ChoiceChip
+import com.bookorbit.ui.components.EmptyState
+import com.bookorbit.ui.components.ErrorState
+import com.bookorbit.ui.components.PageHeader
+import com.bookorbit.ui.components.SearchField
 
 /** Every highlight and note across the library, searchable; tap one to open its book. */
 @Composable
@@ -50,95 +40,71 @@ fun NotesScreen(
     vm: NotesViewModel = hiltViewModel(),
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
-    val listState = rememberLazyListState()
-
     LaunchedEffect(Unit) { vm.refresh() }
+    NotesContent(ui, vm::setQuery, vm::setOnlyWithNotes, vm::loadMore, vm::reload, onBookClick)
+}
 
+@Composable
+internal fun NotesContent(
+    ui: NotesViewModel.UiState,
+    onQuery: (String) -> Unit,
+    onOnlyWithNotes: (Boolean) -> Unit,
+    onLoadMore: () -> Unit,
+    onRetry: () -> Unit,
+    onBookClick: (Int) -> Unit,
+) {
+    val listState = rememberLazyListState()
     // Load the next page when the end of the list scrolls into view.
     LaunchedEffect(listState, ui.items.size) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
-            .collect { last -> if (last != null && last >= ui.items.size - 4) vm.loadMore() }
+            .collect { last -> if (last != null && last >= ui.items.size - 4) onLoadMore() }
     }
 
     Column(Modifier.fillMaxSize()) {
-        OutlinedTextField(
-            value = ui.query,
-            onValueChange = vm::setQuery,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            singleLine = true,
-            placeholder = { Text(stringResource(R.string.search_your_highlights)) },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-            trailingIcon = {
-                if (ui.query.isNotEmpty()) {
-                    IconButton(onClick = { vm.setQuery("") }) { Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.clear_search)) }
-                }
-            },
+        PageHeader(
+            title = stringResource(R.string.title_notes),
+            subtitle = ui.total.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.notes_count, it, it) },
         )
-        Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = !ui.onlyWithNotes, onClick = { vm.setOnlyWithNotes(false) }, label = { Text(stringResource(R.string.all)) })
-            FilterChip(selected = ui.onlyWithNotes, onClick = { vm.setOnlyWithNotes(true) }, label = { Text(stringResource(R.string.with_notes)) })
+        SearchField(
+            value = ui.query,
+            onValueChange = onQuery,
+            placeholder = stringResource(R.string.search_your_highlights),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ChoiceChip(stringResource(R.string.all), selected = !ui.onlyWithNotes, onClick = { onOnlyWithNotes(false) })
+            ChoiceChip(stringResource(R.string.with_notes), selected = ui.onlyWithNotes, onClick = { onOnlyWithNotes(true) })
         }
 
         when {
             ui.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
             ui.error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                ErrorState(stringResource(R.string.couldn_t_load_your_highlights), onRetry = { vm.reload() })
+                ErrorState(stringResource(R.string.couldn_t_load_your_highlights), onRetry = onRetry)
             }
-            ui.items.isEmpty() -> Box(Modifier.fillMaxSize().padding(32.dp), Alignment.Center) {
-                Text(
+            ui.items.isEmpty() -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                EmptyState(
+                    Icons.Outlined.EditNote,
                     stringResource(if (ui.query.isNotBlank() || ui.onlyWithNotes) R.string.notes_empty_filtered else R.string.notes_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            else -> LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+            else -> LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 items(ui.items, key = { it.id }) { item ->
-                    NoteRow(item, onClick = { onBookClick(item.bookId) })
+                    HighlightCard(
+                        text = item.text,
+                        note = item.note,
+                        color = item.color,
+                        source = listOfNotNull(item.bookTitle, item.author).joinToString(" · "),
+                        onClick = { onBookClick(item.bookId) },
+                    )
                 }
                 if (ui.loadingMore) {
                     item { Box(Modifier.fillMaxWidth().padding(16.dp), Alignment.Center) { CircularProgressIndicator() } }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun NoteRow(item: HubAnnotation, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 10.dp),
-    ) {
-        Box(
-            Modifier
-                .padding(top = 2.dp)
-                .width(4.dp)
-                .height(48.dp)
-                .clip(CircleShape)
-                .background(highlightColor(item.color)),
-        )
-        Column(Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(item.text, style = MaterialTheme.typography.bodyMedium, maxLines = 4, overflow = TextOverflow.Ellipsis)
-            item.note?.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontStyle = FontStyle.Italic,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-            val source = listOfNotNull(item.bookTitle, item.author).joinToString(" · ")
-            if (source.isNotBlank()) {
-                Text(
-                    source,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 6.dp),
-                )
             }
         }
     }

@@ -1,5 +1,11 @@
 package com.bookorbit.feature.bookdrop
 
+import androidx.compose.material.icons.outlined.Inbox
+import com.bookorbit.ui.components.BookRow
+import com.bookorbit.ui.components.ChoiceChipRow
+import com.bookorbit.ui.components.EmptyState
+import com.bookorbit.ui.components.Pill
+import com.bookorbit.ui.theme.BookOrbitTheme
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -156,8 +162,6 @@ fun BookDropScreen(vm: BookDropViewModel = hiltViewModel()) {
                 }
             }
 
-            HorizontalDivider()
-
             PullToRefreshBox(
                 isRefreshing = files.loadState.refresh is LoadState.Loading,
                 onRefresh = { vm.refresh() },
@@ -165,7 +169,7 @@ fun BookDropScreen(vm: BookDropViewModel = hiltViewModel()) {
             ) {
                 if (files.itemCount == 0 && files.loadState.refresh !is LoadState.Loading) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(stringResource(R.string.nothing_in_the_book_dock), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        EmptyState(Icons.Outlined.Inbox, stringResource(R.string.nothing_in_the_book_dock))
                     }
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -181,7 +185,7 @@ fun BookDropScreen(vm: BookDropViewModel = hiltViewModel()) {
                                 },
                                 onLongClick = { vm.startSelection(file.id) },
                             )
-                            HorizontalDivider()
+                            HorizontalDivider(Modifier.padding(start = 74.dp), color = BookOrbitTheme.tokens.border)
                         }
                     }
                 }
@@ -221,21 +225,13 @@ private fun StatusFilterRow(
         StatusTab("pending", stringResource(R.string.bookdrop_tab_pending, pending)),
         StatusTab("error", stringResource(R.string.bookdrop_tab_error, error)),
     )
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        tabs.forEach { tab ->
-            FilterChip(
-                selected = selected == tab.value,
-                onClick = { onSelect(tab.value) },
-                label = { Text(tab.label) },
-            )
-        }
-    }
+    ChoiceChipRow(
+        labels = tabs.map { it.label },
+        selectedIndex = tabs.indexOfFirst { it.value == selected }.coerceAtLeast(0),
+        onSelect = { onSelect(tabs[it].value) },
+    )
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun BookDockRow(
     file: BookDockFile,
@@ -245,61 +241,35 @@ private fun BookDockRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    val title = file.displayMetadata?.title?.takeIf { it.isNotBlank() } ?: file.fileName
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (selectionActive) {
-            Checkbox(checked = selected, onCheckedChange = { onClick() })
-        }
-        AsyncImage(
-            model = coverUrl,
-            contentDescription = title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(width = 40.dp, height = 60.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-        )
-        Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                file.fileName,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+    val tokens = BookOrbitTheme.tokens
+    BookRow(
+        title = file.displayMetadata?.title?.takeIf { it.isNotBlank() } ?: file.fileName,
+        subtitle = file.fileName,
+        coverModel = coverUrl,
+        onClick = onClick,
+        onLongClick = onLongClick,
+        leading = if (selectionActive) {
+            { Checkbox(checked = selected, onCheckedChange = { onClick() }) }
+        } else null,
+        extra = {
             Row(
                 modifier = Modifier.padding(top = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 BookDockStatusBadge(file.status)
-                file.format?.let {
-                    Text(it.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                file.format?.let { Pill(it.uppercase(), tokens.formatColor(it)) }
                 if (file.targetFolderId != null) {
                     Icon(
                         Icons.Filled.CheckCircle,
                         contentDescription = stringResource(R.string.destination_set),
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = tokens.success,
                         modifier = Modifier.size(14.dp),
                     )
                 }
             }
-        }
-    }
+        },
+    )
 }
 
 @Composable

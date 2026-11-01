@@ -453,4 +453,9 @@
     <string name="reader_open_app">Open in App</string>
     <string name="reader_web_menu">Web reader options</string>
     <string name="reader_web_reload">Reload web reader</string>
+    <!-- Redesign: shell and library screens -->
+    <string name="detail_by">by</string>
+    <string name="no_authors_found">No authors found.</string>
+    <string name="you_more">More</string>
+    <string name="you_account">Account</string>
 </resources>

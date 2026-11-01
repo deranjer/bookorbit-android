@@ -1,85 +1,112 @@
 package com.bookorbit.feature.bookdetail
 
-import com.bookorbit.ui.components.ErrorState
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
-import com.bookorbit.R
-import com.bookorbit.ui.theme.BookOrbitTheme
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import com.bookorbit.ui.components.htmlToAnnotatedString
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Headset
-import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
-import androidx.compose.material3.Button
-import com.bookorbit.feature.reader.highlightColor
-import com.bookorbit.core.model.BookAnnotation
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Tab
-import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.outlined.AutoStories
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.CollectionsBookmark
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Headphones
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.core.content.ContextCompat
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
+import com.bookorbit.R
+import com.bookorbit.core.db.DownloadEntity
+import com.bookorbit.core.model.BookAnnotation
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFiles
+import com.bookorbit.feature.reader.highlightColor
 import com.bookorbit.ui.LocalImageUrls
-import com.bookorbit.ui.components.RecommendationScroller
+import com.bookorbit.ui.components.BookCover
+import com.bookorbit.ui.components.CoverBackdrop
+import com.bookorbit.ui.components.ErrorState
+import com.bookorbit.ui.components.GhostButton
+import com.bookorbit.ui.components.Panel
+import com.bookorbit.ui.components.Pill
+import com.bookorbit.ui.components.PrimaryButton
+import com.bookorbit.ui.components.RecommendationShelf
+import com.bookorbit.ui.components.SecondaryButton
+import com.bookorbit.ui.components.SectionLabel
 import com.bookorbit.ui.components.StarRating
+import com.bookorbit.ui.components.htmlToAnnotatedString
+import com.bookorbit.ui.theme.BookOrbitTheme
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+/** Everything the book page can do, so its content can be drawn without a ViewModel. */
+class BookDetailActions(
+    val onBack: () -> Unit,
+    val onRead: () -> Unit,
+    val onListen: () -> Unit,
+    val onDownload: () -> Unit,
+    val onRemoveDownload: () -> Unit,
+    val onOpenStatus: () -> Unit,
+    val onOpenCollections: () -> Unit,
+    val onRate: ((Int?) -> Unit)?,
+    val onBookClick: (Int) -> Unit,
+    val onAuthorClick: (id: Int, name: String) -> Unit,
+    val onSeriesClick: (id: Int, name: String) -> Unit,
+    val onRetry: () -> Unit,
+    val onOpenUri: (String) -> Unit,
+)
+
 @Composable
 fun BookDetailScreen(
     onBack: () -> Unit,
@@ -94,58 +121,47 @@ fun BookDetailScreen(
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     val collections by vm.collections.collectAsStateWithLifecycle()
+    val download by vm.downloadState.collectAsStateWithLifecycle()
     var statusSheet by remember { mutableStateOf(false) }
     var collectionSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { vm.startDownload() }
-    val startDownload = {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            vm.startDownload()
-        }
-    }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(ui.book?.title ?: stringResource(R.string.detail_book_details), maxLines = 1) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            when {
-                ui.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
-                ui.error || ui.book == null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    ErrorState(stringResource(R.string.failed_to_load_book_details), onRetry = vm::load)
+    val actions = BookDetailActions(
+        onBack = onBack,
+        onRead = {
+            ui.book?.let { book ->
+                when (BookFiles.readingTarget(book)) {
+                    is BookFiles.ReadingTarget.Pdf -> onReadPdf(book.id)
+                    is BookFiles.ReadingTarget.Comic -> onReadComic(book.id)
+                    else -> onRead(book.id)
                 }
-                else -> BookDetailContent(
-                    book = ui.book!!,
-                    vm = vm,
-                    ui = ui,
-                    onRead = onRead,
-                    onReadPdf = onReadPdf,
-                    onReadComic = onReadComic,
-                    onListen = onListen,
-                    onBookClick = onBookClick,
-                    onAuthorClick = onAuthorClick,
-                    onSeriesClick = onSeriesClick,
-                    onStartDownload = startDownload,
-                    onOpenStatusSheet = { statusSheet = true },
-                    onOpenCollectionSheet = { collectionSheet = true },
-                )
             }
-        }
-    }
+        },
+        onListen = { ui.book?.let { onListen(it.id) } },
+        onDownload = {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                vm.startDownload()
+            }
+        },
+        onRemoveDownload = vm::removeDownload,
+        onOpenStatus = { statusSheet = true },
+        onOpenCollections = { collectionSheet = true },
+        onRate = if (vm.canRate) vm::setRating else null,
+        onBookClick = onBookClick,
+        onAuthorClick = onAuthorClick,
+        onSeriesClick = onSeriesClick,
+        onRetry = vm::load,
+        onOpenUri = { uriHandler.openUri(it) },
+    )
+    BookDetailContent(ui, download, actions)
 
     val book = ui.book
     if (book != null && statusSheet) {
@@ -168,151 +184,106 @@ fun BookDetailScreen(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+/** Wider than this, the cover and actions get their own column beside the details, as on the web. */
+private val TwoColumnWidth = 720.dp
+
 @Composable
-private fun BookDetailContent(
-    book: BookDetail,
-    vm: BookDetailViewModel,
+internal fun BookDetailContent(
     ui: BookDetailViewModel.UiState,
-    onRead: (Int) -> Unit,
-    onReadPdf: (Int) -> Unit,
-    onReadComic: (Int) -> Unit,
-    onListen: (Int) -> Unit,
-    onBookClick: (Int) -> Unit,
-    onAuthorClick: (id: Int, name: String) -> Unit,
-    onSeriesClick: (id: Int, name: String) -> Unit,
-    onStartDownload: () -> Unit,
-    onOpenStatusSheet: () -> Unit,
-    onOpenCollectionSheet: () -> Unit,
+    download: DownloadEntity?,
+    actions: BookDetailActions,
 ) {
     val imageUrls = LocalImageUrls.current
-    val uriHandler = LocalUriHandler.current
-    val canListen = BookFiles.isAudiobook(book)
-    val readingTarget = BookFiles.readingTarget(book)
-    val canRead = readingTarget != BookFiles.ReadingTarget.None
-    val goodreadsId = book.providerIds["goodreads"]
-
-    var tab by rememberSaveable { mutableIntStateOf(0) }
-    val download by vm.downloadState.collectAsStateWithLifecycle()
-
-    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-        DetailHero(book, onAuthorClick = onAuthorClick, onSeriesClick = onSeriesClick)
-
-        // Primary actions side by side; download state sits underneath.
-        Column(modifier = Modifier.padding(horizontal = 20.dp).padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                if (canRead) {
-                    Button(
-                        onClick = {
-                            when (readingTarget) {
-                                is BookFiles.ReadingTarget.Pdf -> onReadPdf(book.id)
-                                is BookFiles.ReadingTarget.Comic -> onReadComic(book.id)
-                                else -> onRead(book.id)
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Icon(Icons.Filled.Book, contentDescription = null)
-                        Text(stringResource(R.string.read), modifier = Modifier.padding(start = 8.dp))
-                    }
+    val book = ui.book
+    val coverModel = book?.let { imageUrls.cover(it.id) }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        if (maxWidth >= TwoColumnWidth) CoverBackdrop(coverModel, Modifier.fillMaxWidth().height(420.dp))
+        when {
+            ui.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+            ui.error || book == null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                ErrorState(stringResource(R.string.failed_to_load_book_details), onRetry = actions.onRetry)
+            }
+            maxWidth >= TwoColumnWidth -> Row(Modifier.fillMaxSize()) {
+                Column(
+                    Modifier.width(300.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 8.dp, end = 8.dp, bottom = 24.dp),
+                ) {
+                    BackButton(actions.onBack)
+                    BookCover(
+                        model = coverModel,
+                        title = book.title,
+                        elevated = true,
+                        modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(390.dp),
+                    )
+                    PrimaryActions(book, ui, download, actions, Modifier.padding(16.dp), stacked = true)
                 }
-                if (canListen) {
-                    if (canRead) {
-                        androidx.compose.material3.OutlinedButton(onClick = { onListen(book.id) }, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Filled.Headset, contentDescription = null)
-                            Text(stringResource(R.string.listen), modifier = Modifier.padding(start = 8.dp))
-                        }
-                    } else {
-                        Button(onClick = { onListen(book.id) }, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Filled.Headset, contentDescription = null)
-                            Text(stringResource(R.string.listen), modifier = Modifier.padding(start = 8.dp))
-                        }
-                    }
+                Column(
+                    Modifier.weight(1f).fillMaxSize().verticalScroll(rememberScrollState()).padding(top = 56.dp, end = 16.dp, bottom = 24.dp),
+                ) {
+                    TitleBlock(book, ui, actions, large = true, modifier = Modifier.padding(horizontal = 16.dp))
+                    DetailTabs(book, ui, actions)
                 }
             }
-            DownloadControl(download, onStartDownload = onStartDownload, onRemove = vm::removeDownload)
-        }
-
-        FormatChips(book, ui.fileProgress)
-
-        val tabs = listOf(
-            stringResource(R.string.detail_tab_details),
-            stringResource(R.string.detail_tab_files),
-            if (ui.highlights.isNotEmpty()) stringResource(R.string.detail_tab_highlights_n, ui.highlights.size) else stringResource(R.string.detail_tab_highlights),
-        )
-        TabRow(selectedTabIndex = tab, modifier = Modifier.padding(top = 8.dp)) {
-            tabs.forEachIndexed { i, label ->
-                Tab(selected = tab == i, onClick = { tab = i }, text = { Text(label, maxLines = 1) })
+            else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
+                Box {
+                    CoverBackdrop(coverModel, Modifier.matchParentSize())
+                    Column {
+                        BackButton(actions.onBack)
+                        Row(Modifier.padding(horizontal = 20.dp)) {
+                            BookCover(
+                                model = coverModel,
+                                title = book.title,
+                                elevated = true,
+                                titleSize = MaterialTheme.typography.titleMedium.fontSize,
+                                modifier = Modifier.width(124.dp).height(186.dp),
+                            )
+                            TitleBlock(book, ui, actions, large = false, modifier = Modifier.weight(1f).padding(start = 18.dp))
+                        }
+                        PrimaryActions(book, ui, download, actions, Modifier.padding(horizontal = 20.dp, vertical = 18.dp))
+                    }
+                }
+                DetailTabs(book, ui, actions)
             }
         }
-
-        when (tab) {
-            0 -> DetailsTab(
-                book = book,
-                vm = vm,
-                ui = ui,
-                goodreadsId = goodreadsId,
-                onBookClick = onBookClick,
-                onOpenStatusSheet = onOpenStatusSheet,
-                onOpenCollectionSheet = onOpenCollectionSheet,
-                onOpenUri = { uriHandler.openUri(it) },
-            )
-            1 -> FilesTab(book)
-            else -> HighlightsTab(ui.highlights)
-        }
-
-        Box(Modifier.height(24.dp))
     }
 }
 
-/** Cover on a soft tinted backdrop, with title, authors, narrators and series centred beneath. */
 @Composable
-private fun DetailHero(
+private fun BackButton(onBack: () -> Unit) {
+    IconButton(onClick = onBack, modifier = Modifier.padding(start = 4.dp, top = 4.dp)) {
+        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+    }
+}
+
+/** Title, subtitle, "by" line, narrators, series, then rating and reading status. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TitleBlock(
     book: BookDetail,
-    onAuthorClick: (id: Int, name: String) -> Unit,
-    onSeriesClick: (id: Int, name: String) -> Unit,
+    ui: BookDetailViewModel.UiState,
+    actions: BookDetailActions,
+    large: Boolean,
+    modifier: Modifier = Modifier,
 ) {
-    val imageUrls = LocalImageUrls.current
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
-            .padding(horizontal = 20.dp, vertical = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        AsyncImage(
-            model = imageUrls.cover(book.id),
-            contentDescription = book.title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(width = 150.dp, height = 225.dp)
-                .clip(RoundedCornerShape(10.dp)),
-        )
+    val tokens = BookOrbitTheme.tokens
+    Column(modifier) {
         Text(
             book.title ?: stringResource(R.string.card_unknown_title),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 16.dp),
+            style = if (large) MaterialTheme.typography.displaySmall else MaterialTheme.typography.headlineSmall,
+            maxLines = 4,
+            overflow = TextOverflow.Ellipsis,
         )
         book.subtitle?.let {
-            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+            Text(it, style = MaterialTheme.typography.bodyMedium, color = tokens.mutedForeground, modifier = Modifier.padding(top = 4.dp))
         }
         if (book.authors.isNotEmpty()) {
-            // Each author is its own tap target; a long list wraps onto the next line.
-            @OptIn(ExperimentalLayoutApi::class)
-            FlowRow(
-                modifier = Modifier.padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-            ) {
-                book.authors.forEach { author ->
+            FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(stringResource(R.string.detail_by), style = MaterialTheme.typography.bodyMedium, color = tokens.mutedForeground)
+                book.authors.forEachIndexed { index, author ->
                     Text(
-                        author.name,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .clickable(onClickLabel = stringResource(R.string.books_by, author.name)) { onAuthorClick(author.id, author.name) }
-                            .padding(vertical = 4.dp),
+                        author.name + if (index < book.authors.lastIndex) "," else "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable(onClickLabel = stringResource(R.string.books_by, author.name)) { actions.onAuthorClick(author.id, author.name) },
                     )
                 }
             }
@@ -322,306 +293,296 @@ private fun DetailHero(
             Text(
                 stringResource(R.string.detail_narrated_by, narrators.joinToString(", ") { it.name }),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 2.dp),
+                color = tokens.mutedForeground,
+                modifier = Modifier.padding(top = 4.dp),
             )
         }
         book.seriesName?.let { series ->
             val seriesId = book.seriesId
-            Chip(
+            MutedChip(
                 series + (book.seriesIndex?.let { " #${it.toInt()}" } ?: ""),
-                modifier = Modifier
-                    .padding(top = 10.dp)
-                    .then(if (seriesId != null) Modifier.clickable(onClickLabel = stringResource(R.string.books_in, series)) { onSeriesClick(seriesId, series) } else Modifier),
+                onClick = if (seriesId != null) ({ actions.onSeriesClick(seriesId, series) }) else null,
+                modifier = Modifier.padding(top = 10.dp),
+            )
+        }
+        Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            StatusButton(book, ui.statusUpdating, actions.onOpenStatus)
+        }
+        if (actions.onRate != null || book.rating != null) {
+            StarRating(
+                value = book.rating,
+                onChange = actions.onRate,
+                enabled = !ui.ratingUpdating,
+                modifier = Modifier.padding(top = 6.dp),
             )
         }
     }
 }
 
+/** The reading status as a small outlined button that opens the status sheet. */
 @Composable
-private fun DownloadControl(
-    download: com.bookorbit.core.db.DownloadEntity?,
-    onStartDownload: () -> Unit,
-    onRemove: () -> Unit,
-) {
-    when (download?.status) {
-        "COMPLETE" -> Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = BookOrbitTheme.tokens.success)
-            Text(stringResource(R.string.downloaded), color = BookOrbitTheme.tokens.success, modifier = Modifier.weight(1f))
-            androidx.compose.material3.TextButton(onClick = onRemove) { Text(stringResource(R.string.remove)) }
-        }
-        "DOWNLOADING" -> Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-            Text(stringResource(R.string.downloading, ((download.progress) * 100).toInt()))
-        }
-        "FAILED" -> Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                download.lastError ?: stringResource(R.string.download_failed),
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-            )
-            androidx.compose.material3.OutlinedButton(
-                onClick = onStartDownload,
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-            ) {
-                Icon(Icons.Filled.Download, contentDescription = null)
-                Text(stringResource(R.string.retry_download), modifier = Modifier.padding(start = 8.dp))
-            }
-        }
-        else -> androidx.compose.material3.OutlinedButton(onClick = onStartDownload, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Filled.Download, contentDescription = null)
-            Text(stringResource(R.string.download), modifier = Modifier.padding(start = 8.dp))
+private fun StatusButton(book: BookDetail, updating: Boolean, onClick: () -> Unit) {
+    val tokens = BookOrbitTheme.tokens
+    val meta = book.readStatus?.let { readStatusMeta(it.status) }
+    Row(
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.small)
+            .border(1.dp, tokens.input, MaterialTheme.shapes.small)
+            .background(tokens.background.copy(alpha = 0.6f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(meta?.icon ?: Icons.AutoMirrored.Outlined.MenuBook, contentDescription = null, tint = meta?.color ?: tokens.mutedForeground, modifier = Modifier.size(16.dp))
+        Text(
+            stringResource(meta?.label ?: R.string.status_set),
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(horizontal = 8.dp),
+        )
+        if (updating) {
+            CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+        } else {
+            Icon(Icons.Outlined.ExpandMore, contentDescription = null, tint = tokens.mutedForeground, modifier = Modifier.size(16.dp))
         }
     }
 }
 
-/** One chip per format the book comes in, with your reading position in it when there is one. */
+/** Read and Listen, then download and collections, then the formats this book comes in. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun FormatChips(book: BookDetail, fileProgress: Map<Int, Double>) {
-    val formats = book.files.filter { it.format != null }
-    if (formats.isEmpty()) return
-    FlowRow(
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        formats.distinctBy { it.format!!.lowercase() }.forEach { file ->
-            val pct = fileProgress[file.id]
-            Chip(file.format!!.uppercase() + (pct?.let { " ${it.toInt()}%" } ?: ""), emphasized = pct != null)
+private fun PrimaryActions(
+    book: BookDetail,
+    ui: BookDetailViewModel.UiState,
+    download: DownloadEntity?,
+    actions: BookDetailActions,
+    modifier: Modifier = Modifier,
+    /** One button per row, for the narrow cover column on wide windows. */
+    stacked: Boolean = false,
+) {
+    val canListen = BookFiles.isAudiobook(book)
+    val canRead = BookFiles.readingTarget(book) != BookFiles.ReadingTarget.None
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            if (canRead) PrimaryButton(stringResource(R.string.read), actions.onRead, Modifier.weight(1f), icon = Icons.Outlined.AutoStories)
+            if (canListen) {
+                if (canRead) {
+                    SecondaryButton(stringResource(R.string.listen), actions.onListen, Modifier.weight(1f), icon = Icons.Outlined.Headphones)
+                } else {
+                    PrimaryButton(stringResource(R.string.listen), actions.onListen, Modifier.weight(1f), icon = Icons.Outlined.Headphones)
+                }
+            }
+        }
+        val collectionLabel = if (book.collections.isNotEmpty()) {
+            pluralStringResource(R.plurals.detail_in_collections, book.collections.size, book.collections.size)
+        } else {
+            stringResource(R.string.detail_add_to_collection)
+        }
+        if (stacked) {
+            DownloadControl(download, actions, Modifier.fillMaxWidth())
+            SecondaryButton(collectionLabel, actions.onOpenCollections, Modifier.fillMaxWidth(), icon = Icons.Outlined.CollectionsBookmark)
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                DownloadControl(download, actions, Modifier.weight(1f))
+                SecondaryButton(collectionLabel, actions.onOpenCollections, Modifier.weight(1f), icon = Icons.Outlined.CollectionsBookmark)
+            }
+        }
+        val formats = book.files.filter { it.format != null }.distinctBy { it.format!!.lowercase() }
+        if (formats.isNotEmpty()) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                val tokens = BookOrbitTheme.tokens
+                formats.forEach { file ->
+                    val pct = ui.fileProgress[file.id]
+                    Pill(file.format!!.uppercase() + (pct?.let { " · ${it.toInt()}%" } ?: ""), tokens.formatColor(file.format))
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun DetailsTab(
-    book: BookDetail,
-    vm: BookDetailViewModel,
-    ui: BookDetailViewModel.UiState,
-    goodreadsId: String?,
-    onBookClick: (Int) -> Unit,
-    onOpenStatusSheet: () -> Unit,
-    onOpenCollectionSheet: () -> Unit,
-    onOpenUri: (String) -> Unit,
-) {
-    Column {
-        ShelfCards(book, vm, ui, onOpenStatusSheet, onOpenCollectionSheet)
+private fun DownloadControl(download: DownloadEntity?, actions: BookDetailActions, modifier: Modifier) {
+    val tokens = BookOrbitTheme.tokens
+    when (download?.status) {
+        "COMPLETE" -> SecondaryButton(stringResource(R.string.downloaded), actions.onRemoveDownload, modifier, icon = Icons.Outlined.CheckCircle)
+        "DOWNLOADING" -> Row(
+            modifier.height(40.dp).clip(MaterialTheme.shapes.small).border(1.dp, tokens.input, MaterialTheme.shapes.small).padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CircularProgressIndicator(progress = { download.progress }, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+            Text(stringResource(R.string.downloading, (download.progress * 100).toInt()), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
+        }
+        "FAILED" -> SecondaryButton(stringResource(R.string.retry_download), actions.onDownload, modifier, icon = Icons.Outlined.Download)
+        else -> SecondaryButton(stringResource(R.string.download), actions.onDownload, modifier, icon = Icons.Outlined.Download)
+    }
+}
 
-        book.description?.let { description ->
+/** Details, Files and Highlights as underlined text tabs, the web's book-page tab strip. */
+@Composable
+private fun DetailTabs(book: BookDetail, ui: BookDetailViewModel.UiState, actions: BookDetailActions) {
+    val tokens = BookOrbitTheme.tokens
+    var tab by rememberSaveable { mutableIntStateOf(0) }
+    val labels = listOf(
+        stringResource(R.string.detail_tab_details),
+        stringResource(R.string.detail_tab_files),
+        if (ui.highlights.isNotEmpty()) stringResource(R.string.detail_tab_highlights_n, ui.highlights.size) else stringResource(R.string.detail_tab_highlights),
+    )
+    Column(Modifier.padding(top = 8.dp)) {
+        Row(Modifier.padding(horizontal = 12.dp)) {
+            labels.forEachIndexed { index, label ->
+                val selected = index == tab
+                Column(
+                    Modifier.width(IntrinsicSize.Max).clip(MaterialTheme.shapes.small).clickable { tab = index }.padding(horizontal = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (selected) tokens.foreground else tokens.mutedForeground,
+                        modifier = Modifier.padding(vertical = 10.dp),
+                    )
+                    Box(Modifier.height(2.dp).fillMaxWidth().background(if (selected) tokens.foreground else androidx.compose.ui.graphics.Color.Transparent))
+                }
+            }
+        }
+        HorizontalDivider(color = tokens.border)
+        when (tab) {
+            0 -> DetailsTab(book, ui, actions)
+            1 -> FilesTab(book)
+            else -> HighlightsTab(ui.highlights)
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun DetailsTab(book: BookDetail, ui: BookDetailViewModel.UiState, actions: BookDetailActions) {
+    Column {
+        book.description?.takeIf { it.isNotBlank() }?.let { description ->
             Section(stringResource(R.string.synopsis)) {
                 val annotated = remember(description) { htmlToAnnotatedString(description) }
-                Text(annotated, style = MaterialTheme.typography.bodyMedium)
+                Text(annotated, style = MaterialTheme.typography.bodyLarge)
             }
         }
 
         DetailsSection(book)
 
+        val goodreadsId = book.providerIds["goodreads"]
         if (goodreadsId != null) {
             Section(stringResource(R.string.links)) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onOpenUri("https://www.goodreads.com/book/show/$goodreadsId") }
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Text(stringResource(R.string.view_on_goodreads), modifier = Modifier.padding(start = 10.dp))
-                }
+                GhostButton(
+                    stringResource(R.string.view_on_goodreads),
+                    onClick = { actions.onOpenUri("https://www.goodreads.com/book/show/$goodreadsId") },
+                    icon = Icons.AutoMirrored.Outlined.OpenInNew,
+                )
             }
         }
 
-        if (book.genres.isNotEmpty()) {
-            Section(stringResource(R.string.genres)) { FlowRowChips(book.genres) }
-        }
-        if (book.tags.isNotEmpty()) {
-            Section(stringResource(R.string.tags)) { FlowRowChips(book.tags) }
-        }
+        if (book.genres.isNotEmpty()) Section(stringResource(R.string.genres)) { ChipFlow(book.genres) }
+        if (book.tags.isNotEmpty()) Section(stringResource(R.string.tags)) { ChipFlow(book.tags) }
+        if (book.collections.isNotEmpty()) Section(stringResource(R.string.lib_chip_collections)) { ChipFlow(book.collections.map { it.name }) }
 
         if (ui.authorBooks.isNotEmpty()) {
-            RecommendationScroller(stringResource(R.string.more_by_this_author), ui.authorBooks, onBookClick = onBookClick)
-        }
-        if (ui.recommendations.isNotEmpty()) {
-            RecommendationScroller(stringResource(R.string.similar_books), ui.recommendations, onBookClick = onBookClick)
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun FlowRowChips(items: List<String>) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        items.forEach { Chip(it) }
-    }
-}
-
-/** Reading status, rating and collections. */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ShelfCards(
-    book: BookDetail,
-    vm: BookDetailViewModel,
-    ui: BookDetailViewModel.UiState,
-    onOpenStatusSheet: () -> Unit,
-    onOpenCollectionSheet: () -> Unit,
-) {
-    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenStatusSheet),
-        ) {
-            Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                val meta = book.readStatus?.let { readStatusMeta(it.status) }
-                Icon(
-                    meta?.icon ?: Icons.Filled.Book,
-                    contentDescription = null,
-                    tint = meta?.color ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    stringResource(meta?.label ?: R.string.status_set),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f).padding(start = 10.dp),
-                )
-                if (ui.statusUpdating) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                } else {
-                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-
-        if (vm.canRate || book.rating != null) {
-            Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(stringResource(R.string.rating), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    StarRating(
-                        value = book.rating,
-                        onChange = if (vm.canRate) vm::setRating else null,
-                        enabled = !ui.ratingUpdating,
-                    )
-                }
-            }
-        }
-
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenCollectionSheet),
-        ) {
-            Text(
-                if (book.collections.isNotEmpty()) {
-                    pluralStringResource(R.plurals.detail_in_collections, book.collections.size, book.collections.size)
-                } else {
-                    stringResource(R.string.detail_add_to_collection)
-                },
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(14.dp),
+            RecommendationShelf(
+                stringResource(R.string.more_by_this_author),
+                Icons.Outlined.Person,
+                ui.authorBooks,
+                onBookClick = actions.onBookClick,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp),
             )
         }
-        if (book.collections.isNotEmpty()) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                book.collections.forEach { Chip(it.name) }
-            }
+        if (ui.recommendations.isNotEmpty()) {
+            RecommendationShelf(
+                stringResource(R.string.similar_books),
+                Icons.Outlined.AutoStories,
+                ui.recommendations,
+                onBookClick = actions.onBookClick,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
+            )
         }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ChipFlow(items: List<String>) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        items.forEach { MutedChip(it) }
     }
 }
 
 @Composable
 private fun FilesTab(book: BookDetail) {
-    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+    val tokens = BookOrbitTheme.tokens
+    Column(Modifier.padding(16.dp)) {
         if (book.files.isEmpty()) {
-            Text(stringResource(R.string.no_files), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.no_files), style = MaterialTheme.typography.bodyMedium, color = tokens.mutedForeground)
+            return@Column
         }
-        book.files.forEach { f ->
-            Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        (f.format ?: "file").uppercase(),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    if (f.role == "primary") {
-                        Text(" · " + stringResource(R.string.primary), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Panel(contentPadding = PaddingValues(0.dp)) {
+            book.files.forEachIndexed { index, f ->
+                if (index > 0) HorizontalDivider(color = tokens.border)
+                Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Pill((f.format ?: "file").uppercase(), tokens.formatColor(f.format))
+                    Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                        Text(
+                            f.filename ?: (f.format ?: "").uppercase(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        val detail = listOfNotNull(
+                            if (f.role == "primary") stringResource(R.string.primary) else null,
+                            f.sizeBytes?.let { formatBytes(it) },
+                            f.durationSeconds?.let { formatDuration(it) },
+                        ).joinToString(" · ")
+                        if (detail.isNotEmpty()) Text(detail, style = MaterialTheme.typography.bodySmall, color = tokens.mutedForeground)
                     }
-                    Box(Modifier.weight(1f))
-                    val detail = listOfNotNull(
-                        f.sizeBytes?.let { formatBytes(it) },
-                        f.durationSeconds?.let { formatDuration(it) },
-                    ).joinToString(" · ")
-                    if (detail.isNotEmpty()) {
-                        Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                f.filename?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            HorizontalDivider()
         }
     }
 }
 
 @Composable
 private fun HighlightsTab(highlights: List<BookAnnotation>) {
-    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+    val tokens = BookOrbitTheme.tokens
+    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (highlights.isEmpty()) {
-            Text(
-                stringResource(R.string.no_highlights_yet_press_and),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text(stringResource(R.string.no_highlights_yet_press_and), style = MaterialTheme.typography.bodyMedium, color = tokens.mutedForeground)
         }
-        highlights.forEach { a ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Box(
-                    Modifier
-                        .padding(top = 2.dp)
-                        .width(4.dp)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(highlightColor(a.color)),
+        highlights.forEach { a -> HighlightCard(a.text, a.note, a.color, a.chapterTitle) }
+    }
+}
+
+/** A highlight as a card: the passage in the serif beside a bar of its colour, the note under it. */
+@Composable
+fun HighlightCard(text: String, note: String?, color: String, source: String?, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
+    val tokens = BookOrbitTheme.tokens
+    Panel(modifier = modifier.fillMaxWidth(), onClick = onClick, contentPadding = PaddingValues(14.dp)) {
+        Row {
+            Box(Modifier.width(3.dp).height(48.dp).clip(RoundedCornerShape(2.dp)).background(highlightColor(color)))
+            Column(Modifier.padding(start = 12.dp)) {
+                Text(
+                    text,
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = MaterialTheme.typography.bodyLarge.fontSize, lineHeight = MaterialTheme.typography.bodyLarge.lineHeight, fontWeight = FontWeight.Normal),
+                    maxLines = 6,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                Column(Modifier.padding(start = 12.dp)) {
-                    Text(a.text, style = MaterialTheme.typography.bodyMedium, maxLines = 4, overflow = TextOverflow.Ellipsis)
-                    a.note?.takeIf { it.isNotBlank() }?.let {
-                        Text(
-                            it,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontStyle = FontStyle.Italic,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
-                    a.chapterTitle?.takeIf { it.isNotBlank() }?.let {
-                        Text(
-                            it,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
+                note?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        buildAnnotatedString {
+                            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append("✎ ") }
+                            append(it)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        fontStyle = FontStyle.Italic,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                }
+                source?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall, color = tokens.mutedForeground, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
                 }
             }
-            HorizontalDivider()
         }
     }
 }
@@ -641,6 +602,7 @@ private fun formatDuration(seconds: Double): String {
 
 @Composable
 private fun DetailsSection(book: BookDetail) {
+    val tokens = BookOrbitTheme.tokens
     val rows = buildList {
         book.pageCount?.let { add(stringResource(R.string.detail_row_pages) to it.toString()) }
         book.language?.let { add(stringResource(R.string.detail_row_language) to it.uppercase()) }
@@ -650,48 +612,41 @@ private fun DetailsSection(book: BookDetail) {
         book.isbn10?.let { add(stringResource(R.string.detail_row_isbn10) to it) }
         add(stringResource(R.string.detail_row_library) to book.libraryName)
     }
-    if (rows.isEmpty()) return
     Section(stringResource(R.string.details)) {
-        rows.forEach { (label, value) ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(value, style = MaterialTheme.typography.bodyMedium)
+        Panel(contentPadding = PaddingValues(0.dp)) {
+            rows.forEachIndexed { index, (label, value) ->
+                if (index > 0) HorizontalDivider(color = tokens.border)
+                Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 11.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(label, style = MaterialTheme.typography.bodyMedium, color = tokens.mutedForeground)
+                    Spacer(Modifier.width(16.dp))
+                    Text(value, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
-            HorizontalDivider()
         }
     }
 }
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
-    Column(modifier = Modifier.padding(horizontal = 20.dp).padding(top = 24.dp)) {
-        Text(
-            title.uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 8.dp),
-        )
-        content()
+    Column(Modifier.padding(top = 8.dp)) {
+        SectionLabel(title)
+        Box(Modifier.padding(horizontal = 16.dp)) { content() }
     }
 }
 
+/** A round muted chip for genres, tags and the series, optionally tappable. */
 @Composable
-private fun Chip(text: String, modifier: Modifier = Modifier, emphasized: Boolean = false) {
-    Surface(
-        color = if (emphasized) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(12.dp),
-        modifier = modifier,
-    ) {
-        Text(
-            text,
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-        )
-    }
+private fun MutedChip(text: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
+    val tokens = BookOrbitTheme.tokens
+    Text(
+        text,
+        style = MaterialTheme.typography.labelMedium,
+        color = tokens.foreground,
+        maxLines = 1,
+        modifier = modifier
+            .clip(CircleShape)
+            .background(tokens.muted)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+    )
 }
