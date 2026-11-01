@@ -42,8 +42,8 @@ class ServerSetupViewModel @Inject constructor(
     fun trustsUserCas(url: String): Boolean = userCaSettings.isEnabledForUrl(url)
 
     /**
-     * Sets the server URL and probes setup-status to confirm it's reachable. On failure the URL is
-     * reverted so the user stays on this screen.
+     * Sets the server URL and checks a BookOrbit server answers there. On failure the URL is reverted
+     * so the user stays on this screen.
      */
     fun connect(rawUrl: String, trustUserCas: Boolean, onConnected: () -> Unit) {
         val trimmed = rawUrl.trim().trimEnd('/')
@@ -78,16 +78,17 @@ class ServerSetupViewModel @Inject constructor(
         try {
             withContext(Dispatchers.IO) { userCaSettings.setEnabledForUrl(trimmed, trustUserCas) }
             session.setServerUrl(trimmed)
-            repo.setupStatus()
+            repo.checkServer()
             onConnected()
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             session.clearServer()
-            _ui.update {
-                it.copy(error = UiText.of(if (generateSequence<Throwable>(e) { it.cause }.any { it is SSLException }) {
-                    R.string.server_err_certificate
-                } else R.string.server_err_connect))
+            val message = when {
+                e is NotBookOrbitServerException -> R.string.server_err_not_bookorbit
+                generateSequence<Throwable>(e) { it.cause }.any { it is SSLException } -> R.string.server_err_certificate
+                else -> R.string.server_err_connect
             }
+            _ui.update { it.copy(error = UiText.of(message)) }
         } finally {
             _ui.update { it.copy(loading = false) }
         }

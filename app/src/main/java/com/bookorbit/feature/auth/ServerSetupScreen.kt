@@ -5,7 +5,7 @@ import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,8 +21,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.WarningAmber
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -43,9 +43,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bookorbit.ui.theme.BookOrbitTheme
+import com.bookorbit.ui.components.BrandLogo
+import com.bookorbit.ui.components.PrimaryButton
+import com.bookorbit.ui.components.readableWidth
 import com.bookorbit.core.network.LocalNetworkAccess
 import com.bookorbit.core.network.UserCaSettings
 
+/** The first screen: where the server is. Connecting checks a BookOrbit server answers there. */
 @Composable
 fun ServerSetupScreen(
     onConnected: () -> Unit,
@@ -53,6 +57,7 @@ fun ServerSetupScreen(
     vm: ServerSetupViewModel = hiltViewModel(),
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
+    val tokens = BookOrbitTheme.tokens
     var url by rememberSaveable { mutableStateOf(vm.currentServerUrl.orEmpty()) }
     val isInsecure = url.trim().startsWith("http://", ignoreCase = true)
     val certificateHost = UserCaSettings.httpsHost(url)
@@ -70,90 +75,91 @@ fun ServerSetupScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
             .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp),
-        verticalArrangement = Arrangement.Center,
+            .verticalScroll(rememberScrollState()),
+        contentAlignment = Alignment.Center,
     ) {
-        Text(stringResource(R.string.bookorbit), style = androidx.compose.material3.MaterialTheme.typography.headlineLarge)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            stringResource(R.string.enter_your_server_url),
-            style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
-            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(24.dp))
-
-        OutlinedTextField(
-            value = url,
-            onValueChange = { url = it },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            placeholder = { Text(stringResource(R.string.https_your_bookorbit_server_com)) },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Uri,
-                imeAction = ImeAction.Go,
-                autoCorrectEnabled = false,
-            ),
-            keyboardActions = KeyboardActions(onGo = { submit() }),
-        )
-
-        if (isInsecure) {
-            Spacer(Modifier.height(12.dp))
-            Row(verticalAlignment = Alignment.Top) {
-                Icon(
-                    Icons.Outlined.WarningAmber,
-                    contentDescription = null,
-                    tint = BookOrbitTheme.tokens.warning,
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    stringResource(R.string.server_http_warning),
-                    color = BookOrbitTheme.tokens.warning,
-                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-                )
-            }
-        }
-
-        if (certificateHost != null) {
-            Spacer(Modifier.height(12.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    stringResource(R.string.settings_trust_user_cas),
-                    modifier = Modifier.weight(1f),
-                )
-                Switch(checked = trustUserCas, onCheckedChange = { trustUserCas = it }, enabled = !ui.loading)
-            }
+        Column(
+            modifier = Modifier
+                .readableWidth(420.dp)
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+        ) {
+            BrandLogo(modifier = Modifier.align(Alignment.CenterHorizontally))
+            Spacer(Modifier.height(20.dp))
             Text(
-                stringResource(R.string.settings_trust_user_cas_desc, certificateHost),
-                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-            )
-        }
-
-        ui.error?.let {
-            Spacer(Modifier.height(12.dp))
-            Text(
-                it.asString(),
-                color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                stringResource(R.string.server_title),
+                style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
-        }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                stringResource(R.string.enter_your_server_url),
+                style = MaterialTheme.typography.bodyMedium,
+                color = tokens.mutedForeground,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(28.dp))
 
-        Spacer(Modifier.height(16.dp))
-        Button(
-            onClick = { submit() },
-            enabled = !ui.loading && url.isNotBlank(),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            if (ui.loading) {
-                CircularProgressIndicator(modifier = Modifier.height(20.dp), strokeWidth = 2.dp)
-            } else {
-                Text(stringResource(R.string.connect))
+            OutlinedTextField(
+                value = url,
+                onValueChange = { url = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = MaterialTheme.shapes.small,
+                placeholder = { Text(stringResource(R.string.https_your_bookorbit_server_com)) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Uri,
+                    imeAction = ImeAction.Go,
+                    autoCorrectEnabled = false,
+                ),
+                keyboardActions = KeyboardActions(onGo = { submit() }),
+            )
+
+            if (isInsecure) {
+                Spacer(Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.Top) {
+                    Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = tokens.warning, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.server_http_warning), color = tokens.warning, style = MaterialTheme.typography.bodySmall)
+                }
             }
+
+            if (certificateHost != null) {
+                Spacer(Modifier.height(16.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.settings_trust_user_cas), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Switch(checked = trustUserCas, onCheckedChange = { trustUserCas = it }, enabled = !ui.loading)
+                }
+                Text(
+                    stringResource(R.string.settings_trust_user_cas_desc, certificateHost),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = tokens.mutedForeground,
+                )
+            }
+
+            ui.error?.let {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    it.asString(),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
+            Spacer(Modifier.height(20.dp))
+            PrimaryButton(
+                text = stringResource(if (ui.loading) R.string.server_connecting else R.string.connect),
+                onClick = { submit() },
+                enabled = !ui.loading && url.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }

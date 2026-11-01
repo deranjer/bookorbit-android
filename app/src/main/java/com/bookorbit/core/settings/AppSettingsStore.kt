@@ -36,6 +36,14 @@ class AppSettingsStore @Inject constructor(
     private val navItemsKey = stringPreferencesKey("nav_items")
     private val readerInterfaceKey = stringPreferencesKey("reader_interface")
     private val readingFullscreenKey = booleanPreferencesKey("reading_fullscreen")
+    private val tourSeenKey = booleanPreferencesKey("tour_seen")
+
+    /** The first-run tour shows once per install, after the first sign-in. */
+    val tourSeen = context.appSettingsDataStore.data.map { it[tourSeenKey] ?: false }
+
+    suspend fun setTourSeen() {
+        context.appSettingsDataStore.edit { it[tourSeenKey] = true }
+    }
 
     val readerInterface = context.appSettingsDataStore.data.map { prefs ->
         prefs[readerInterfaceKey]?.let { runCatching { ReaderInterface.valueOf(it) }.getOrNull() }

@@ -22,6 +22,7 @@ import com.bookorbit.core.auth.SessionState
 import com.bookorbit.core.network.LocalNetworkAccess
 import com.bookorbit.feature.auth.LoginScreen
 import com.bookorbit.feature.auth.ServerSetupScreen
+import com.bookorbit.feature.onboarding.TourScreen
 import com.bookorbit.ui.LocalImageUrls
 
 private object AuthRoutes {
@@ -30,8 +31,9 @@ private object AuthRoutes {
 }
 
 /**
- * Root composable. Gates on [SessionState]: while loading shows a spinner; signed-in shows the main
- * shell; otherwise runs the unauthenticated server-setup -> login flow. Login success flips the
+ * Root composable. Gates on [SessionState]: while loading shows a spinner (under the splash screen);
+ * signed-in shows the first-run tour once, then the main shell; otherwise runs the unauthenticated
+ * server-setup -> login flow. Login success flips the
  * session to SignedIn, which recomposes here and swaps in [MainScreen].
  */
 @Composable
@@ -39,6 +41,7 @@ fun BookOrbitApp() {
     val rootVm: RootViewModel = hiltViewModel()
     val state by rootVm.state.collectAsStateWithLifecycle()
     val gate by rootVm.localNetworkGate.collectAsStateWithLifecycle()
+    val tourSeen by rootVm.tourSeen.collectAsStateWithLifecycle()
 
     val localNetworkPrompt = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         rootVm.onLocalNetworkAnswered()
@@ -53,8 +56,12 @@ fun BookOrbitApp() {
 
     when (val s = state) {
         SessionState.Loading -> LoadingScreen()
-        is SessionState.SignedIn -> CompositionLocalProvider(LocalImageUrls provides rootVm.imageUrls) {
-            AuthenticatedApp(user = s.user, onSignOut = rootVm::signOut)
+        is SessionState.SignedIn -> when (tourSeen) {
+            null -> LoadingScreen()
+            false -> TourScreen(onDone = rootVm::finishTour)
+            true -> CompositionLocalProvider(LocalImageUrls provides rootVm.imageUrls) {
+                AuthenticatedApp(user = s.user, onSignOut = rootVm::signOut)
+            }
         }
         else -> AuthFlow(startAtServerSetup = s is SessionState.NeedsServer)
     }

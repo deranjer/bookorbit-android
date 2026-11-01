@@ -16,6 +16,14 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
+    <!-- The launch theme: the logo on the page colour while the session loads, then Theme.BookOrbit.
+         MainActivity holds it until the app knows whether to show sign-in, the tour or the library. -->
+    <style name="Theme.BookOrbit.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.BookOrbit</item>
+    </style>
+
     <!-- Theme.BookOrbit.MediaRouter(.Light), for CastButton.kt's legacy MediaRouteButton, live in
          the "full" flavor's res/values/themes.xml instead. They extend androidx.mediarouter's own
          Theme.MediaRouter(.Light), which isn't on the classpath in the fdroid flavor. -->
