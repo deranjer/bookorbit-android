@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reader chrome and settings (redesign phase 4). Kept apart from strings.xml so the reader's text sits together. -->
+<resources>
+    <string name="reader_font_bitter">Bitter</string>
+    <string name="reader_font_opendyslexic">OpenDyslexic</string>
+    <string name="reader_saved_as_defaults">These settings are now the default for every book</string>
+    <string name="reader_sync_failed">Couldn\'t change where reader settings are kept</string>
+
+    <string name="reader_footer_page">Page %1$d of %2$d</string>
+    <string name="reader_footer_reading">Reading: %1$s</string>
+    <string name="reader_footer_left">%1$s left</string>
+    <string name="reader_footer_chapter">Ch. %1$d of %2$d</string>
+    <string name="reader_footer_left_in_chapter">%1$s left in ch.</string>
+    <string name="reader_footer_less_than_minute">&lt; 1m</string>
+    <string name="reader_footer_mode">Change what the footer shows</string>
+    <string name="reader_previous_chapter">Previous chapter</string>
+    <string name="reader_next_chapter">Next chapter</string>
+    <string name="reader_position">Position in book</string>
+
+    <string name="rs_title">Reading settings</string>
+    <string name="rs_page_color">Page colour</string>
+    <string name="rs_reading_flow">Reading flow</string>
+    <string name="rs_text_size">Text size</string>
+    <string name="rs_line_spacing">Line spacing</string>
+    <string name="rs_font">Font</string>
+    <string name="rs_font_built_in">Built in</string>
+    <string name="rs_font_server">Server fonts</string>
+    <string name="rs_font_yours">Your fonts</string>
+    <string name="rs_font_weight">Weight</string>
+    <string name="rs_weight_light">Light</string>
+    <string name="rs_weight_regular">Regular</string>
+    <string name="rs_weight_medium">Medium</string>
+    <string name="rs_weight_bold">Bold</string>
+    <string name="rs_italic">Italic</string>
+    <string name="rs_justify">Justify text</string>
+    <string name="rs_hyphenation">Hyphenation</string>
+    <string name="rs_advanced">Spacing and layout</string>
+    <string name="rs_paragraph_spacing">Paragraph spacing</string>
+    <string name="rs_letter_spacing">Letter spacing</string>
+    <string name="rs_word_spacing">Word spacing</string>
+    <string name="rs_text_indent">First-line indent</string>
+    <string name="rs_book_default">Book\'s own</string>
+    <string name="rs_page_width">Page width</string>
+    <string name="rs_columns">Columns</string>
+    <string name="rs_column_gap">Column gap</string>
+    <string name="rs_footer">Footer</string>
+    <string name="rs_footer_progress">Page</string>
+    <string name="rs_footer_book_time">Time left</string>
+    <string name="rs_footer_chapter_time">Chapter</string>
+    <string name="rs_sync">Keep settings on the server</string>
+    <string name="rs_sync_on">Shared with the web reader and your other devices</string>
+    <string name="rs_sync_off">Kept on this phone only</string>
+    <string name="rs_customized">This book has its own settings</string>
+    <string name="rs_save_defaults">Use for all books</string>
+    <string name="rs_reset_book">Reset this book</string>
+</resources>

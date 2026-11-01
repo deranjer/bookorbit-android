@@ -41,3 +41,9 @@ fun themeBackgroundColor(themeName: String, isDark: Boolean): Color {
     val theme = THEME_BY_NAME[themeName] ?: READER_THEMES.first()
     return Color(if (isDark) theme.darkBg else theme.lightBg)
 }
+
+/** Text color a theme renders for the given mode — used for the reader's bars, which take the page's colors. */
+fun themeForegroundColor(themeName: String, isDark: Boolean): Color {
+    val theme = THEME_BY_NAME[themeName] ?: READER_THEMES.first()
+    return Color(if (isDark) theme.darkFg else theme.lightFg)
+}

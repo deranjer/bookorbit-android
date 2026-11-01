@@ -56,6 +56,16 @@ const DEFAULT_SETTINGS = {
   fontSize: 16,
   lineHeight: 1.5,
   fontFamily: null,
+  // What fontFamily renders as on this device (bundled faces stand in for the generic families),
+  // and the @font-face rules for an uploaded family. Set by the host; not synced.
+  fontFamilyCss: null,
+  fontFaceCss: '',
+  fontWeight: 400,
+  fontStyle: 'normal',
+  paragraphSpacing: 0,
+  letterSpacing: null,
+  wordSpacing: null,
+  textIndent: null,
   maxColumnCount: 2,
   gap: 0.05,
   maxInlineSize: 720,
@@ -67,29 +77,71 @@ const DEFAULT_SETTINGS = {
   flow: 'paginated',
 };
 
+// Reading faces shipped with the app (assets/reader/fonts, OFL). Absolute URLs, because each
+// section renders in a blob: iframe where a relative one would not resolve.
+const FONT_BASE = 'https://appassets.androidplatform.net/assets/reader/fonts/';
+const BUNDLED_FONT_FACES = [
+  ['BO Literata', 'Literata.ttf', 'normal', '200 900'],
+  ['BO Literata', 'Literata-Italic.ttf', 'italic', '200 900'],
+  ['BO Bitter', 'Bitter.ttf', 'normal', '100 900'],
+  ['BO Bitter', 'Bitter-Italic.ttf', 'italic', '100 900'],
+  ['BO Atkinson Hyperlegible', 'AtkinsonHyperlegibleNext.ttf', 'normal', '200 800'],
+  ['BO Atkinson Hyperlegible', 'AtkinsonHyperlegibleNext-Italic.ttf', 'italic', '200 800'],
+  ['BO OpenDyslexic', 'OpenDyslexic-Regular.woff2', 'normal', '400'],
+  ['BO OpenDyslexic', 'OpenDyslexic-Bold.woff2', 'normal', '700'],
+  ['BO OpenDyslexic', 'OpenDyslexic-Italic.woff2', 'italic', '400'],
+  ['BO OpenDyslexic', 'OpenDyslexic-Bold-Italic.woff2', 'italic', '700'],
+]
+  .map(
+    ([family, file, style, weight]) =>
+      `@font-face { font-family: "${family}"; src: url("${FONT_BASE}${file}"); font-style: ${style}; font-weight: ${weight}; font-display: swap; }`,
+  )
+  .join('\n');
+
 function themeFor(name) {
   return THEMES.find((t) => t.name === name) ?? THEMES[0];
 }
 
-// Ported from useReaderState.generateCSS — keep changes in sync with the web client.
+// Ported from useReaderState.generateCSS (web v3.6.0) — keep changes in sync with the web client.
 function generateCSS(s) {
   const theme = themeFor(s.themeName);
   const mode = s.isDark ? theme.dark : theme.light;
   const dark = s.isDark;
   const forceBg = dark || theme.light.bg !== '#ffffff';
-  const fontFamilyRule = s.fontFamily
-    ? `body { font-family: ${s.fontFamily} !important; } body * { font-family: inherit !important; }`
+  const family = s.fontFamilyCss ?? s.fontFamily;
+  // Weight and slant go on body alone, so bold and italic runs in the book keep their emphasis.
+  const bodyDeclarations = [
+    family ? `font-family: ${family} !important;` : '',
+    s.fontWeight === DEFAULT_SETTINGS.fontWeight ? '' : `font-weight: ${s.fontWeight} !important;`,
+    s.fontStyle === DEFAULT_SETTINGS.fontStyle ? '' : `font-style: ${s.fontStyle} !important;`,
+  ].filter(Boolean);
+  const bodyFontRule = bodyDeclarations.length
+    ? `body { ${bodyDeclarations.join(' ')} }${family ? ' body * { font-family: inherit !important; }' : ''}`
     : '';
+  const paragraphSpacingRule = s.paragraphSpacing
+    ? `p { margin-block: 0 ${s.paragraphSpacing}em !important; } :is(hgroup, header) p { margin-block: unset !important; }`
+    : '';
+  const inlineSpacing = [
+    s.letterSpacing == null ? '' : `letter-spacing: ${s.letterSpacing}em !important;`,
+    s.wordSpacing == null ? '' : `word-spacing: ${s.wordSpacing}em !important;`,
+  ].filter(Boolean);
+  const inlineSpacingRule = inlineSpacing.length ? `p, li, blockquote, dd { ${inlineSpacing.join(' ')} }` : '';
+  const textIndentRule =
+    s.textIndent == null
+      ? ''
+      : `p { text-indent: ${s.textIndent}em !important; } :is(hgroup, header, figure, figcaption, blockquote, li) > p { text-indent: unset !important; }`;
   return `
+    ${BUNDLED_FONT_FACES}
+    ${s.fontFaceCss ?? ''}
     @namespace epub "http://www.idpf.org/2007/ops";
     @media print { html { column-width: auto !important; height: auto !important; width: auto !important; } }
     @media screen {
       html { color-scheme: ${dark ? 'dark' : 'light'}; color: ${mode.fg}; font-size: ${s.fontSize}px; }
-      ${fontFamilyRule}
+      ${bodyFontRule}
       a:any-link { color: ${mode.link}; text-underline-offset: .1em; }
       aside[epub|type~="footnote"] { display: none; }
     }
-    html { line-height: ${s.lineHeight}; hanging-punctuation: allow-end last; orphans: 2; widows: 2; }
+    html { line-height: ${s.lineHeight} !important; hanging-punctuation: allow-end last; orphans: 2; widows: 2; }
     [align="left"] { text-align: left; } [align="right"] { text-align: right; }
     [align="center"] { text-align: center; } [align="justify"] { text-align: justify; }
     :is(hgroup, header) p { text-align: unset; hyphens: unset; }
@@ -103,7 +155,10 @@ function generateCSS(s) {
            svg, img { background-color: transparent !important; ${!dark ? 'mix-blend-mode: multiply;' : ''} }`
         : ''
     }
-    p, li, blockquote, dd { line-height: ${s.lineHeight}; text-align: ${s.justify ? 'justify' : 'start'} !important; hyphens: ${s.hyphenate ? 'auto' : 'none'}; }
+    p, li, blockquote, dd { line-height: ${s.lineHeight} !important; text-align: ${s.justify ? 'justify' : 'start'} !important; hyphens: ${s.hyphenate ? 'auto' : 'none'}; }
+    ${paragraphSpacingRule}
+    ${inlineSpacingRule}
+    ${textIndentRule}
     ::selection { background-color: rgba(128, 128, 128, 0.3); }
   `;
 }
@@ -121,6 +176,9 @@ function applyStyles(settings) {
   r.setAttribute('max-block-size', `${s.maxBlockSize}px`);
   if (s.flow === 'paginated') r.setAttribute('margin', '40px');
   else r.removeAttribute('margin');
+  // Pages slide rather than snap; the web reader leaves this off.
+  if (s.flow === 'paginated') r.setAttribute('animated', '');
+  else r.removeAttribute('animated');
   r.setAttribute('flow', s.flow);
   if (typeof r.setStyles === 'function') r.setStyles(generateCSS(s));
 }
@@ -426,6 +484,9 @@ function createView() {
       fraction: typeof d.fraction === 'number' ? d.fraction : null,
       chapterTitle: d.tocItem?.label ?? null,
       location: d.location ?? null,
+      // Spine section and minutes left (in it and in the book), for the footer modes.
+      section: d.section ?? null,
+      time: d.time ?? null,
     });
   });
 
@@ -469,6 +530,8 @@ async function openBook(meta, parts) {
     post({
       type: 'loaded',
       toc: serializeToc(view.book?.toc),
+      // Where each spine section starts, 0..1, for the chapter ticks on the scrubber.
+      sectionFractions: typeof view.getSectionFractions === 'function' ? view.getSectionFractions() : [],
       metadata: {
         title: view.book?.metadata?.title ?? null,
         language: view.book?.metadata?.language ?? null,

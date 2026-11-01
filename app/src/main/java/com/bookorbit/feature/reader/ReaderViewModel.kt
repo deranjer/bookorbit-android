@@ -29,6 +29,8 @@ class ReaderViewModel @Inject constructor(
     private val source: ReaderSource,
     private val progress: ReaderProgressRepository,
     private val settingsStore: ReaderSettingsStore,
+    private val preferences: ReaderPreferencesRepository,
+    private val fonts: ReaderFontsRepository,
     private val sessions: ReadingSessionTracker,
     private val annotationRepo: ReaderAnnotationRepository,
     private val bookmarkRepo: ReaderBookmarkRepository,
@@ -59,6 +61,18 @@ class ReaderViewModel @Inject constructor(
         val title: String? = null,
         val resolved: ResolvedOpen? = null,
         val settings: ReaderSettings = ReaderSettings(),
+        /** The @font-face rules for an uploaded family in [settings], or "". */
+        val fontFaceCss: String = "",
+        /** True when this book has settings of its own on top of the defaults. */
+        val bookCustomized: Boolean = false,
+        /** True when reader settings are kept on the server and shared with the web reader. */
+        val syncSettings: Boolean = false,
+        val uploadedFonts: List<UploadedFontFamily> = emptyList(),
+        val position: ReadingPosition = ReadingPosition(),
+        /** Where each spine section starts, 0..1, for the scrubber's chapter ticks. */
+        val sectionFractions: List<Double> = emptyList(),
+        /** When this reading session began, for the footer's time-read mode. */
+        val openedAt: Long = System.currentTimeMillis(),
         val toc: List<TocItem> = emptyList(),
         val chapterTitle: String? = null,
         val percentage: Int = 0,
@@ -101,10 +115,8 @@ class ReaderViewModel @Inject constructor(
 
     private fun load() {
         viewModelScope.launch {
-            val settings = settingsStore.load()
-            // Coach the paginated tap-zones once (they're invisible by design).
-            val showHint = settings.flow == "paginated" && !settingsStore.hasSeenPagingHint()
-            _ui.update { it.copy(settings = settings, showPagingHint = showHint) }
+            // Device defaults until the book's file is known and its own settings can be read.
+            _ui.update { it.copy(settings = settingsStore.load()) }
 
             // Fall back to the offline-downloaded copy when the network is unavailable.
             val book = runCatching { bookRepo.detail(bookId) }.getOrNull() ?: downloads.cachedBook(bookId)
@@ -116,6 +128,19 @@ class ReaderViewModel @Inject constructor(
 
             try {
                 val resolved = source.resolve(book)
+                val loaded = preferences.load(resolved.fileId)
+                val fontFace = fonts.fontFaceCss(loaded.settings.fontFamily)
+                // Coach the paginated tap-zones once (they're invisible by design).
+                val showHint = loaded.settings.flow == "paginated" && !settingsStore.hasSeenPagingHint()
+                _ui.update {
+                    it.copy(
+                        settings = loaded.settings,
+                        bookCustomized = loaded.bookCustomized,
+                        syncSettings = loaded.sync,
+                        fontFaceCss = fontFace,
+                        showPagingHint = showHint,
+                    )
+                }
                 val initial = progress.resolveInitial(resolved.fileId)
                 sessions.beginReading(resolved.fileId, initial.fraction?.let { it * 100 })
                 _ui.update {
@@ -130,8 +155,8 @@ class ReaderViewModel @Inject constructor(
         }
     }
 
-    fun onLoaded(toc: List<TocItem>, title: String?) {
-        _ui.update { it.copy(loaded = true, toc = toc, chapterTitle = it.chapterTitle ?: title) }
+    fun onLoaded(toc: List<TocItem>, title: String?, sectionFractions: List<Double> = emptyList()) {
+        _ui.update { it.copy(loaded = true, toc = toc, chapterTitle = it.chapterTitle ?: title, sectionFractions = sectionFractions) }
     }
 
     /** Keep the last reading position and reset page state before a fresh WebView is created. */
@@ -151,9 +176,10 @@ class ReaderViewModel @Inject constructor(
         }
     }
 
-    fun onRelocate(cfi: String?, fraction: Double?, chapterTitle: String?) {
+    fun onRelocate(cfi: String?, fraction: Double?, chapterTitle: String?, position: ReadingPosition = ReadingPosition()) {
         _ui.update {
             it.copy(
+                position = position,
                 chapterTitle = chapterTitle ?: it.chapterTitle,
                 percentage = fraction?.let { f -> (f * 100).roundToInt() } ?: it.percentage,
             )
@@ -309,9 +335,58 @@ class ReaderViewModel @Inject constructor(
         _ui.update { it.copy(error = UiText.raw(message)) }
     }
 
+    /** A change made in the reader: it becomes this book's own setting, and the server's when syncing. */
     fun updateSettings(settings: ReaderSettings) {
-        _ui.update { it.copy(settings = settings) }
-        viewModelScope.launch { settingsStore.save(settings) }
+        val previous = _ui.value.settings
+        val next = settings.sanitized()
+        _ui.update { it.copy(settings = next, bookCustomized = true) }
+        val fileId = _ui.value.resolved?.fileId ?: return
+        viewModelScope.launch {
+            if (next.fontFamily != previous.fontFamily) {
+                val css = fonts.fontFaceCss(next.fontFamily)
+                _ui.update { it.copy(fontFaceCss = css) }
+            }
+            preferences.updateBook(fileId, previous, next, _ui.value.syncSettings)
+        }
+    }
+
+    /** Footer: page and percent, then time read and left in the book, then chapter and time left in it. */
+    fun cycleFooterMode() = updateSettings(_ui.value.settings.let { it.copy(footerDisplayMode = (it.footerDisplayMode + 1) % 3) })
+
+    /** Back to the defaults for this book. */
+    fun resetBookSettings() {
+        val fileId = _ui.value.resolved?.fileId ?: return
+        viewModelScope.launch {
+            val defaults = preferences.resetBook(fileId, _ui.value.syncSettings)
+            _ui.update { it.copy(settings = defaults, bookCustomized = false, fontFaceCss = fonts.fontFaceCss(defaults.fontFamily)) }
+        }
+    }
+
+    /** Makes this book's settings the defaults for every book. */
+    fun saveSettingsAsDefaults() {
+        val fileId = _ui.value.resolved?.fileId ?: return
+        val settings = _ui.value.settings
+        viewModelScope.launch {
+            preferences.saveAsDefaults(fileId, settings, _ui.value.syncSettings)
+            _ui.update { it.copy(bookCustomized = false, message = UiText.of(R.string.reader_saved_as_defaults)) }
+        }
+    }
+
+    /** Keeps reader settings on the server (shared with the web reader) or on this device only. */
+    fun setSettingsSync(enabled: Boolean) {
+        viewModelScope.launch {
+            if (preferences.setSync(enabled)) {
+                // Like the web's switch: nothing is copied now; the next change is the first one shared.
+                _ui.update { it.copy(syncSettings = enabled) }
+            } else {
+                _ui.update { it.copy(message = UiText.of(R.string.reader_sync_failed)) }
+            }
+        }
+    }
+
+    /** The fonts uploaded to the server, for the font picker. */
+    fun loadUploadedFonts() {
+        viewModelScope.launch { _ui.update { it.copy(uploadedFonts = fonts.families()) } }
     }
 
     fun dismissPagingHint() {

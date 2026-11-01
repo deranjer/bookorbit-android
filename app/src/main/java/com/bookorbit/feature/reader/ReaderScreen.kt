@@ -93,8 +93,8 @@ fun ReaderScreen(
         controller.listener = { event ->
             when (event) {
                 is ReaderEvent.Ready -> ready = true
-                is ReaderEvent.Loaded -> vm.onLoaded(event.toc, event.title)
-                is ReaderEvent.Relocate -> vm.onRelocate(event.cfi, event.fraction, event.chapterTitle)
+                is ReaderEvent.Loaded -> vm.onLoaded(event.toc, event.title, event.sectionFractions)
+                is ReaderEvent.Relocate -> vm.onRelocate(event.cfi, event.fraction, event.chapterTitle, event.position)
                 is ReaderEvent.Error -> vm.onError(event.message)
                 is ReaderEvent.Tap -> onTap.value(event.x)
                 is ReaderEvent.SearchResults -> vm.onSearchResults(event.label, event.hits)
@@ -105,6 +105,11 @@ fun ReaderScreen(
                 is ReaderEvent.AnnotationTap -> vm.onAnnotationTap(event.cfi, event.rect)
             }
         }
+    }
+
+    // Restyle the page whenever the settings (or an uploaded font's rules) change.
+    LaunchedEffect(ui.settings, ui.fontFaceCss, ui.loaded) {
+        if (ui.loaded) controller.applyStyles(ui.settings, ui.fontFaceCss)
     }
 
     // Draw the book's highlights in the page whenever they (or the loaded page) change.
@@ -129,7 +134,7 @@ fun ReaderScreen(
         if (ready && resolved != null && !opened && !rendererFailed) {
             opened = true
             withContext(Dispatchers.IO) {
-                controller.open(openParamsFor(resolved.ref, resolved.format, resolved.initial, ui.settings), context)
+                controller.open(openParamsFor(resolved.ref, resolved.format, resolved.initial, ui.settings, ui.fontFaceCss), context)
             }
         }
     }
@@ -137,7 +142,7 @@ fun ReaderScreen(
     val surface = themeBackgroundColor(ui.settings.themeName, ui.settings.isDark)
     val paginated = ui.settings.flow == "paginated"
     val showChrome = chromeVisible
-    val onSurface = if (ui.settings.isDark) Color.White else Color.Black
+    val onSurface = themeForegroundColor(ui.settings.themeName, ui.settings.isDark)
 
     Box(
         modifier = Modifier
@@ -155,54 +160,40 @@ fun ReaderScreen(
             )
         }
 
-        if (showChrome) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xCC0A0A0A))
-                    .statusBarsPadding()
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = Color.White)
-                }
-                Text(
-                    ui.chapterTitle ?: ui.title ?: "",
-                    color = Color.White,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = { searchVisible = true }) {
-                    Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.search_in_book), tint = Color.White)
-                }
-                IconButton(onClick = {
-                    vm.loadBookmarks()
-                    highlightsVisible = true
-                }) {
-                    Icon(Icons.Filled.FormatQuote, contentDescription = stringResource(R.string.highlights), tint = Color.White)
-                }
-                IconButton(onClick = { tocVisible = true }) {
-                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = stringResource(R.string.contents), tint = Color.White)
-                }
-                IconButton(onClick = { settingsVisible = true }) {
-                    Icon(Icons.Filled.TextFields, contentDescription = stringResource(R.string.settings), tint = Color.White)
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .background(Color(0xCC0A0A0A))
-                    .navigationBarsPadding()
-                    .padding(vertical = 6.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("${ui.percentage}%", color = Color.White.copy(alpha = 0.8f))
-            }
-        }
+        val chromeColors = ReaderChromeColors.of(ui.settings)
+        // Minutes since the book was opened, for the footer's time-read mode; ticks with each page turn.
+        val minutesRead = remember(ui.position) { (System.currentTimeMillis() - ui.openedAt) / 60_000 }
+        val footer = footerText(ui.settings.footerDisplayMode, ui.position, ui.percentage, minutesRead)
+        val section = ui.position.section
+        ReaderRunningFoot(visible = ui.loaded && !showChrome && paginated, footer = footer, colors = chromeColors, onCycle = vm::cycleFooterMode)
+        ReaderTopBar(
+            visible = showChrome,
+            title = ui.title,
+            chapter = ui.chapterTitle,
+            colors = chromeColors,
+            onBack = onBack,
+            onSearch = { searchVisible = true },
+            onHighlights = {
+                vm.loadBookmarks()
+                highlightsVisible = true
+            },
+            onContents = { tocVisible = true },
+            onSettings = {
+                vm.loadUploadedFonts()
+                settingsVisible = true
+            },
+        )
+        ReaderBottomBar(
+            visible = showChrome && ui.loaded,
+            fraction = ui.percentage / 100.0,
+            sectionFractions = ui.sectionFractions,
+            footer = footer,
+            colors = chromeColors,
+            onSeek = controller::goToFraction,
+            onPreviousChapter = { controller.goToSection((section - 1).coerceAtLeast(0)) },
+            onNextChapter = { controller.goToSection(section + 1) },
+            onCycleFooter = vm::cycleFooterMode,
+        )
 
         ui.toolbar?.let { target ->
             val annotation = target.annotationId?.let { id -> ui.annotations.firstOrNull { it.id == id } }
@@ -319,10 +310,13 @@ fun ReaderScreen(
     if (settingsVisible) {
         ReaderSettingsSheet(
             settings = ui.settings,
-            onChange = { updated ->
-                vm.updateSettings(updated)
-                controller.applyStyles(updated)
-            },
+            uploadedFonts = ui.uploadedFonts,
+            bookCustomized = ui.bookCustomized,
+            sync = ui.syncSettings,
+            onChange = vm::updateSettings,
+            onSync = vm::setSettingsSync,
+            onSaveAsDefaults = vm::saveSettingsAsDefaults,
+            onResetBook = vm::resetBookSettings,
             onDismiss = { settingsVisible = false },
         )
     }
