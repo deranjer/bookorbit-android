@@ -10,7 +10,9 @@ import com.bookorbit.core.network.ApiService
 import com.bookorbit.core.settings.AppSettingsStore
 import com.bookorbit.feature.bookdetail.BookDetailRepository
 import com.bookorbit.feature.downloads.DownloadsRepository
+import com.bookorbit.feature.reader.ProgressSaver
 import com.bookorbit.feature.reader.ReaderProgressRepository
+import com.bookorbit.feature.reader.SavedPosition
 import com.bookorbit.feature.sessions.ReadingSessionTracker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +24,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-private const val PROGRESS_THROTTLE_MS = 2_000L
 
 /** Pages through a CBR/CB7 comic whose pages the server renders as images. */
 @HiltViewModel
@@ -54,8 +55,7 @@ class ComicReaderViewModel @Inject constructor(
     val rtl: StateFlow<Boolean> = settings.comicRtl
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-    private var lastSaved = 0L
-    private var pendingPage: Int? = null
+    private val saver = ProgressSaver<SavedPosition>(viewModelScope) { progress.save(it) }
 
     init {
         load()
@@ -94,25 +94,18 @@ class ComicReaderViewModel @Inject constructor(
         val s = _ui.value
         if (s.pageCount <= 0 || page == s.currentPage) return
         _ui.update { it.copy(currentPage = page) }
-        pendingPage = page
         sessions.onReadingProgress(ComicPaging.percentage(page, s.pageCount))
-        if (System.currentTimeMillis() - lastSaved >= PROGRESS_THROTTLE_MS) flush()
+        if (s.fileId != 0) {
+            saver.offer(SavedPosition(s.fileId, cfi = null, ComicPaging.percentage(page, s.pageCount), ComicPaging.pageNumber(page)))
+        }
     }
 
     fun setRtl(value: Boolean) {
         viewModelScope.launch { settings.setComicRtl(value) }
     }
 
-    fun flush() {
-        val page = pendingPage ?: return
-        val s = _ui.value
-        if (s.fileId == 0 || s.pageCount <= 0) return
-        pendingPage = null
-        lastSaved = System.currentTimeMillis()
-        viewModelScope.launch {
-            progress.report(s.fileId, cfi = null, percentage = ComicPaging.percentage(page, s.pageCount), pageNumber = ComicPaging.pageNumber(page))
-        }
-    }
+    /** Save where the reader is now; the screen calls it when the app goes to the background. */
+    fun flush() = saver.flush()
 
     override fun onCleared() {
         flush()

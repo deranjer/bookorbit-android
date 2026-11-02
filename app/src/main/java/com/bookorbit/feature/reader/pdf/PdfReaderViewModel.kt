@@ -9,7 +9,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bookorbit.feature.bookdetail.BookDetailRepository
 import com.bookorbit.feature.downloads.DownloadsRepository
+import com.bookorbit.feature.reader.ProgressSaver
 import com.bookorbit.feature.reader.ReaderProgressRepository
+import com.bookorbit.feature.reader.SavedPosition
 import com.bookorbit.feature.reader.ReaderSource
 import com.bookorbit.feature.sessions.ReadingSessionTracker
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,7 +25,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
-private const val PROGRESS_THROTTLE_MS = 2_000L
 
 @HiltViewModel
 class PdfReaderViewModel @Inject constructor(
@@ -68,8 +69,7 @@ class PdfReaderViewModel @Inject constructor(
     val ui = _ui.asStateFlow()
 
     private var fileId: Int = 0
-    private var lastSaved = 0L
-    private var pendingPage: Int? = null
+    private val saver = ProgressSaver<SavedPosition>(viewModelScope) { progress.save(it) }
     private var searchJob: kotlinx.coroutines.Job? = null
 
     init {
@@ -169,20 +169,13 @@ class PdfReaderViewModel @Inject constructor(
     }
 
     private fun report(pageIndex: Int) {
-        pendingPage = pageIndex
-        if (System.currentTimeMillis() - lastSaved >= PROGRESS_THROTTLE_MS) flush()
-    }
-
-    fun flush() {
-        val page = pendingPage ?: return
         val total = _ui.value.pageCount
         if (fileId == 0 || total <= 0) return
-        pendingPage = null
-        lastSaved = System.currentTimeMillis()
-        val percentage = PdfProgress.pageToPercentage(page, total)
-        val pageNumber = PdfProgress.pageNumber(page)
-        viewModelScope.launch { progress.report(fileId, cfi = null, percentage = percentage, pageNumber = pageNumber) }
+        saver.offer(SavedPosition(fileId, cfi = null, PdfProgress.pageToPercentage(pageIndex, total), PdfProgress.pageNumber(pageIndex)))
     }
+
+    /** Save where the reader is now; the screen calls it when the app goes to the background. */
+    fun flush() = saver.flush()
 
     override fun onCleared() {
         flush()

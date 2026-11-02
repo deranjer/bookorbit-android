@@ -20,8 +20,6 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
-private const val PROGRESS_THROTTLE_MS = 2_000L
-
 @HiltViewModel
 class ReaderViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
@@ -127,8 +125,7 @@ class ReaderViewModel @Inject constructor(
     private val _ui = MutableStateFlow(UiState())
     val ui = _ui.asStateFlow()
 
-    private var lastSaved = 0L
-    private var pending: Pair<String?, Double>? = null
+    private val saver = ProgressSaver<SavedPosition>(viewModelScope) { progress.save(it) }
 
     /** Where the reader is now, so a bookmark can be dropped there. */
     private var currentCfi: String? = null
@@ -507,17 +504,12 @@ class ReaderViewModel @Inject constructor(
     }
 
     private fun report(cfi: String?, percentage: Double) {
-        pending = cfi to percentage
-        if (System.currentTimeMillis() - lastSaved >= PROGRESS_THROTTLE_MS) flush()
+        val fileId = _ui.value.resolved?.fileId ?: return
+        saver.offer(SavedPosition(fileId, cfi, percentage))
     }
 
-    fun flush() {
-        val fileId = _ui.value.resolved?.fileId ?: return
-        val p = pending ?: return
-        pending = null
-        lastSaved = System.currentTimeMillis()
-        viewModelScope.launch { progress.report(fileId, p.first, p.second) }
-    }
+    /** Save where the reader is now; the screen calls it when the app goes to the background. */
+    fun flush() = saver.flush()
 
     override fun onCleared() {
         flush()

@@ -5,10 +5,23 @@ import com.bookorbit.core.db.ReaderProgressEntity
 import com.bookorbit.core.model.SaveFileProgress
 import com.bookorbit.core.network.ApiService
 import com.bookorbit.core.sync.SyncScheduler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
 data class InitialProgress(val cfi: String?, val fraction: Double?)
+
+/** A position to save: where in [fileId] the reader is, as the server records it. */
+data class SavedPosition(val fileId: Int, val cfi: String?, val percentage: Double, val pageNumber: Int? = null)
 
 /**
  * Offline-first reading-position store keyed by server file id, backed by Room: every position is
@@ -21,6 +34,25 @@ class ReaderProgressRepository @Inject constructor(
     private val api: ApiService,
     private val syncScheduler: SyncScheduler,
 ) {
+    /** Outlives any one reader, so the save made as a reader closes isn't cancelled with it. */
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** Saves go out one at a time, in order, so an older position never lands after a newer one. */
+    private val saving = Mutex()
+
+    private val _changes = MutableStateFlow(0)
+
+    /**
+     * Counts saved positions. Screens that show reading progress watch it while they're on screen
+     * and reload when it moves, so coming back from a reader shows where the reader got to.
+     */
+    val changes: StateFlow<Int> = _changes.asStateFlow()
+
+    /** [report] in the background, after any save still going out. */
+    fun save(position: SavedPosition) {
+        scope.launch { saving.withLock { report(position.fileId, position.cfi, position.percentage, position.pageNumber) } }
+    }
+
     /**
      * Save locally, then attempt to push to the server (clearing dirty on success). [pageNumber] is
      * forwarded to the server for cross-client parity (used by the PDF reader); the local Room store
@@ -32,6 +64,7 @@ class ReaderProgressRepository @Inject constructor(
             api.saveFileProgress(fileId, SaveFileProgress(cfi, percentage, pageNumber))
         }.isSuccess
         if (ok) dao.markSynced(fileId) else syncScheduler.schedule()
+        _changes.update { it + 1 }
     }
 
     /** Push every dirty position to the server. Returns true if anything is still dirty afterward. */
