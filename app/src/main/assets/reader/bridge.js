@@ -104,6 +104,12 @@ function themeFor(name) {
   return THEMES.find((t) => t.name === name) ?? THEMES[0];
 }
 
+// Not in the web reader: a phone's column is narrower than the widths books hard-code on their figure
+// boxes (Project Gutenberg's <div class="figcenter" style="width: 443px">), and an image's max-width
+// of 100% only holds it to that box, so it spilled into the next page. Keep every box within its
+// container. Unimportant and low in specificity, so a book's own max-width rules still apply.
+const OVERFLOW_RULE = 'body * { max-inline-size: 100%; }';
+
 // Ported from useReaderState.generateCSS (web v3.6.0) — keep changes in sync with the web client.
 function generateCSS(s) {
   const theme = themeFor(s.themeName);
@@ -164,6 +170,7 @@ function generateCSS(s) {
     ${inlineSpacingRule}
     ${textIndentRule}
     ::selection { background-color: rgba(128, 128, 128, 0.3); }
+    ${OVERFLOW_RULE}
   `;
 }
 
