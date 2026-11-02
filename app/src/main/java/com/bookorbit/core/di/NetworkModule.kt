@@ -11,6 +11,7 @@ import com.bookorbit.core.network.BaseUrlInterceptor
 import com.bookorbit.core.network.ImageClient
 import com.bookorbit.core.network.MainClient
 import com.bookorbit.core.network.PersistentCookieJar
+import com.bookorbit.core.network.PublicClient
 import com.bookorbit.core.network.RefreshClient
 import com.bookorbit.core.network.TokenAuthenticator
 import com.bookorbit.core.network.UserCaTrust
@@ -102,6 +103,15 @@ object NetworkModule {
         .addInterceptor(logging)
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
+        .build()
+
+    @Provides
+    @Singleton
+    @PublicClient
+    fun providePublicClient(logging: HttpLoggingInterceptor): OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor(logging)
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
         .build()
 
     @Provides

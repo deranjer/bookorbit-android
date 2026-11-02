@@ -32,6 +32,22 @@ enabled by default; swipe from a screen edge to reveal the system bars temporari
 in Settings → Reading. In App mode, tap the center of an ebook page to show or hide the reader
 controls in either paginated or scrolling layouts.
 
+Press and hold a word in an ebook (drag the handles to take in more) for the same actions as the web
+reader's selection menu:
+
+- **Highlight** in one of five colours, or **add a note** to the selection.
+- **Copy** the text.
+- **Define** looks the word up (Free Dictionary, falling back to Wiktionary and to the book's own
+  language).
+- **Translate** into English, Spanish, French, German, Chinese, Japanese, Korean, Arabic, Hindi or
+  Portuguese; the language you pick is remembered.
+- **Search** the book for the selection.
+- **Read from here** reads the book aloud with your phone's text-to-speech voice from that
+  sentence on, turning pages as it goes. Pause or stop it from the bar at the bottom of the page.
+
+Tap an existing highlight for the same actions, plus recolour and delete. Define and Translate send
+the selected text to those public services; see the [privacy policy](https://deranjer.github.io/bookorbit-android/privacy.html).
+
 ## Listening to audiobooks
 
 Audiobook playback uses Media3/ExoPlayer, with:

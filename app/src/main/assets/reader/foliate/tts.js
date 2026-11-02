@@ -53,7 +53,9 @@ const getSegmenter = (lang = 'en', granularity = 'word') => {
   const segmenter = new Intl.Segmenter(lang, { granularity })
   const granularityIsWord = granularity === 'word'
   return function* (strs, makeRange) {
-    const str = strs.join('')
+    // A hard line break in the source is just whitespace when rendered, but the segmenter ends a
+    // sentence on it. Swap them for spaces one for one, so every offset still lines up.
+    const str = strs.join('').replace(/[\r\n\u2028\u2029]/g, ' ')
     let name = 0
     let strIndex = -1
     let sum = 0
@@ -283,12 +285,13 @@ export class TTS {
   from(range) {
     this.#lastMark = null
     const [doc] = this.#list.find((range_) => range.compareBoundaryPoints(Range.END_TO_START, range_) <= 0)
+    // Start at the segment the range begins in (the last one starting at or before it), so reading
+    // from a selection in mid-sentence takes in that sentence rather than skipping to the next.
     let mark
-    for (const [name, range_] of this.#ranges.entries())
-      if (range.compareBoundaryPoints(Range.START_TO_START, range_) <= 0) {
-        mark = name
-        break
-      }
+    for (const [name, range_] of this.#ranges.entries()) {
+      if (range.compareBoundaryPoints(Range.START_TO_START, range_) < 0) break
+      mark = name
+    }
     return this.#speak(doc, (ssml) => this.#getMarkElement(ssml, mark))
   }
   setMark(mark) {

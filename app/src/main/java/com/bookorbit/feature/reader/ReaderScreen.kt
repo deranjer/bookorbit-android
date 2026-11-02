@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -41,7 +40,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,8 +65,30 @@ fun ReaderScreen(
     var highlightsVisible by remember { mutableStateOf(false) }
     var searchVisible by remember { mutableStateOf(false) }
     var noteDialog by remember { mutableStateOf<String?>(null) }
+    var speech by remember { mutableStateOf(Speech.OFF) }
 
     val context = LocalContext.current
+
+    // Reading aloud: the page hands over sentences, the phone's speech engine says them, and each
+    // one is marked on the page as it starts.
+    val readAloud = remember {
+        ReadAloud(
+            context,
+            onMark = controller::speechMark,
+            onBlockDone = controller::speechNext,
+            onUnavailable = {
+                speech = Speech.OFF
+                controller.stopSpeech()
+                Toast.makeText(context, R.string.read_aloud_unavailable, Toast.LENGTH_LONG).show()
+            },
+        )
+    }
+    DisposableEffect(Unit) { onDispose { readAloud.shutdown() } }
+    fun stopSpeech() {
+        readAloud.stop()
+        controller.stopSpeech()
+        speech = Speech.OFF
+    }
 
     // Taps arrive from the page (so text selection keeps working): edges turn the page, the middle
     // toggles the chrome, and any tap while the highlight toolbar is open just dismisses it.
@@ -93,7 +113,7 @@ fun ReaderScreen(
         controller.listener = { event ->
             when (event) {
                 is ReaderEvent.Ready -> ready = true
-                is ReaderEvent.Loaded -> vm.onLoaded(event.toc, event.title, event.sectionFractions)
+                is ReaderEvent.Loaded -> vm.onLoaded(event.toc, event.title, event.sectionFractions, event.language)
                 is ReaderEvent.Relocate -> vm.onRelocate(event.cfi, event.fraction, event.chapterTitle, event.position)
                 is ReaderEvent.Error -> vm.onError(event.message)
                 is ReaderEvent.Tap -> onTap.value(event.x)
@@ -103,6 +123,11 @@ fun ReaderScreen(
                 is ReaderEvent.Selection -> vm.onSelection(event.text, event.cfi, event.rect)
                 ReaderEvent.SelectionCleared -> vm.onSelectionCleared()
                 is ReaderEvent.AnnotationTap -> vm.onAnnotationTap(event.cfi, event.rect)
+                is ReaderEvent.SpeechBlock -> if (speech != Speech.OFF) readAloud.speak(event.segments, event.lang)
+                ReaderEvent.SpeechEnd -> {
+                    readAloud.stop()
+                    speech = Speech.OFF
+                }
             }
         }
     }
@@ -154,6 +179,8 @@ fun ReaderScreen(
                 controller = controller,
                 modifier = Modifier.fillMaxSize(),
                 onRendererGone = {
+                    readAloud.stop()
+                    speech = Speech.OFF
                     rendererFailed = true
                     vm.onRendererGone()
                 },
@@ -197,23 +224,51 @@ fun ReaderScreen(
 
         ui.toolbar?.let { target ->
             val annotation = target.annotationId?.let { id -> ui.annotations.firstOrNull { it.id == id } }
-            val screenWidth = LocalConfiguration.current.screenWidthDp
-            val toolbarWidth = if (annotation != null) 340 else 290
-            val rect = target.rect
-            val centerX = rect?.let { (it.left + it.right) / 2 } ?: (screenWidth / 2.0)
-            val x = (centerX - toolbarWidth / 2).coerceIn(8.0, (screenWidth - toolbarWidth - 8).coerceAtLeast(8).toDouble())
-            // Above the selection when there's room, otherwise below it (clear of the selection handles).
-            val y = when {
-                rect == null -> 120.0
-                rect.top > 150 -> rect.top - 60
-                else -> rect.bottom + 36
-            }
-            HighlightToolbar(
+            SelectionToolbar(
                 currentColor = annotation?.color,
                 onColor = { vm.highlight(it) },
-                onNote = { noteDialog = annotation?.note.orEmpty() },
                 onDelete = annotation?.let { a -> { vm.deleteAnnotation(a.id) } },
-                modifier = Modifier.offset(x = x.dp, y = y.dp),
+                onCopy = {
+                    vm.selectedText()?.let { copyToClipboard(context, it) }
+                    vm.dismissToolbar()
+                },
+                onNote = { noteDialog = annotation?.note.orEmpty() },
+                onDefine = vm::define,
+                onTranslate = vm::translate,
+                onSearch = {
+                    vm.selectedText()?.let { q ->
+                        vm.startSearch(q)
+                        controller.search(q.trim())
+                        searchVisible = true
+                    }
+                    vm.dismissToolbar()
+                },
+                onReadAloud = {
+                    readAloud.stop()
+                    speech = Speech.PLAYING
+                    controller.startSpeech(annotation?.cfi)
+                    vm.dismissToolbar()
+                },
+                modifier = Modifier.anchoredTo(target.rect),
+            )
+        }
+
+        if (speech != Speech.OFF) {
+            ReadAloudBar(
+                paused = speech == Speech.PAUSED,
+                onPause = {
+                    readAloud.pause()
+                    speech = Speech.PAUSED
+                },
+                onResume = {
+                    readAloud.resume()
+                    speech = Speech.PLAYING
+                },
+                onStop = ::stopSpeech,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = if (showChrome && ui.loaded) 112.dp else 32.dp),
             )
         }
 
@@ -259,6 +314,18 @@ fun ReaderScreen(
                 controller.goTo(href)
             },
             onDismiss = { tocVisible = false },
+        )
+    }
+    ui.define?.let { state ->
+        DefineSheet(state = state, onRetry = vm::retryDefine, onDismiss = vm::closeDefine)
+    }
+    ui.translation?.let { state ->
+        TranslationSheet(
+            state = state,
+            onTarget = vm::setTranslateTarget,
+            onCopy = { copyToClipboard(context, it) },
+            onRetry = vm::retryTranslate,
+            onDismiss = vm::closeTranslation,
         )
     }
     noteDialog?.let { initial ->
@@ -321,6 +388,17 @@ fun ReaderScreen(
             onResetBook = vm::resetBookSettings,
             onDismiss = { settingsVisible = false },
         )
+    }
+}
+
+private enum class Speech { OFF, PLAYING, PAUSED }
+
+/** Copies book text; Android 13+ confirms on its own, older versions get a toast. */
+private fun copyToClipboard(context: android.content.Context, text: String) {
+    val clipboard = context.getSystemService(android.content.ClipboardManager::class.java) ?: return
+    clipboard.setPrimaryClip(android.content.ClipData.newPlainText(context.getString(R.string.copy_text), text))
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+        Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show()
     }
 }
 

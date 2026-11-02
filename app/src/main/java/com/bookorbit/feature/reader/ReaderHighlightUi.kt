@@ -21,6 +21,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Headphones
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Translate
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.layout
 import androidx.compose.material3.AlertDialog
 import com.bookorbit.core.model.BookBookmark
 import androidx.compose.runtime.mutableIntStateOf
@@ -57,13 +66,21 @@ fun highlightColor(value: String): Color {
     return Color(0xFFFACC15)
 }
 
-/** Floating toolbar over the page: colour swatches, add/edit note, and delete for an existing highlight. */
+/**
+ * Floating toolbar over a selection or a highlight, like the web reader's selection popup: colour
+ * swatches (and delete, on a highlight) above the actions that work on the text.
+ */
 @Composable
-fun HighlightToolbar(
+fun SelectionToolbar(
     currentColor: String?,
     onColor: (String) -> Unit,
-    onNote: () -> Unit,
     onDelete: (() -> Unit)?,
+    onCopy: () -> Unit,
+    onNote: () -> Unit,
+    onDefine: () -> Unit,
+    onTranslate: () -> Unit,
+    onSearch: () -> Unit,
+    onReadAloud: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -71,40 +88,70 @@ fun HighlightToolbar(
         shape = MaterialTheme.shapes.extraLarge,
         tonalElevation = 6.dp,
         shadowElevation = 6.dp,
-        color = Color(0xF21E1E1E),
+        // Opaque, with an edge, so it stands off a dark page as well as a light one.
+        color = Color(0xFF1E1E1E),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.14f)),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            ReaderAnnotationRepository.COLORS.forEach { (name, hex) ->
-                val selected = currentColor != null && currentColor.equals(hex, ignoreCase = true) || currentColor == name
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clickable(onClickLabel = stringResource(R.string.highlight, name)) { onColor(hex) },
-                    contentAlignment = Alignment.Center,
-                ) {
+        Column(modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ReaderAnnotationRepository.COLORS.forEach { (name, hex) ->
+                    val selected = currentColor != null && currentColor.equals(hex, ignoreCase = true) || currentColor == name
                     Box(
                         modifier = Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(highlightColor(hex))
-                            .border(if (selected) BorderStroke(2.dp, Color.White) else BorderStroke(0.dp, Color.Transparent), CircleShape),
-                    )
+                            .size(40.dp)
+                            .clickable(onClickLabel = stringResource(R.string.highlight, name)) { onColor(hex) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(highlightColor(hex))
+                                .border(if (selected) BorderStroke(2.dp, Color.White) else BorderStroke(0.dp, Color.Transparent), CircleShape),
+                        )
+                    }
+                }
+                if (onDelete != null) {
+                    Spacer(Modifier.weight(1f))
+                    ToolbarAction(Icons.Filled.Delete, stringResource(R.string.delete_highlight), onDelete)
                 }
             }
-            IconButton(onClick = onNote) {
-                Icon(Icons.Filled.EditNote, contentDescription = stringResource(R.string.add_note), tint = Color.White)
-            }
-            if (onDelete != null) {
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.delete_highlight), tint = Color.White)
-                }
+            HorizontalDivider(color = Color.White.copy(alpha = 0.12f), modifier = Modifier.padding(horizontal = 6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ToolbarAction(Icons.Filled.ContentCopy, stringResource(R.string.copy_text), onCopy)
+                ToolbarAction(Icons.Filled.EditNote, stringResource(R.string.add_note), onNote)
+                ToolbarAction(Icons.AutoMirrored.Filled.MenuBook, stringResource(R.string.define), onDefine)
+                ToolbarAction(Icons.Filled.Translate, stringResource(R.string.translate), onTranslate)
+                ToolbarAction(Icons.Filled.Search, stringResource(R.string.search_in_this_book), onSearch)
+                ToolbarAction(Icons.Filled.Headphones, stringResource(R.string.read_from_here), onReadAloud)
             }
         }
     }
+}
+
+@Composable
+private fun ToolbarAction(icon: ImageVector, label: String, onClick: () -> Unit) {
+    IconButton(onClick = onClick, modifier = Modifier.size(44.dp)) {
+        Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(22.dp))
+    }
+}
+
+/**
+ * Places the toolbar over [rect] (a selection in the page's coordinates): centred on it and above it
+ * when there's room under the status bar, otherwise below it, clear of the selection handles.
+ */
+fun Modifier.anchoredTo(rect: ViewportRect?): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
+    val margin = 8.dp.roundToPx()
+    val centerX = rect?.let { ((it.left + it.right) / 2).dp.roundToPx() } ?: (constraints.maxWidth / 2)
+    val x = (centerX - placeable.width / 2).coerceIn(margin, (constraints.maxWidth - placeable.width - margin).coerceAtLeast(margin))
+    val above = rect?.let { it.top.dp.roundToPx() - 12.dp.roundToPx() - placeable.height }
+    val y = when {
+        rect == null -> 120.dp.roundToPx()
+        above != null && above >= 48.dp.roundToPx() -> above
+        else -> rect.bottom.dp.roundToPx() + 36.dp.roundToPx()
+    }.coerceIn(margin, (constraints.maxHeight - placeable.height - margin).coerceAtLeast(margin))
+    layout(constraints.maxWidth, constraints.maxHeight) { placeable.place(x, y) }
 }
 
 @Composable

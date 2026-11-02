@@ -57,4 +57,24 @@
     <string name="rs_customized">This book has its own settings</string>
     <string name="rs_save_defaults">Use for all books</string>
     <string name="rs_reset_book">Reset this book</string>
+    <!-- Selection toolbar: what can be done with selected text, as in the web reader. -->
+    <string name="copy_text">Copy</string>
+    <string name="copied">Copied</string>
+    <string name="define">Define</string>
+    <string name="translate">Translate</string>
+    <string name="read_from_here">Read from here</string>
+    <string name="dictionary_no_definition">No definition found.</string>
+    <string name="dictionary_load_error">Couldn\'t load the definition. Check your connection and try again.</string>
+    <string name="dictionary_source">From %1$s</string>
+    <string name="play_pronunciation">Play pronunciation</string>
+    <string name="translate_into">Translate into</string>
+    <string name="translate_provider">Translated by %1$s</string>
+    <string name="translate_failed">Translation failed. Check your connection and try again.</string>
+    <string name="translate_too_long">That selection is too long to translate. Select %1$d characters or fewer.</string>
+    <string name="read_aloud_playing">Reading aloud</string>
+    <string name="read_aloud_paused">Paused</string>
+    <string name="pause_reading">Pause</string>
+    <string name="resume_reading">Resume</string>
+    <string name="stop_reading">Stop reading</string>
+    <string name="read_aloud_unavailable">Text-to-speech isn\'t available on this phone. Install a speech engine in system settings.</string>
 </resources>

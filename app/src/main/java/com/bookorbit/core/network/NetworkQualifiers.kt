@@ -31,3 +31,11 @@ annotation class ImageClient
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class CastUpstreamClient
+
+/**
+ * Client for public third-party lookups (the reader's dictionary and translation). No cookies, no
+ * bearer token and no base-URL rewrite, so nothing of the user's server session ever leaves with it.
+ */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class PublicClient

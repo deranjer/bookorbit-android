@@ -318,7 +318,7 @@ function setAnnotations(items) {
     if (it?.cfi) next.set(it.cfi, { color: it.color, style: it.style });
   }
   for (const cfi of Array.from(annotationStyles.keys())) {
-    if (!next.has(cfi)) {
+    if (!next.has(cfi) && cfi !== ttsMarkCfi) {
       annotationStyles.delete(cfi);
       void eraseAnnotation(cfi);
     }
@@ -384,6 +384,129 @@ function clearSearch() {
   }
 }
 
+/* -------------------------------------------------------- read aloud */
+// Read aloud follows foliate-js's own reader: foliate's TTS walker turns each block of the section
+// into SSML with a <mark> per sentence; the bridge flattens that to plain sentences for the host's
+// speech engine, and the host reports each sentence as it starts so it can be marked on the page.
+const TTS_MARK_STYLE = { color: '#60a5fa', style: 'highlight' };
+/** The sentence being spoken, drawn like a highlight but never one of the book's. */
+let ttsMarkCfi = null;
+/** The last non-empty selection, so "read from here" can start where it was. */
+let lastSelection = null;
+let ttsActive = false;
+
+function setTtsMark(cfi) {
+  if (ttsMarkCfi === cfi) return;
+  const prev = ttsMarkCfi;
+  ttsMarkCfi = cfi;
+  if (prev && !annotationStyles.has(prev)) void eraseAnnotation(prev);
+  if (cfi) void drawAnnotation(cfi);
+}
+
+/** foliate calls this with each sentence as it is spoken: turn to it and mark it. */
+function highlightTts(range) {
+  if (!ttsActive) return;
+  void view.renderer?.scrollToAnchor?.(range, false);
+  const index = view.renderer?.getContents?.()[0]?.index;
+  let cfi = null;
+  try {
+    cfi = view.getCFI(index, range);
+  } catch {
+    cfi = null;
+  }
+  setTtsMark(cfi);
+}
+
+/** SSML -> [{ mark, text }]: the text before each <mark> belongs to the mark before it. */
+function ssmlSegments(ssml) {
+  const doc = new DOMParser().parseFromString(ssml, 'application/xml');
+  const segments = [];
+  let current = { mark: null, text: '' };
+  const walker = doc.createTreeWalker(doc.documentElement, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (node.nodeType === Node.TEXT_NODE) current.text += node.nodeValue;
+    else if (node.localName === 'mark') {
+      segments.push(current);
+      current = { mark: node.getAttribute('name'), text: '' };
+    } else if (node.localName === 'break') current.text += ' ';
+  }
+  segments.push(current);
+  return segments
+    .map((s) => ({ mark: s.mark, text: s.text.replace(/\s+/g, ' ').trim() }))
+    .filter((s) => s.text);
+}
+
+/** Hand the host the next block worth speaking, crossing into the next section when this one ends. */
+async function ttsSend(ssml) {
+  for (let guard = 0; ttsActive && guard < 50; guard++) {
+    if (ssml) {
+      const segments = ssmlSegments(ssml);
+      if (segments.length) {
+        post({ type: 'ttsSegments', segments, lang: bookLanguage() });
+        return;
+      }
+      ssml = view.tts?.next();
+      continue;
+    }
+    const index = view.renderer?.getContents?.()[0]?.index;
+    const last = (view.book?.sections?.length ?? 0) - 1;
+    if (typeof index !== 'number' || index >= last) break;
+    await view.goTo(index + 1).catch(() => {});
+    await view.initTTS('sentence', highlightTts);
+    ssml = view.tts?.start();
+  }
+  if (ttsActive) ttsStop();
+  post({ type: 'ttsEnd' });
+}
+
+/** The range a CFI points at, when it is in the section on screen. */
+function rangeForCfi(cfi) {
+  try {
+    const { index, anchor } = view.resolveNavigation(cfi) ?? {};
+    const c = view.renderer?.getContents?.()[0];
+    if (c?.doc && c.index === index && typeof anchor === 'function') return anchor(c.doc);
+  } catch {
+    /* fall through */
+  }
+  return null;
+}
+
+/**
+ * Start reading at [cfi] (a highlight), else at the last selection when it is in this section, else
+ * at the top of the page.
+ */
+async function ttsStart(cfi) {
+  try {
+    ttsActive = true;
+    await view.initTTS('sentence', highlightTts);
+    const doc = view.renderer?.getContents?.()[0]?.doc;
+    const from =
+      (cfi ? rangeForCfi(cfi) : null) ?? (lastSelection?.doc === doc ? lastSelection.range : view.lastLocation?.range);
+    let ssml = null;
+    try {
+      ssml = from ? view.tts.from(from) : view.tts.start();
+    } catch {
+      ssml = view.tts.start();
+    }
+    clearSelection();
+    await ttsSend(ssml);
+  } catch (e) {
+    ttsStop();
+    post({ type: 'ttsEnd' });
+    postError(e?.message ?? 'Read aloud failed');
+  }
+}
+
+function ttsStop() {
+  ttsActive = false;
+  setTtsMark(null);
+}
+
+function bookLanguage() {
+  const l = view?.book?.metadata?.language;
+  return (Array.isArray(l) ? l[0] : l) ?? null;
+}
+
 /* ------------------------------------------------- taps and selection */
 /** A range's bounding box in the WebView's own viewport coordinates (CSS px == dp). */
 function viewportRect(range) {
@@ -444,6 +567,7 @@ function attachDocHandlers(doc, index) {
       const range = sel.getRangeAt(0);
       const text = range.toString().trim();
       if (!text) return;
+      lastSelection = { doc, range: range.cloneRange() };
       let cfi = null;
       try {
         cfi = view.getCFI(index, range);
@@ -476,7 +600,7 @@ function createView() {
 
   view.addEventListener('draw-annotation', (e) => {
     const { draw, annotation } = e.detail ?? {};
-    const st = annotationStyles.get(annotation?.value);
+    const st = annotation?.value === ttsMarkCfi ? TTS_MARK_STYLE : annotationStyles.get(annotation?.value);
     if (!draw || !st) return;
     draw(getDrawFunction(st.style), { color: st.color });
   });
@@ -485,10 +609,12 @@ function createView() {
   view.addEventListener('create-overlay', () => {
     setTimeout(() => {
       for (const cfi of annotationStyles.keys()) void drawAnnotation(cfi);
+      if (ttsMarkCfi) void drawAnnotation(ttsMarkCfi);
     }, 100);
   });
 
   view.addEventListener('show-annotation', (e) => {
+    if (e.detail?.value === ttsMarkCfi) return;
     lastAnnotationHitAt = performance.now();
     const range = e.detail?.range;
     post({ type: 'annotationTap', cfi: e.detail?.value ?? null, rect: range ? viewportRect(range) : null });
@@ -552,7 +678,7 @@ async function openBook(meta, parts) {
       sectionFractions: typeof view.getSectionFractions === 'function' ? view.getSectionFractions() : [],
       metadata: {
         title: view.book?.metadata?.title ?? null,
-        language: view.book?.metadata?.language ?? null,
+        language: bookLanguage(),
       },
     });
 
@@ -608,7 +734,8 @@ window.__readerCommit = () => {
   void openBook(meta, parts);
 };
 
-// Imperative commands: { type: 'goTo'|'goToFraction'|'prev'|'next'|'applyStyles'|'setAnnotations'|'clearSelection'|'search'|'clearSearch', ... }.
+// Imperative commands: { type: 'goTo'|'goToFraction'|'prev'|'next'|'applyStyles'|'setAnnotations'|'clearSelection'|'search'|'clearSearch'
+//   |'ttsStart'|'ttsMark'|'ttsNext'|'ttsStop', ... }.
 window.__readerCommand = (json) => {
   if (!view) return;
   let cmd;
@@ -644,6 +771,18 @@ window.__readerCommand = (json) => {
       break;
     case 'clearSearch':
       clearSearch();
+      break;
+    case 'ttsStart':
+      void ttsStart(cmd.cfi ?? null);
+      break;
+    case 'ttsMark':
+      if (ttsActive) view.tts?.setMark(String(cmd.mark));
+      break;
+    case 'ttsNext':
+      if (ttsActive) void ttsSend(view.tts?.next());
+      break;
+    case 'ttsStop':
+      ttsStop();
       break;
     default:
       break;

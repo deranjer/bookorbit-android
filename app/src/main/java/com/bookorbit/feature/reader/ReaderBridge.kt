@@ -46,10 +46,18 @@ data class ReadingPosition(
 /** One in-book search match, with the text around it. */
 data class SearchHit(val cfi: String, val pre: String, val match: String, val post: String)
 
+/** A sentence to read aloud; [mark] names it to the page so the page can mark it while it is spoken. */
+data class SpeechSegment(val mark: String?, val text: String)
+
 sealed interface ReaderEvent {
     data object Ready : ReaderEvent
-    /** [sectionFractions] is where each spine section starts, 0..1, for chapter ticks. */
-    data class Loaded(val toc: List<TocItem>, val title: String?, val sectionFractions: List<Double> = emptyList()) : ReaderEvent
+    /** [sectionFractions] is where each spine section starts, 0..1, for chapter ticks; [language] is the book's. */
+    data class Loaded(
+        val toc: List<TocItem>,
+        val title: String?,
+        val sectionFractions: List<Double> = emptyList(),
+        val language: String? = null,
+    ) : ReaderEvent
     data class Relocate(
         val cfi: String?,
         val fraction: Double?,
@@ -68,6 +76,11 @@ sealed interface ReaderEvent {
     data class SearchResults(val label: String, val hits: List<SearchHit>) : ReaderEvent
     data class SearchProgress(val progress: Double) : ReaderEvent
     data class SearchDone(val total: Int, val capped: Boolean) : ReaderEvent
+
+    /** The next block to read aloud, as sentences, in the book's [lang]. */
+    data class SpeechBlock(val segments: List<SpeechSegment>, val lang: String?) : ReaderEvent
+    /** Reading aloud reached the end of the book (or could not go on). */
+    data object SpeechEnd : ReaderEvent
 }
 
 object ReaderBridge {
@@ -149,7 +162,8 @@ object ReaderBridge {
                 } ?: emptyList()
                 val title = obj["metadata"]?.jsonObject?.get("title")?.jsonPrimitive?.contentOrNull
                 val sections = obj["sectionFractions"]?.jsonArray?.mapNotNull { it.jsonPrimitive.doubleOrNull }.orEmpty()
-                ReaderEvent.Loaded(toc, title, sections)
+                val language = runCatching { obj["metadata"]?.jsonObject?.get("language")?.jsonPrimitive?.contentOrNull }.getOrNull()
+                ReaderEvent.Loaded(toc, title, sections, language)
             }
             "relocate" -> ReaderEvent.Relocate(
                 cfi = obj["cfi"]?.jsonPrimitive?.contentOrNull,
@@ -181,6 +195,15 @@ object ReaderBridge {
                 total = obj["total"]?.jsonPrimitive?.intOrNull ?: 0,
                 capped = obj["capped"]?.jsonPrimitive?.booleanOrNull ?: false,
             )
+            "ttsSegments" -> ReaderEvent.SpeechBlock(
+                segments = obj["segments"]?.jsonArray?.mapNotNull { el ->
+                    val o = el.jsonObject
+                    val text = o["text"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                    SpeechSegment(o["mark"]?.jsonPrimitive?.contentOrNull, text)
+                }.orEmpty(),
+                lang = obj["lang"]?.jsonPrimitive?.contentOrNull,
+            )
+            "ttsEnd" -> ReaderEvent.SpeechEnd
             "annotationTap" -> obj["cfi"]?.jsonPrimitive?.contentOrNull?.let {
                 ReaderEvent.AnnotationTap(it, parseRect(obj["rect"]))
             }

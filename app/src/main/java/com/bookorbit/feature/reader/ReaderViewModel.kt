@@ -12,6 +12,7 @@ import com.bookorbit.feature.bookdetail.BookDetailRepository
 import com.bookorbit.feature.downloads.DownloadsRepository
 import com.bookorbit.feature.sessions.ReadingSessionTracker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -34,6 +35,8 @@ class ReaderViewModel @Inject constructor(
     private val sessions: ReadingSessionTracker,
     private val annotationRepo: ReaderAnnotationRepository,
     private val bookmarkRepo: ReaderBookmarkRepository,
+    private val dictionary: ReaderDictionary,
+    private val translator: ReaderTranslator,
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
@@ -48,11 +51,28 @@ class ReaderViewModel @Inject constructor(
     /** Text the user has selected in the page, not yet saved as a highlight. */
     data class PendingSelection(val text: String, val cfi: String)
 
-    /** What the floating highlight toolbar is acting on: a new selection, or an existing highlight. */
+    /** What the floating selection toolbar is acting on: a new selection, or an existing highlight. */
     data class ToolbarTarget(
         val rect: ViewportRect?,
         val selection: PendingSelection? = null,
         val annotationId: Int? = null,
+    )
+
+    /** A word being looked up in the dictionary sheet; neither [result] nor [failed] once done means not found. */
+    data class DefineState(
+        val word: String,
+        val loading: Boolean = true,
+        val result: DictionaryResult? = null,
+        val failed: Boolean = false,
+    )
+
+    /** A selection being translated in the translation sheet, into [target]. */
+    data class TranslationState(
+        val text: String,
+        val target: String,
+        val loading: Boolean = true,
+        val result: TranslationResult? = null,
+        val error: UiText? = null,
     )
 
     data class UiState(
@@ -83,6 +103,10 @@ class ReaderViewModel @Inject constructor(
         val bookmarks: List<BookBookmark> = emptyList(),
         val search: SearchState? = null,
         val toolbar: ToolbarTarget? = null,
+        /** The book's language as its metadata gives it, for dictionary lookups and reading aloud. */
+        val language: String? = null,
+        val define: DefineState? = null,
+        val translation: TranslationState? = null,
         /** One-shot message for the screen to toast, then clear via [consumeMessage]. */
         val message: UiText? = null,
     )
@@ -156,8 +180,10 @@ class ReaderViewModel @Inject constructor(
         }
     }
 
-    fun onLoaded(toc: List<TocItem>, title: String?, sectionFractions: List<Double> = emptyList()) {
-        _ui.update { it.copy(loaded = true, toc = toc, chapterTitle = it.chapterTitle ?: title, sectionFractions = sectionFractions) }
+    fun onLoaded(toc: List<TocItem>, title: String?, sectionFractions: List<Double> = emptyList(), language: String? = null) {
+        _ui.update {
+            it.copy(loaded = true, toc = toc, chapterTitle = it.chapterTitle ?: title, sectionFractions = sectionFractions, language = language)
+        }
     }
 
     /** Keep the last reading position and reset page state before a fresh WebView is created. */
@@ -283,6 +309,85 @@ class ReaderViewModel @Inject constructor(
     }
 
     fun dismissToolbar() = _ui.update { it.copy(toolbar = null) }
+
+    /** The text the toolbar is open on: the selection, or the highlight's own text. */
+    fun selectedText(): String? {
+        val s = _ui.value
+        val target = s.toolbar ?: return null
+        return target.selection?.text ?: target.annotationId?.let { id -> s.annotations.firstOrNull { it.id == id }?.text }
+    }
+
+    // --- define & translate ---
+
+    private var defineJob: Job? = null
+    private var translateJob: Job? = null
+
+    /** Look the selected word up and show it in the dictionary sheet. */
+    fun define() {
+        val word = selectedText()?.takeIf { it.isNotBlank() } ?: return
+        _ui.update { it.copy(toolbar = null) }
+        lookUp(word)
+    }
+
+    fun retryDefine() = _ui.value.define?.let { lookUp(it.word) }
+
+    fun closeDefine() {
+        defineJob?.cancel()
+        _ui.update { it.copy(define = null) }
+    }
+
+    private fun lookUp(word: String) {
+        defineJob?.cancel()
+        _ui.update { it.copy(define = DefineState(word)) }
+        defineJob = viewModelScope.launch {
+            val outcome = runCatching { dictionary.lookup(word, _ui.value.language) }
+            _ui.update { s ->
+                s.copy(define = s.define?.copy(loading = false, result = outcome.getOrNull(), failed = outcome.isFailure))
+            }
+        }
+    }
+
+    /** Translate the selection into the last language used and show it in the translation sheet. */
+    fun translate() {
+        val text = selectedText()?.trim()?.takeIf { it.isNotEmpty() } ?: return
+        _ui.update { it.copy(toolbar = null) }
+        viewModelScope.launch { runTranslation(text, settingsStore.loadTranslateTarget()) }
+    }
+
+    fun setTranslateTarget(code: String) {
+        val text = _ui.value.translation?.text ?: return
+        viewModelScope.launch { settingsStore.saveTranslateTarget(code) }
+        runTranslation(text, code)
+    }
+
+    fun retryTranslate() = _ui.value.translation?.let { runTranslation(it.text, it.target) }
+
+    fun closeTranslation() {
+        translateJob?.cancel()
+        _ui.update { it.copy(translation = null) }
+    }
+
+    private fun runTranslation(text: String, target: String) {
+        translateJob?.cancel()
+        if (text.length > ReaderTranslator.CHAR_LIMIT) {
+            val error = UiText.of(R.string.translate_too_long, ReaderTranslator.CHAR_LIMIT)
+            _ui.update { it.copy(translation = TranslationState(text, target, loading = false, error = error)) }
+            return
+        }
+        _ui.update { it.copy(translation = TranslationState(text, target)) }
+        translateJob = viewModelScope.launch {
+            val outcome = runCatching { translator.translate(text, target) }
+            _ui.update { s ->
+                s.copy(
+                    translation = s.translation?.copy(
+                        loading = false,
+                        result = outcome.getOrNull(),
+                        error = if (outcome.isFailure) UiText.of(R.string.translate_failed) else null,
+                    ),
+                )
+            }
+        }
+    }
 
     fun consumeMessage() = _ui.update { it.copy(message = null) }
 

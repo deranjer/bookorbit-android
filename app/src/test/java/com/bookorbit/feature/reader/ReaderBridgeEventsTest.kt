@@ -59,4 +59,20 @@ class ReaderBridgeEventsTest {
         assertEquals(ReaderEvent.SearchDone(3, true), ReaderBridge.parseEvent("""{"type":"searchDone","total":3,"capped":true}"""))
         assertEquals(ReaderEvent.SearchDone(0, false), ReaderBridge.parseEvent("""{"type":"searchDone"}"""))
     }
+
+    @Test
+    fun `parses a read-aloud block, dropping blank sentences`() {
+        val e = ReaderBridge.parseEvent(
+            """{"type":"ttsSegments","lang":"en","segments":[{"mark":"0","text":"It is a truth."},{"mark":"1","text":"  "},{"mark":null,"text":"Lead-in"}]}""",
+        ) as ReaderEvent.SpeechBlock
+        assertEquals(listOf(SpeechSegment("0", "It is a truth."), SpeechSegment(null, "Lead-in")), e.segments)
+        assertEquals("en", e.lang)
+        assertTrue(ReaderBridge.parseEvent("""{"type":"ttsEnd"}""") === ReaderEvent.SpeechEnd)
+    }
+
+    @Test
+    fun `loaded carries the book's language`() {
+        val e = ReaderBridge.parseEvent("""{"type":"loaded","toc":[],"metadata":{"title":"Emma","language":"en-GB"}}""") as ReaderEvent.Loaded
+        assertEquals("en-GB", e.language)
+    }
 }

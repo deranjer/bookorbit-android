@@ -110,6 +110,14 @@ class ReaderController {
 
     fun clearSelection() = command(buildJsonObject { put("type", "clearSelection") }.toString())
 
+    /** Read aloud from the highlight at [cfi], else from the current selection, else from the top of the page. */
+    fun startSpeech(cfi: String? = null) = command(buildJsonObject { put("type", "ttsStart"); put("cfi", cfi) }.toString())
+    /** The sentence named [mark] has started playing; the page turns to it and marks it. */
+    fun speechMark(mark: String) = command(buildJsonObject { put("type", "ttsMark"); put("mark", mark) }.toString())
+    /** The last block finished; ask for the next one. */
+    fun speechNext() = command(buildJsonObject { put("type", "ttsNext") }.toString())
+    fun stopSpeech() = command(buildJsonObject { put("type", "ttsStop") }.toString())
+
     fun applyStyles(settings: ReaderSettings, fontFaceCss: String = "", pageTurn: PageTurn = PageTurn.SLIDE) {
         val cmd = buildJsonObject {
             put("type", "applyStyles")
@@ -153,7 +161,7 @@ class ReaderController {
 }
 
 /**
- * WebView that suppresses the system Copy/Select-all toolbar. The page shows its own highlight
+ * WebView that suppresses the system Copy/Select-all toolbar. The page shows its own selection
  * toolbar instead; the native selection handles are unaffected.
  */
 private class ReaderNativeWebView(context: Context) : WebView(context) {

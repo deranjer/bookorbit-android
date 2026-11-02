@@ -28,6 +28,7 @@ class ReaderSettingsStore @Inject constructor(
     private val key = stringPreferencesKey("settings")
     private val pagingHintSeenKey = booleanPreferencesKey("paging_hint_seen")
     private val pageTurnKey = stringPreferencesKey("page_turn")
+    private val translateTargetKey = stringPreferencesKey("translate_target")
     private fun bookKey(fileId: Int) = stringPreferencesKey("book_$fileId")
 
     /** The defaults every book starts from. */
@@ -65,5 +66,14 @@ class ReaderSettingsStore @Inject constructor(
 
     suspend fun savePageTurn(pageTurn: PageTurn) {
         context.readerDataStore.edit { it[pageTurnKey] = pageTurn.value }
+    }
+
+    /** The language selections are translated into, for every book on this device. */
+    suspend fun loadTranslateTarget(): String =
+        context.readerDataStore.data.first()[translateTargetKey]?.takeIf { it in ReaderTranslator.LANGUAGES }
+            ?: ReaderTranslator.defaultTarget()
+
+    suspend fun saveTranslateTarget(code: String) {
+        context.readerDataStore.edit { it[translateTargetKey] = code }
     }
 }

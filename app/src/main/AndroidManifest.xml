@@ -14,6 +14,13 @@
          at runtime (core/network/LocalNetworkAccess.kt). -->
     <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
 
+    <!-- The reader's read-aloud binds the phone's text-to-speech engine. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:name=".app.BookOrbitApplication"
         android:allowBackup="true"
