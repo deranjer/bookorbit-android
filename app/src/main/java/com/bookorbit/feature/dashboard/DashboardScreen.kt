@@ -31,8 +31,11 @@ import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.bookorbit.ui.components.ReadableWidth
+import com.bookorbit.ui.components.RefreshBox
+import com.bookorbit.ui.components.readableWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +62,7 @@ import com.bookorbit.ui.components.PanelShape
 import com.bookorbit.ui.components.PrimaryButton
 import com.bookorbit.ui.theme.BookOrbitTheme
 import java.time.LocalTime
+import kotlin.math.roundToInt
 
 /** Home: greeting, the book to pick up next, streak and goal, then the shelves. */
 @Composable
@@ -69,6 +73,9 @@ fun DashboardScreen(
     vm: DashboardViewModel = hiltViewModel(),
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
+    // Collected only while Home is on screen, so returning from a reader reloads it once, not every page.
+    val progressSaves by vm.progressSaves.collectAsStateWithLifecycle()
+    LaunchedEffect(progressSaves) { vm.onProgressSaved(progressSaves) }
     DashboardContent(ui, userName, greeting(), onRefresh = vm::refresh, onOpenProfile = onOpenProfile, onBookClick = onBookClick)
 }
 
@@ -87,58 +94,65 @@ internal fun DashboardContent(
 ) {
     val isEmpty = !ui.loading && ui.continueReading.isEmpty() && ui.continueListening.isEmpty() && ui.recentlyAdded.isEmpty()
 
-    PullToRefreshBox(isRefreshing = ui.loading, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
+    RefreshBox(isRefreshing = ui.loading, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
-            val wide = maxWidth >= SideBySideWidth
+            val wide = minOf(maxWidth, ReadableWidth) >= SideBySideWidth
+            // The scroll spans the whole window, so the space beside the readable column on a tablet
+            // scrolls and pulls to refresh like the column itself.
             Column(
-                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                HomeHeader(greeting = greeting, userName = userName, onOpenProfile = onOpenProfile)
+                Column(
+                    modifier = Modifier.readableWidth().padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    HomeHeader(greeting = greeting, userName = userName, onOpenProfile = onOpenProfile)
 
-                when {
-                    ui.error -> Box(Modifier.fillMaxWidth(), Alignment.Center) {
-                        ErrorState(stringResource(R.string.couldn_t_load_your_dashboard), onRetry = onRefresh)
-                    }
-                    isEmpty -> Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), Alignment.Center) {
-                        EmptyState(Icons.Outlined.AutoStories, stringResource(R.string.nothing_here_yet_add_books))
-                    }
-                    else -> {
-                        // The hero is the book to pick up next: reading first, then listening.
-                        val heroFromReading = ui.continueReading.firstOrNull()
-                        val hero = heroFromReading ?: ui.continueListening.firstOrNull()
-                        val heroCard: (@Composable (Modifier) -> Unit)? = hero?.let { book ->
-                            { modifier ->
-                                ContinueCard(
-                                    book = book,
-                                    label = stringResource(if (heroFromReading != null) R.string.home_continue_reading else R.string.continue_listening),
-                                    onClick = { onBookClick(book.id) },
-                                    modifier = modifier,
-                                )
-                            }
+                    when {
+                        ui.error -> Box(Modifier.fillMaxWidth(), Alignment.Center) {
+                            ErrorState(stringResource(R.string.couldn_t_load_your_dashboard), onRetry = onRefresh)
                         }
-                        val hasStats = ui.streak != null || ui.goal != null
-                        if (wide && heroCard != null && hasStats) {
-                            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                heroCard(Modifier.weight(1.5f).fillMaxHeight())
-                                Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                    ui.streak?.let { StreakTile(it, Modifier.weight(1f).fillMaxWidth()) }
-                                    ui.goal?.let { GoalTile(it, Modifier.weight(1f).fillMaxWidth()) }
+                        isEmpty -> Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), Alignment.Center) {
+                            EmptyState(Icons.Outlined.AutoStories, stringResource(R.string.nothing_here_yet_add_books))
+                        }
+                        else -> {
+                            // The hero is the book to pick up next: reading first, then listening.
+                            val heroFromReading = ui.continueReading.firstOrNull()
+                            val hero = heroFromReading ?: ui.continueListening.firstOrNull()
+                            val heroCard: (@Composable (Modifier) -> Unit)? = hero?.let { book ->
+                                { modifier ->
+                                    ContinueCard(
+                                        book = book,
+                                        label = stringResource(if (heroFromReading != null) R.string.home_continue_reading else R.string.continue_listening),
+                                        onClick = { onBookClick(book.id) },
+                                        modifier = modifier,
+                                    )
                                 }
                             }
-                        } else {
-                            heroCard?.invoke(Modifier.fillMaxWidth())
-                            StatsStrip(streak = ui.streak, goal = ui.goal)
-                        }
+                            val hasStats = ui.streak != null || ui.goal != null
+                            if (wide && heroCard != null && hasStats) {
+                                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    heroCard(Modifier.weight(1.5f).fillMaxHeight())
+                                    Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        ui.streak?.let { StreakTile(it, Modifier.weight(1f).fillMaxWidth()) }
+                                        ui.goal?.let { GoalTile(it, Modifier.weight(1f).fillMaxWidth()) }
+                                    }
+                                }
+                            } else {
+                                heroCard?.invoke(Modifier.fillMaxWidth())
+                                StatsStrip(streak = ui.streak, goal = ui.goal)
+                            }
 
-                        val moreReading = if (heroFromReading != null) ui.continueReading.drop(1) else ui.continueReading
-                        val moreListening = if (heroFromReading != null) ui.continueListening else ui.continueListening.drop(1)
-                        if (moreReading.isNotEmpty()) BookShelf(stringResource(R.string.up_next_to_read), Icons.AutoMirrored.Outlined.MenuBook, moreReading, onBookClick)
-                        if (moreListening.isNotEmpty()) BookShelf(stringResource(R.string.continue_listening), Icons.Outlined.Headphones, moreListening, onBookClick)
-                        if (ui.recentlyAdded.isNotEmpty()) BookShelf(stringResource(R.string.recently_added), Icons.Outlined.NewReleases, ui.recentlyAdded, onBookClick)
+                            val moreReading = if (heroFromReading != null) ui.continueReading.drop(1) else ui.continueReading
+                            val moreListening = if (heroFromReading != null) ui.continueListening else ui.continueListening.drop(1)
+                            if (moreReading.isNotEmpty()) BookShelf(stringResource(R.string.up_next_to_read), Icons.AutoMirrored.Outlined.MenuBook, moreReading, onBookClick)
+                            if (moreListening.isNotEmpty()) BookShelf(stringResource(R.string.continue_listening), Icons.Outlined.Headphones, moreListening, onBookClick)
+                            if (ui.recentlyAdded.isNotEmpty()) BookShelf(stringResource(R.string.recently_added), Icons.Outlined.NewReleases, ui.recentlyAdded, onBookClick)
+                        }
                     }
+                    Spacer(Modifier.height(8.dp))
                 }
-                Spacer(Modifier.height(8.dp))
             }
         }
     }
@@ -310,7 +324,7 @@ private fun ContinueCard(book: BookCard, label: String, onClick: () -> Unit, mod
                 Spacer(Modifier.weight(1f).height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     ProgressLine((progress / 100.0).toFloat(), Modifier.weight(1f))
-                    Text("${progress.toInt()}%", style = MaterialTheme.typography.labelMedium, color = tokens.mutedForeground, modifier = Modifier.padding(start = 10.dp))
+                    Text("${progress.roundToInt()}%", style = MaterialTheme.typography.labelMedium, color = tokens.mutedForeground, modifier = Modifier.padding(start = 10.dp))
                 }
                 PrimaryButton(stringResource(R.string.open), onClick = onClick, modifier = Modifier.padding(top = 12.dp))
             }

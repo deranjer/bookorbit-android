@@ -11,6 +11,7 @@ import com.bookorbit.core.model.BookFiles
 import com.bookorbit.core.model.BookRecommendation
 import com.bookorbit.core.model.CollectionWithMembership
 import com.bookorbit.feature.downloads.DownloadsRepository
+import com.bookorbit.feature.reader.ReaderProgressRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,6 +29,7 @@ class BookDetailViewModel @Inject constructor(
     private val repo: BookDetailRepository,
     private val downloads: DownloadsRepository,
     session: SessionManager,
+    readerProgress: ReaderProgressRepository,
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
@@ -90,14 +92,30 @@ class BookDetailViewModel @Inject constructor(
                 val highlights = runCatching { repo.highlights(bookId) }.getOrDefault(emptyList())
                 _ui.update { it.copy(highlights = highlights) }
             }
-            launch {
-                val progress = book.files
-                    .filter { BookFiles.isOpenableEbook(it.format) }
-                    .mapNotNull { f -> repo.fileProgress(f.id)?.takeIf { it > 0 }?.let { f.id to it } }
-                    .toMap()
-                _ui.update { it.copy(fileProgress = progress) }
-            }
+            launch { loadFileProgress(book) }
         }
+    }
+
+    /** Reading positions saved so far; the screen hands it back to [onProgressSaved] while on screen. */
+    val progressSaves = readerProgress.changes
+    private var seenSaves = readerProgress.changes.value
+
+    /** A reader saved a position since the screen last looked: reload the book's progress to show it. */
+    fun onProgressSaved(saves: Int) {
+        if (saves == seenSaves) return
+        seenSaves = saves
+        viewModelScope.launch {
+            reloadBook()
+            _ui.value.book?.let { loadFileProgress(it) }
+        }
+    }
+
+    private suspend fun loadFileProgress(book: BookDetail) {
+        val progress = book.files
+            .filter { BookFiles.isOpenableEbook(it.format) }
+            .mapNotNull { f -> repo.fileProgress(f.id)?.takeIf { it > 0 }?.let { f.id to it } }
+            .toMap()
+        _ui.update { it.copy(fileProgress = progress) }
     }
 
     fun setStatus(status: String) {

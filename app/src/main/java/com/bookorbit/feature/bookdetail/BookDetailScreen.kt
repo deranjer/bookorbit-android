@@ -46,6 +46,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -89,6 +90,7 @@ import com.bookorbit.ui.components.SectionLabel
 import com.bookorbit.ui.components.StarRating
 import com.bookorbit.ui.components.htmlToAnnotatedString
 import com.bookorbit.ui.theme.BookOrbitTheme
+import kotlin.math.roundToInt
 
 /** Everything the book page can do, so its content can be drawn without a ViewModel. */
 class BookDetailActions(
@@ -120,6 +122,9 @@ fun BookDetailScreen(
     vm: BookDetailViewModel = hiltViewModel(),
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
+    // Collected only while the page is on screen, so coming back from the reader reloads its progress once.
+    val progressSaves by vm.progressSaves.collectAsStateWithLifecycle()
+    LaunchedEffect(progressSaves) { vm.onProgressSaved(progressSaves) }
     val collections by vm.collections.collectAsStateWithLifecycle()
     val download by vm.downloadState.collectAsStateWithLifecycle()
     var statusSheet by remember { mutableStateOf(false) }
@@ -392,7 +397,7 @@ private fun PrimaryActions(
                 val tokens = BookOrbitTheme.tokens
                 formats.forEach { file ->
                     val pct = ui.fileProgress[file.id]
-                    Pill(file.format!!.uppercase() + (pct?.let { " · ${it.toInt()}%" } ?: ""), tokens.formatColor(file.format))
+                    Pill(file.format!!.uppercase() + (pct?.let { " · ${it.roundToInt()}%" } ?: ""), tokens.formatColor(file.format))
                 }
             }
         }

@@ -44,7 +44,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.bookorbit.ui.components.RefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -162,7 +162,7 @@ fun BookDropScreen(vm: BookDropViewModel = hiltViewModel()) {
                 }
             }
 
-            PullToRefreshBox(
+            RefreshBox(
                 isRefreshing = files.loadState.refresh is LoadState.Loading,
                 onRefresh = { vm.refresh() },
                 modifier = Modifier.fillMaxSize(),

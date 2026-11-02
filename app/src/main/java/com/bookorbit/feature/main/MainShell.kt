@@ -285,13 +285,12 @@ fun MainShell(
                         modifier = Modifier.weight(1f).fillMaxWidth(),
                     ) {
                         composable(NavItem.HOME.route) {
-                            Readable {
-                                DashboardScreen(
-                                    userName = user.name ?: user.username,
-                                    onOpenProfile = { navigateTab(NavItem.YOU.route) },
-                                    onBookClick = onBookClick,
-                                )
-                            }
+                            // Home keeps a readable width itself, inside a scroll that spans the window.
+                            DashboardScreen(
+                                userName = user.name ?: user.username,
+                                onOpenProfile = { navigateTab(NavItem.YOU.route) },
+                                onBookClick = onBookClick,
+                            )
                         }
                         composable(NavItem.LIBRARY.route) {
                             LibraryHubScreen(onBookClick = onListBookClick, onAuthorClick = onAuthorClick, onSeriesClick = onSeriesClick)

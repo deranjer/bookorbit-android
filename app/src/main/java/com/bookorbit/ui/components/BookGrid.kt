@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,7 +65,7 @@ fun BookGrid(
     // covers instead, as the web does, and a still frame rather than an endless animation.
     val loading = items.loadState.refresh is LoadState.Loading
     val refreshing = loading && items.itemCount > 0
-    PullToRefreshBox(
+    RefreshBox(
         isRefreshing = refreshing,
         onRefresh = { items.refresh() },
         modifier = modifier.fillMaxSize(),

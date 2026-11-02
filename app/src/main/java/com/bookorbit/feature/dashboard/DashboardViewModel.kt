@@ -8,6 +8,7 @@ import com.bookorbit.core.model.ReadingGoalWidget
 import com.bookorbit.core.model.ReadingStreakWidget
 import com.bookorbit.core.model.ScrollerType
 import com.bookorbit.feature.browse.BrowseRepository
+import com.bookorbit.feature.reader.ReaderProgressRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +19,7 @@ import javax.inject.Inject
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val repo: BrowseRepository,
+    readerProgress: ReaderProgressRepository,
 ) : ViewModel() {
 
     data class UiState(
@@ -35,12 +37,26 @@ class DashboardViewModel @Inject constructor(
     private val _ui = MutableStateFlow(UiState())
     val ui = _ui.asStateFlow()
 
+    /** Reading positions saved so far; the screen hands it back to [onProgressSaved] while on screen. */
+    val progressSaves = readerProgress.changes
+    private var seenSaves = readerProgress.changes.value
+
     init {
         refresh()
     }
 
-    fun refresh() {
-        _ui.value = _ui.value.copy(loading = true)
+    /** A pull to refresh: reload with the spinner showing. */
+    fun refresh() = load(quiet = false)
+
+    /** A reader saved a position since the screen last looked: reload, quietly, to show it. */
+    fun onProgressSaved(saves: Int) {
+        if (saves == seenSaves) return
+        seenSaves = saves
+        load(quiet = true)
+    }
+
+    private fun load(quiet: Boolean) {
+        if (!quiet) _ui.value = _ui.value.copy(loading = true)
         viewModelScope.launch {
             var failures = 0
             suspend fun load(type: String): List<BookCard> =

@@ -12,7 +12,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.bookorbit.ui.components.RefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,7 +35,7 @@ fun SeriesGrid(
 ) {
     // Only a pull-to-refresh over series already shown spins; see BookGrid.
     val refreshing = series.loadState.refresh is LoadState.Loading && series.itemCount > 0
-    PullToRefreshBox(
+    RefreshBox(
         isRefreshing = refreshing,
         onRefresh = { series.refresh() },
         modifier = modifier.fillMaxSize(),
