@@ -6,11 +6,13 @@ import android.util.Log
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.bookorbit.core.auth.SessionManager
 import com.bookorbit.core.db.PendingReadingSessionDao
 import com.bookorbit.core.db.PendingReadingSessionEntity
 import com.bookorbit.core.model.SaveReadingSession
 import com.bookorbit.core.network.ApiService
 import com.bookorbit.core.sync.SyncScheduler
+import com.bookorbit.core.sync.isPermanentRejection
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -29,12 +31,14 @@ import javax.inject.Singleton
  * treats a repeated session id as an update to the earlier partial row, so checkpointing is safe.
  *
  * Reading time counts only while the app is in the foreground; listening time only while playing.
+ * A queued session belongs to the account that was signed in and waits while that account is signed out.
  */
 @Singleton
 class ReadingSessionTracker @Inject constructor(
     private val dao: PendingReadingSessionDao,
     private val api: ApiService,
     private val syncScheduler: SyncScheduler,
+    private val session: SessionManager,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val recorder = ReadingSessionRecorder(maxGapMs = MAX_GAP_MS)
@@ -105,13 +109,20 @@ class ReadingSessionTracker @Inject constructor(
     @Synchronized
     fun end() = endLocked()
 
-    /** Send every queued session. Returns true if any remain (so the sync worker retries). */
+    /**
+     * Send the signed-in account's queued sessions. Returns true if any of them remain (so the sync
+     * worker retries); those of an account that isn't signed in wait for its next sign-in.
+     */
     suspend fun flushPending(): Boolean {
-        for (entity in dao.all()) {
+        val user = session.currentUser?.id ?: return false
+        for (entity in mine(user)) {
             send(entity)
         }
-        return dao.all().isNotEmpty()
+        return mine(user).isNotEmpty()
     }
+
+    /** Rows queued before owners were recorded have none and go out with whoever is signed in. */
+    private suspend fun mine(user: Int) = dao.all().filter { it.userId == null || it.userId == user }
 
     @Synchronized
     private fun onForeground(foreground: Boolean) {
@@ -147,6 +158,7 @@ class ReadingSessionTracker @Inject constructor(
             durationSeconds = snap.durationSeconds,
             progressDelta = snap.progressDelta,
             endProgress = snap.endProgress,
+            userId = session.currentUser?.id,
         )
         scope.launch {
             dao.upsert(entity)
@@ -170,8 +182,8 @@ class ReadingSessionTracker @Inject constructor(
             Log.d(TAG, "sent ${e.sessionType} session ${e.sessionId} file=${e.fileId} ${e.durationSeconds}s end=${e.endProgress}")
             dao.deleteIfUnchanged(e.sessionId, e.endedAt)
         } catch (t: HttpException) {
-            // A 4xx other than timeout/rate-limit won't succeed on retry (e.g. the file was removed).
-            if (t.code() in 400..499 && t.code() != 408 && t.code() != 429) {
+            // A permanent rejection won't succeed on retry (e.g. the file was removed).
+            if (isPermanentRejection(t.code())) {
                 Log.w(TAG, "dropping session ${e.sessionId}: HTTP ${t.code()}")
                 dao.deleteIfUnchanged(e.sessionId, e.endedAt)
             } else {

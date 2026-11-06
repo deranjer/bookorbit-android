@@ -1,16 +1,21 @@
 package com.bookorbit.feature.reader
 
+import com.bookorbit.core.auth.SessionManager
 import com.bookorbit.core.db.AnnotationCacheDao
 import com.bookorbit.core.db.AnnotationOp
 import com.bookorbit.core.db.PendingAnnotationOpDao
 import com.bookorbit.core.db.PendingAnnotationOpEntity
+import com.bookorbit.core.model.AuthUser
 import com.bookorbit.core.model.BookAnnotation
 import com.bookorbit.core.model.CreateAnnotation
 import com.bookorbit.core.network.ApiService
 import com.bookorbit.core.sync.SyncScheduler
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import okhttp3.ResponseBody.Companion.toResponseBody
@@ -60,11 +65,21 @@ class ReaderAnnotationRepositoryTest {
     private lateinit var dao: FakeOpDao
     private lateinit var repo: ReaderAnnotationRepository
 
+    private val me = AuthUser(id = 1, username = "me")
+    private val someoneElse = AuthUser(id = 2, username = "someone-else")
+
+    /** Who [SessionManager.currentUser] reports; null means signed out. */
+    private var signedIn: AuthUser? = me
+
     @Before
     fun setUp() {
         api = mockk(relaxed = true)
         dao = FakeOpDao()
-        repo = ReaderAnnotationRepository(api, dao, mockk<AnnotationCacheDao>(relaxed = true), Json, mockk<SyncScheduler>(relaxed = true))
+        val cache = mockk<AnnotationCacheDao>(relaxed = true)
+        coEvery { cache.get(any()) } returns null
+        val session = mockk<SessionManager>()
+        every { session.currentUser } answers { signedIn }
+        repo = ReaderAnnotationRepository(api, dao, cache, Json, mockk<SyncScheduler>(relaxed = true), session)
     }
 
     private suspend fun createOne(text: String = "a line") =
@@ -150,6 +165,59 @@ class ReaderAnnotationRepositoryTest {
         coEvery { api.deleteAnnotation(any(), any()) } throws HttpException(Response.error<Any>(503, "".toResponseBody()))
         assertTrue(repo.flushPending())
         assertEquals(1, dao.rows.size)
+    }
+
+    @Test
+    fun `flush keeps a change queued when the session has expired`() = runTest {
+        repo.delete(1, 42)
+        coEvery { api.deleteAnnotation(any(), any()) } throws HttpException(Response.error<Any>(401, "".toResponseBody()))
+        assertTrue(repo.flushPending())
+        assertEquals(1, dao.rows.size)
+    }
+
+    @Test
+    fun `flush sends nothing while signed out and keeps the queue`() = runTest {
+        createOne()
+        signedIn = null
+        assertFalse(repo.flushPending())
+        assertEquals(1, dao.rows.size)
+        coVerify(exactly = 0) { api.createAnnotation(any(), any()) }
+    }
+
+    @Test
+    fun `a change waits for the account that made it`() = runTest {
+        createOne()
+        signedIn = someoneElse
+        assertFalse(repo.flushPending())
+        assertTrue(repo.local(1).isEmpty())
+        coVerify(exactly = 0) { api.createAnnotation(any(), any()) }
+
+        signedIn = me
+        assertEquals(1, repo.local(1).size)
+        assertFalse(repo.flushPending())
+        coVerify(exactly = 1) { api.createAnnotation(1, any<CreateAnnotation>()) }
+    }
+
+    @Test
+    fun `a change queued before owners were recorded goes out with whoever is signed in`() = runTest {
+        dao.insert(PendingAnnotationOpEntity(bookId = 1, kind = AnnotationOp.DELETE, annotationId = 42))
+        signedIn = someoneElse
+        assertFalse(repo.flushPending())
+        coVerify(exactly = 1) { api.deleteAnnotation(1, 42) }
+    }
+
+    @Test
+    fun `two flushes at the same time send a queued highlight once`() = runTest {
+        createOne()
+        coEvery { api.createAnnotation(any(), any()) } coAnswers {
+            delay(100)
+            BookAnnotation(id = 7, bookId = 1, cfi = "epubcfi(/6/2)", text = "a line")
+        }
+        val reader = async { repo.flushPending() }
+        val worker = async { repo.flushPending() }
+        assertFalse(reader.await())
+        assertFalse(worker.await())
+        coVerify(exactly = 1) { api.createAnnotation(1, any<CreateAnnotation>()) }
     }
 
     @Test

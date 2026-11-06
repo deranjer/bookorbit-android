@@ -1,6 +1,7 @@
 package com.bookorbit.feature.reader
 
 import android.util.Log
+import com.bookorbit.core.auth.SessionManager
 import com.bookorbit.core.db.AnnotationCacheDao
 import com.bookorbit.core.db.AnnotationCacheEntity
 import com.bookorbit.core.db.AnnotationOp
@@ -10,6 +11,9 @@ import com.bookorbit.core.model.BookAnnotation
 import com.bookorbit.core.model.CreateAnnotation
 import com.bookorbit.core.network.ApiService
 import com.bookorbit.core.sync.SyncScheduler
+import com.bookorbit.core.sync.isPermanentRejection
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
@@ -27,6 +31,9 @@ import javax.inject.Singleton
  *
  * Queued changes are coalesced so the server sees as few calls as possible: edits to a highlight that
  * hasn't been created yet go into its create; deleting it cancels the create; repeated edits merge.
+ *
+ * Each change belongs to the account that made it and waits, without being dropped, while that account
+ * is signed out.
  */
 @Singleton
 class ReaderAnnotationRepository @Inject constructor(
@@ -35,8 +42,19 @@ class ReaderAnnotationRepository @Inject constructor(
     private val cache: AnnotationCacheDao,
     private val json: Json,
     private val syncScheduler: SyncScheduler,
+    private val session: SessionManager,
 ) {
     private val listSerializer = ListSerializer(BookAnnotation.serializer())
+
+    /**
+     * The reader and the sync worker both flush. One flush at a time, so two of them can't read the
+     * same queued create and send it twice (which would make a duplicate highlight on the server).
+     */
+    private val flushLock = Mutex()
+
+    private val currentUserId: Int? get() = session.currentUser?.id
+
+    private fun PendingAnnotationOpEntity.ownedBy(user: Int?) = this.userId == null || this.userId == user
 
     /** Highlights now: the server copy (fresh if reachable, else the cached one) plus queued changes. */
     suspend fun load(bookId: Int): List<BookAnnotation> {
@@ -53,7 +71,7 @@ class ReaderAnnotationRepository @Inject constructor(
 
     /** Only CFI-anchored annotations are usable in the EPUB-family reader (PDF ones carry a page rect). */
     private suspend fun view(bookId: Int, base: List<BookAnnotation>): List<BookAnnotation> =
-        overlayPendingOps(base.filter { it.cfi != null }, ops.forBook(bookId))
+        overlayPendingOps(base.filter { it.cfi != null }, ops.forBook(bookId).filter { it.ownedBy(currentUserId) })
 
     suspend fun create(
         bookId: Int,
@@ -78,6 +96,7 @@ class ReaderAnnotationRepository @Inject constructor(
                 noteSet = note != null,
                 chapterTitle = chapterTitle,
                 bookFileId = fileId,
+                userId = currentUserId,
             ),
         )
         syncScheduler.schedule()
@@ -99,7 +118,7 @@ class ReaderAnnotationRepository @Inject constructor(
         } else {
             val existing = ops.find(AnnotationOp.UPDATE, id)
             if (existing != null) ops.update(change(existing))
-            else ops.insert(change(PendingAnnotationOpEntity(bookId = bookId, kind = AnnotationOp.UPDATE, annotationId = id)))
+            else ops.insert(change(PendingAnnotationOpEntity(bookId = bookId, kind = AnnotationOp.UPDATE, annotationId = id, userId = currentUserId)))
         }
         syncScheduler.schedule()
     }
@@ -111,33 +130,40 @@ class ReaderAnnotationRepository @Inject constructor(
         } else {
             ops.deleteFor(id, listOf(AnnotationOp.UPDATE))
             if (ops.find(AnnotationOp.DELETE, id) == null) {
-                ops.insert(PendingAnnotationOpEntity(bookId = bookId, kind = AnnotationOp.DELETE, annotationId = id))
+                ops.insert(PendingAnnotationOpEntity(bookId = bookId, kind = AnnotationOp.DELETE, annotationId = id, userId = currentUserId))
             }
         }
         syncScheduler.schedule()
     }
 
-    /** Replay queued changes in order. Returns true if any remain (so the caller retries later). */
-    suspend fun flushPending(): Boolean {
-        for (op in ops.all()) {
+    /**
+     * Replay the signed-in account's queued changes in order. Returns true if any of them remain (so the
+     * caller retries later). Changes of an account that isn't signed in wait for its next sign-in, which
+     * schedules a new flush, so they don't count.
+     */
+    suspend fun flushPending(): Boolean = flushLock.withLock {
+        val user = currentUserId ?: return@withLock false
+        for (op in mine(user)) {
             try {
                 send(op)
                 ops.delete(op.id)
             } catch (e: HttpException) {
-                // A 4xx (other than timeout/rate-limit) won't succeed on retry; 404 means it's already gone.
-                if (e.code() in 400..499 && e.code() != 408 && e.code() != 429) {
+                // A permanent rejection won't succeed on retry; 404 means it's already gone.
+                if (isPermanentRejection(e.code())) {
                     Log.w(TAG, "dropping ${op.kind} ${op.annotationId}: HTTP ${e.code()}")
                     ops.delete(op.id)
                 } else {
-                    return true
+                    return@withLock true
                 }
             } catch (e: Exception) {
                 // Offline (or server down): leave the rest queued, in order.
-                return true
+                return@withLock true
             }
         }
-        return ops.all().isNotEmpty()
+        mine(user).isNotEmpty()
     }
+
+    private suspend fun mine(user: Int) = ops.all().filter { it.ownedBy(user) }
 
     private suspend fun send(op: PendingAnnotationOpEntity) {
         when (op.kind) {

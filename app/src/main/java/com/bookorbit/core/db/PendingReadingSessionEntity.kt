@@ -21,6 +21,8 @@ data class PendingReadingSessionEntity(
     val durationSeconds: Int,
     val progressDelta: Double?,
     val endProgress: Double?,
+    /** Account that read or listened; see [PendingAnnotationOpEntity.userId]. */
+    val userId: Int? = null,
 )
 
 @Dao

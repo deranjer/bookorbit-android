@@ -9,6 +9,7 @@ import com.bookorbit.core.model.OidcCallbackResponse
 import com.bookorbit.core.model.OidcProviderPublic
 import com.bookorbit.core.model.SetupStatus
 import com.bookorbit.core.network.ApiService
+import com.bookorbit.core.sync.SyncScheduler
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,12 +21,16 @@ class AuthRepository @Inject constructor(
     private val api: ApiService,
     private val session: SessionManager,
     @ApplicationContext private val context: Context,
+    private val syncScheduler: SyncScheduler,
 ) {
     /**
-     * Each server keeps its own database (see [SessionManager.dataScope]). The open one belongs to the
-     * server we were using, so after signing in to another server the app restarts onto the right one.
+     * Sends what was queued while signed out (the sync worker skips its run then). Each server keeps
+     * its own database (see [SessionManager.dataScope]). The open one belongs to the server we were
+     * using, so after signing in to another server the app restarts onto the right one; the queued
+     * sync survives the restart.
      */
-    private fun restartIfServerChanged() {
+    private fun afterSignIn() {
+        syncScheduler.schedule()
         if (session.dataScopeChanged()) ProcessRestarter.restart(context)
     }
 
@@ -35,7 +40,7 @@ class AuthRepository @Inject constructor(
     suspend fun login(username: String, password: String) {
         val result = api.login(LoginRequest(username.trim(), password))
         session.signIn(result.accessToken, result.user)
-        restartIfServerChanged()
+        afterSignIn()
     }
 
     /** Returns enabled OIDC providers, or an empty list if the endpoint is unavailable. */
@@ -45,7 +50,7 @@ class AuthRepository @Inject constructor(
     /** Commits an OIDC login result into the session. */
     fun commitOidc(result: OidcCallbackResponse) {
         session.signIn(result.accessToken, result.user)
-        restartIfServerChanged()
+        afterSignIn()
     }
 
     suspend fun logout() {
