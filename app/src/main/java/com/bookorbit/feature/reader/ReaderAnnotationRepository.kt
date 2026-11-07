@@ -27,7 +27,7 @@ import javax.inject.Singleton
  * Highlights and notes for a book, local-first: every change is written to a Room queue and shown
  * straight away, then replayed to the server by [flushPending] (immediately when online, or from the
  * sync worker once connectivity returns). The last server copy is cached so a book's highlights show
- * offline too.
+ * offline too, and each change the server accepts goes into it (see [cacheSent]).
  *
  * Queued changes are coalesced so the server sees as few calls as possible: edits to a highlight that
  * hasn't been created yet go into its create; deleting it cancels the create; repeated edits merge.
@@ -184,12 +184,15 @@ class ReaderAnnotationRepository @Inject constructor(
         var op = mine(user).firstOrNull()
         while (op != null) {
             try {
-                settle(op, send(op))
+                val sent = send(op)
+                settle(op, if (op.kind == AnnotationOp.CREATE) sent?.id else null)
+                cacheSent(op, sent)
             } catch (e: HttpException) {
                 // A permanent rejection won't succeed on retry; 404 means it's already gone.
                 if (isPermanentRejection(e.code())) {
                     Log.w(TAG, "dropping ${op.kind} ${op.annotationId}: HTTP ${e.code()}")
                     ops.delete(op.id)
+                    if (e.code() == 404 && op.kind != AnnotationOp.CREATE) dropFromCache(op.bookId, op.annotationId)
                 } else {
                     return@withLock true
                 }
@@ -236,8 +239,35 @@ class ReaderAnnotationRepository @Inject constructor(
         }
     }
 
-    /** Sends [op]. For a create, returns the id the server gave the new highlight. */
-    private suspend fun send(op: PendingAnnotationOpEntity): Int? = when (op.kind) {
+    /**
+     * Once [op] has reached the server, its row leaves the queue, so the reader's view (cached server copy
+     * plus queued changes) would lose it until the next successful [load]: a sent highlight would vanish
+     * offline, a sent edit would revert. So the cached copy takes what the server answered. Best effort: a
+     * failure here must not make a successful send look failed (it would be sent again).
+     */
+    private suspend fun cacheSent(op: PendingAnnotationOpEntity, sent: BookAnnotation?) {
+        when (op.kind) {
+            AnnotationOp.CREATE, AnnotationOp.UPDATE -> if (sent != null) {
+                updateCache(op.bookId) { list ->
+                    if (list.any { it.id == sent.id }) list.map { if (it.id == sent.id) sent else it } else list + sent
+                }
+            }
+            AnnotationOp.DELETE -> dropFromCache(op.bookId, op.annotationId)
+        }
+    }
+
+    private suspend fun dropFromCache(bookId: Int, id: Int) = updateCache(bookId) { list -> list.filterNot { it.id == id } }
+
+    private suspend fun updateCache(bookId: Int, change: (List<BookAnnotation>) -> List<BookAnnotation>) {
+        runCatching {
+            val list = cached(bookId)
+            val updated = change(list)
+            if (updated != list) cache.put(AnnotationCacheEntity(bookId, json.encodeToString(listSerializer, updated)))
+        }.onFailure { Log.w(TAG, "cached highlights of book $bookId not updated", it) }
+    }
+
+    /** Sends [op]. Returns the server's copy of the highlight it created or changed (null for a delete). */
+    private suspend fun send(op: PendingAnnotationOpEntity): BookAnnotation? = when (op.kind) {
         AnnotationOp.CREATE -> api.createAnnotation(
             op.bookId,
             CreateAnnotation(
@@ -249,19 +279,16 @@ class ReaderAnnotationRepository @Inject constructor(
                 note = op.note?.takeIf { op.noteSet && it.isNotBlank() },
                 chapterTitle = op.chapterTitle,
             ),
-        ).id
-        AnnotationOp.UPDATE -> {
-            api.updateAnnotation(
-                op.bookId,
-                op.annotationId,
-                buildJsonObject {
-                    op.color?.let { put("color", JsonPrimitive(it)) }
-                    // A blank note is sent as an explicit null, which the server accepts to clear it.
-                    if (op.noteSet) put("note", if (op.note.isNullOrBlank()) JsonNull else JsonPrimitive(op.note))
-                },
-            )
-            null
-        }
+        )
+        AnnotationOp.UPDATE -> api.updateAnnotation(
+            op.bookId,
+            op.annotationId,
+            buildJsonObject {
+                op.color?.let { put("color", JsonPrimitive(it)) }
+                // A blank note is sent as an explicit null, which the server accepts to clear it.
+                if (op.noteSet) put("note", if (op.note.isNullOrBlank()) JsonNull else JsonPrimitive(op.note))
+            },
+        )
         AnnotationOp.DELETE -> {
             api.deleteAnnotation(op.bookId, op.annotationId)
             null
