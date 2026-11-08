@@ -3,10 +3,38 @@ package com.bookorbit.feature.reader.pdf
 import kotlin.math.roundToInt
 
 /**
- * Pure layout helpers for the paginated PDF view: how pages group into pager items under a given
- * [PdfReaderSettings.Spread], and how to convert between a 0-based page and its pager item.
+ * Pure layout helpers for continuous page visibility and paginated page spreads.
  */
 object PdfLayout {
+    /** A continuous page's bounds in the lazy list's viewport coordinate system. */
+    data class VisiblePage(val index: Int, val offset: Int, val size: Int)
+
+    /**
+     * Page occupying the most visible vertical space, with ties going to the earlier page.
+     * A trailing sliver of the previous page must not keep the counter and sync one page behind.
+     * Returns null before layout has produced any visible pages.
+     */
+    fun mostVisiblePage(
+        pages: List<VisiblePage>,
+        viewportStart: Int,
+        viewportEnd: Int,
+    ): Int? {
+        var current: Int? = null
+        var largestVisibleHeight = 0
+        for (page in pages) {
+            val visibleHeight = (minOf(page.offset + page.size, viewportEnd) -
+                maxOf(page.offset, viewportStart)).coerceAtLeast(0)
+            if (visibleHeight > largestVisibleHeight ||
+                (visibleHeight > 0 && visibleHeight == largestVisibleHeight &&
+                    page.index < (current ?: Int.MAX_VALUE))
+            ) {
+                current = page.index
+                largestVisibleHeight = visibleHeight
+            }
+        }
+        return current
+    }
+
     /** Pager items, each a list of 1 or 2 page indices (left, then optional right). */
     fun spreadItems(pageCount: Int, spread: PdfReaderSettings.Spread): List<List<Int>> {
         if (pageCount <= 0) return emptyList()
