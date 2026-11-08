@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.8.0](https://github.com/deranjer/bookorbit-android/compare/v0.7.1...v0.8.0) (2026-11-08)
+
+
+### Features
+
+* **player:** configurable skip length and Bluetooth previous-button action ([b7289ce](https://github.com/deranjer/bookorbit-android/commit/b7289ceaec119c5359a8a30eb262ac1e596b5f20))
+* **player:** skip length 5-60 s, Bluetooth previous action, open app from media notification ([3390e1e](https://github.com/deranjer/bookorbit-android/commit/3390e1e9f360e19754791d7d1fbf716a326ebb69))
+
+
+### Bug Fixes
+
+* **player:** open the app when the media notification is tapped ([254c05b](https://github.com/deranjer/bookorbit-android/commit/254c05b24bd7a5684edb6eb7af06d5cc727a3fd9)), closes [#99](https://github.com/deranjer/bookorbit-android/issues/99)
+* **reader:** polyfill Object.groupBy and Map.groupBy for older WebViews ([7f33ead](https://github.com/deranjer/bookorbit-android/commit/7f33ead8f8f467b507acfffac6b39128da8db96b))
+* **reader:** polyfill Object.groupBy and Map.groupBy for older WebViews ([f714ae7](https://github.com/deranjer/bookorbit-android/commit/f714ae7d9054da56e1d945a77f9aead489148080))
+* **reader:** report the most visible PDF page in continuous mode ([f43c04f](https://github.com/deranjer/bookorbit-android/commit/f43c04f05187bc0e19037e03ee5ba5073ad48502))
+* **reader:** report the most visible PDF page in continuous mode ([dcf3ede](https://github.com/deranjer/bookorbit-android/commit/dcf3ede48fdab63e8636d978cf43e126e81a3b0a)), closes [#94](https://github.com/deranjer/bookorbit-android/issues/94)
+* **sync:** keep highlight edits made while a change is being sent ([6976290](https://github.com/deranjer/bookorbit-android/commit/6976290fa9152ce6b01e56461610b55a448c02ea))
+* **sync:** keep highlight edits made while a change is being sent ([9dcf746](https://github.com/deranjer/bookorbit-android/commit/9dcf7466e2338cca7fc1d8131ea2be0d8077a8d6))
+* **sync:** keep queued highlights and sessions across sign-out, send them once ([2382772](https://github.com/deranjer/bookorbit-android/commit/2382772f648742a0a3c827bcdf358587310c4db1))
+* **sync:** keep queued highlights and sessions across sign-out, send them once ([eee73fe](https://github.com/deranjer/bookorbit-android/commit/eee73fe5d7598dfd9c3ac427a46866850a7c63b9))
+* **sync:** keep sent highlight changes in the cached copy ([b46d3ec](https://github.com/deranjer/bookorbit-android/commit/b46d3ec45d1a7e5125bd72a8fcb4ad7531280300))
+* **sync:** keep sent highlight changes in the cached copy ([0f67505](https://github.com/deranjer/bookorbit-android/commit/0f67505de593c6fade1109e1b568c32e9f75fcfc))
+
 ## [0.7.1](https://github.com/deranjer/bookorbit-android/compare/v0.7.0...v0.7.1) (2026-10-24)
 
 
