@@ -40,6 +40,22 @@
           window.AndroidReaderBridge.postMessage(msg);
         },
       };
+      // foliate-js uses ES2024 groupBy (WebView 117+). Devices without auto-updating WebView
+      // (e.g. Huawei without Google services) ship older ones, so EPUB parsing throws.
+      if (!Object.groupBy) {
+        Object.groupBy = function (items, fn) {
+          var out = Object.create(null), i = 0;
+          for (var x of items) { var k = fn(x, i++); (out[k] = out[k] || []).push(x); }
+          return out;
+        };
+      }
+      if (!Map.groupBy) {
+        Map.groupBy = function (items, fn) {
+          var out = new Map(), i = 0;
+          for (var x of items) { var k = fn(x, i++); out.has(k) ? out.get(k).push(x) : out.set(k, [x]); }
+          return out;
+        };
+      }
     </script>
     <script type="module" src="./bridge.js"></script>
   </body>
