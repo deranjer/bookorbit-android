@@ -44,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.Slider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,7 +57,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bookorbit.BuildConfig
 import com.bookorbit.core.settings.ThemeMode
 import com.bookorbit.core.settings.ReaderInterface
+import com.bookorbit.feature.player.MAX_SKIP_SECONDS
+import com.bookorbit.feature.player.MIN_SKIP_SECONDS
+import com.bookorbit.feature.player.PreviousTrackAction
 import com.bookorbit.feature.player.ProgressBarMode
+import com.bookorbit.feature.player.SKIP_STEP_SECONDS
 import com.bookorbit.feature.player.SPEED_PRESETS
 import kotlin.math.abs
 import kotlin.math.pow
@@ -74,6 +79,9 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val downloadsSummary by vm.downloadsSummary.collectAsStateWithLifecycle()
     val defaultSpeed by vm.defaultSpeed.collectAsStateWithLifecycle()
     val progressBarMode by vm.progressBarMode.collectAsStateWithLifecycle()
+    val skipBack by vm.skipBackSeconds.collectAsStateWithLifecycle()
+    val skipForward by vm.skipForwardSeconds.collectAsStateWithLifecycle()
+    val previousTrackAction by vm.previousTrackAction.collectAsStateWithLifecycle()
     val message by vm.message.collectAsStateWithLifecycle()
     val downloadTreeUri by vm.downloadTreeUri.collectAsStateWithLifecycle()
     val downloadLocationLabel by vm.downloadLocationLabel.collectAsStateWithLifecycle()
@@ -301,6 +309,27 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                             )
                         }
                     }
+                    SkipSlider(stringResource(R.string.skip_back), skipBack, vm::setSkipBack)
+                    SkipSlider(stringResource(R.string.skip_forward), skipForward, vm::setSkipForward)
+                    Text(
+                        stringResource(R.string.settings_previous_button),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 16.dp),
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        listOf(PreviousTrackAction.CHAPTER to stringResource(R.string.previous_chapter), PreviousTrackAction.SKIP_BACK to stringResource(R.string.skip_back)).forEach { (action, label) ->
+                            FilterChip(
+                                selected = previousTrackAction == action,
+                                onClick = { vm.setPreviousTrackAction(action) },
+                                label = { Text(label) },
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                            )
+                        }
+                    }
                     Text(
                         stringResource(R.string.progress_bar),
                         style = MaterialTheme.typography.bodyMedium,
@@ -366,6 +395,28 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             },
         )
     }
+}
+
+/** Slider over [MIN_SKIP_SECONDS]..[MAX_SKIP_SECONDS] in [SKIP_STEP_SECONDS] steps. */
+@Composable
+private fun SkipSlider(label: String, seconds: Int, onChange: (Int) -> Unit) {
+    var dragging by remember { mutableStateOf<Float?>(null) }
+    Text(
+        stringResource(R.string.settings_skip_seconds, label, dragging?.toInt() ?: seconds),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 16.dp),
+    )
+    Slider(
+        value = dragging ?: seconds.toFloat(),
+        onValueChange = { dragging = it },
+        onValueChangeFinished = {
+            dragging?.let { onChange(it.toInt()) }
+            dragging = null
+        },
+        valueRange = MIN_SKIP_SECONDS.toFloat()..MAX_SKIP_SECONDS.toFloat(),
+        steps = (MAX_SKIP_SECONDS - MIN_SKIP_SECONDS) / SKIP_STEP_SECONDS - 1,
+    )
 }
 
 @Composable

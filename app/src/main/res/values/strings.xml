@@ -143,6 +143,8 @@
     <string name="sign_in">Sign In</string>
     <string name="sign_in_to_your_library">Sign in to your library</string>
     <string name="single">Single</string>
+    <string name="settings_previous_button">Headset / Bluetooth previous button</string>
+    <string name="settings_skip_seconds">%1$s: %2$d s</string>
     <string name="skip_back">Skip back</string>
     <string name="skip_forward">Skip forward</string>
     <string name="sleep_timer">Sleep timer</string>

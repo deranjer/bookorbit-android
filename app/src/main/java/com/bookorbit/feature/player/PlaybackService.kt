@@ -1,12 +1,15 @@
 package com.bookorbit.feature.player
 
 import android.util.Log
+import android.app.PendingIntent
+import android.content.Intent
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
+import com.bookorbit.app.MainActivity
 import com.bookorbit.feature.cast.CastHandoff
 import com.bookorbit.feature.cast.CastProxyServer
 import dagger.hilt.android.AndroidEntryPoint
@@ -70,7 +73,15 @@ class PlaybackService : MediaLibraryService() {
         // Wraps `player` so the session (and everything observing it - Bluetooth AVRCP, Android Auto,
         // lock screen, and PlayerManager's own MediaController) sees whole-book position/duration
         // instead of ExoPlayer's real per-file numbers. See BookAggregatingPlayer's kdoc.
-        mediaSession = MediaLibrarySession.Builder(this, wrap(player), callback).build()
+        // Tapping the media notification / lock-screen controls must open the app.
+        val openApp = PendingIntent.getActivity(
+            this, 0,
+            Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        mediaSession = MediaLibrarySession.Builder(this, wrap(player), callback)
+            .setSessionActivity(openApp)
+            .build()
 
         serviceScope.launch {
             playerManager.state

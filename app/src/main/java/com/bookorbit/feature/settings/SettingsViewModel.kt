@@ -22,6 +22,9 @@ import com.bookorbit.core.settings.ReaderInterface
 import com.bookorbit.feature.downloads.DownloadsRepository
 import com.bookorbit.feature.player.AudioSettingsStore
 import com.bookorbit.feature.player.DEFAULT_SPEED
+import com.bookorbit.feature.player.DEFAULT_SKIP_BACK
+import com.bookorbit.feature.player.DEFAULT_SKIP_FORWARD
+import com.bookorbit.feature.player.PreviousTrackAction
 import com.bookorbit.feature.player.ProgressBarMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -112,6 +115,18 @@ class SettingsViewModel @Inject constructor(
         .map { it.progressBarMode }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProgressBarMode.BOOK)
 
+    val skipBackSeconds: StateFlow<Int> = audioSettingsStore.settings
+        .map { it.skipBackSeconds }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DEFAULT_SKIP_BACK)
+
+    val skipForwardSeconds: StateFlow<Int> = audioSettingsStore.settings
+        .map { it.skipForwardSeconds }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DEFAULT_SKIP_FORWARD)
+
+    val previousTrackAction: StateFlow<PreviousTrackAction> = audioSettingsStore.settings
+        .map { it.previousTrackAction }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PreviousTrackAction.CHAPTER)
+
     val downloadTreeUri: StateFlow<Uri?> = locationStore.treeUri
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -149,6 +164,18 @@ class SettingsViewModel @Inject constructor(
 
     fun setProgressBarMode(mode: ProgressBarMode) {
         viewModelScope.launch { audioSettingsStore.saveProgressBarMode(mode) }
+    }
+
+    fun setSkipBack(seconds: Int) {
+        viewModelScope.launch { audioSettingsStore.saveSkipBack(seconds) }
+    }
+
+    fun setSkipForward(seconds: Int) {
+        viewModelScope.launch { audioSettingsStore.saveSkipForward(seconds) }
+    }
+
+    fun setPreviousTrackAction(action: PreviousTrackAction) {
+        viewModelScope.launch { audioSettingsStore.savePreviousTrackAction(action) }
     }
 
     fun clearImageCache() {

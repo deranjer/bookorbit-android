@@ -176,8 +176,13 @@ class BookAggregatingPlayer(
 
     override fun seekToNext() = jumpToNavPoint(forward = true)
     override fun seekToNextMediaItem() = jumpToNavPoint(forward = true)
-    override fun seekToPrevious() = jumpToNavPoint(forward = false)
-    override fun seekToPreviousMediaItem() = jumpToNavPoint(forward = false)
+    // Headset / Bluetooth / car "previous" arrives here; the user can choose skip-back instead of a chapter jump.
+    override fun seekToPrevious() = previousPressed()
+    override fun seekToPreviousMediaItem() = previousPressed()
+
+    private fun previousPressed() {
+        if (prefs.value.previousTrackAction == PreviousTrackAction.SKIP_BACK) seekBack() else jumpToNavPoint(forward = false)
+    }
 
     override fun hasNextMediaItem(): Boolean {
         val c = clock()
@@ -186,15 +191,18 @@ class BookAggregatingPlayer(
     }
 
     override fun hasPreviousMediaItem(): Boolean {
+        if (prefs.value.previousTrackAction == PreviousTrackAction.SKIP_BACK) return true
         if (clock().navPointsSec().size <= 1) return super.hasPreviousMediaItem()
         return true
     }
 
     override fun getAvailableCommands(): Player.Commands {
         val base = super.getAvailableCommands()
-        if (clock().navPointsSec().size <= 1) return base
+        val skipBackPrevious = prefs.value.previousTrackAction == PreviousTrackAction.SKIP_BACK
+        val hasNav = clock().navPointsSec().size > 1
+        if (!hasNav && !skipBackPrevious) return base
         val builder = base.buildUpon()
-        if (hasNextMediaItem()) {
+        if (hasNav && hasNextMediaItem()) {
             builder.add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
             builder.add(Player.COMMAND_SEEK_TO_NEXT)
         }

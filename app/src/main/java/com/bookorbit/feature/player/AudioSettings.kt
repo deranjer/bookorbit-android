@@ -45,11 +45,29 @@ enum class ProgressBarMode {
     }
 }
 
+/** What a headset / Bluetooth / car "previous track" press does. */
+enum class PreviousTrackAction {
+    CHAPTER, SKIP_BACK;
+
+    companion object {
+        fun parse(raw: String?): PreviousTrackAction = entries.firstOrNull { it.name == raw } ?: CHAPTER
+    }
+}
+
+const val MIN_SKIP_SECONDS = 5
+const val MAX_SKIP_SECONDS = 60
+const val SKIP_STEP_SECONDS = 5
+
+/** Snap a skip length to the 5 s steps the settings offer, within 5-60 s. */
+fun snapSkipSeconds(v: Int): Int =
+    ((v + SKIP_STEP_SECONDS / 2) / SKIP_STEP_SECONDS * SKIP_STEP_SECONDS).coerceIn(MIN_SKIP_SECONDS, MAX_SKIP_SECONDS)
+
 data class AudioSettings(
     val speed: Float = DEFAULT_SPEED,
     val skipBackSeconds: Int = DEFAULT_SKIP_BACK,
     val skipForwardSeconds: Int = DEFAULT_SKIP_FORWARD,
     val progressBarMode: ProgressBarMode = ProgressBarMode.BOOK,
+    val previousTrackAction: PreviousTrackAction = PreviousTrackAction.CHAPTER,
 )
 
 private val Context.audioDataStore by preferencesDataStore("audio_settings")
@@ -62,6 +80,7 @@ class AudioSettingsStore @Inject constructor(
     private val skipBackKey = intPreferencesKey("skip_back")
     private val skipForwardKey = intPreferencesKey("skip_forward")
     private val progressBarModeKey = stringPreferencesKey("progress_bar_mode")
+    private val previousTrackActionKey = stringPreferencesKey("previous_track_action")
 
     val settings: Flow<AudioSettings> = context.audioDataStore.data.map { prefs ->
         prefs.toAudioSettings()
@@ -73,6 +92,7 @@ class AudioSettingsStore @Inject constructor(
             skipBackSeconds = this[skipBackKey] ?: DEFAULT_SKIP_BACK,
             skipForwardSeconds = this[skipForwardKey] ?: DEFAULT_SKIP_FORWARD,
             progressBarMode = ProgressBarMode.parse(this[progressBarModeKey]),
+            previousTrackAction = PreviousTrackAction.parse(this[previousTrackActionKey]),
         )
     }
 
@@ -98,14 +118,18 @@ class AudioSettingsStore @Inject constructor(
     }
 
     suspend fun saveSkipBack(value: Int) {
-        context.audioDataStore.edit { it[skipBackKey] = value }
+        context.audioDataStore.edit { it[skipBackKey] = snapSkipSeconds(value) }
     }
 
     suspend fun saveSkipForward(value: Int) {
-        context.audioDataStore.edit { it[skipForwardKey] = value }
+        context.audioDataStore.edit { it[skipForwardKey] = snapSkipSeconds(value) }
     }
 
     suspend fun saveProgressBarMode(mode: ProgressBarMode) {
         context.audioDataStore.edit { it[progressBarModeKey] = mode.name }
+    }
+
+    suspend fun savePreviousTrackAction(action: PreviousTrackAction) {
+        context.audioDataStore.edit { it[previousTrackActionKey] = action.name }
     }
 }
