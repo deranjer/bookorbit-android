@@ -20,7 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PendingAnnotationOpEntity::class,
         AnnotationCacheEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 abstract class BookOrbitDatabase : RoomDatabase() {
@@ -32,6 +32,17 @@ abstract class BookOrbitDatabase : RoomDatabase() {
     abstract fun pendingReadingSessionDao(): PendingReadingSessionDao
     abstract fun pendingAnnotationOpDao(): PendingAnnotationOpDao
     abstract fun annotationCacheDao(): AnnotationCacheDao
+}
+
+/**
+ * Records which account queued each offline highlight change and reading session. Rows already queued
+ * keep a null owner, so they still go out with whoever is signed in.
+ */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `pending_annotation_ops` ADD COLUMN `userId` INTEGER")
+        db.execSQL("ALTER TABLE `pending_reading_sessions` ADD COLUMN `userId` INTEGER")
+    }
 }
 
 /** Adds the offline highlight queue and the per-book highlight cache; existing tables are untouched. */

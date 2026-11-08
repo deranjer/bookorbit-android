@@ -38,6 +38,12 @@ data class PendingAnnotationOpEntity(
     val chapterTitle: String? = null,
     val bookFileId: Int? = null,
     val createdAt: Long = System.currentTimeMillis(),
+    /**
+     * Account that made the change. It is sent only while that account is signed in, so another
+     * account signing in on this device never receives it. Null for rows queued before this was
+     * recorded: those go out with whoever is signed in.
+     */
+    val userId: Int? = null,
 )
 
 @Dao
