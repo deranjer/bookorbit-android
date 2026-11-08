@@ -2,6 +2,7 @@ package com.bookorbit.feature.reader
 
 import com.bookorbit.core.auth.SessionManager
 import com.bookorbit.core.db.AnnotationCacheDao
+import com.bookorbit.core.db.AnnotationCacheEntity
 import com.bookorbit.core.db.AnnotationOp
 import com.bookorbit.core.db.PendingAnnotationOpDao
 import com.bookorbit.core.db.PendingAnnotationOpEntity
@@ -17,6 +18,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -66,9 +68,21 @@ private class FakeOpDao : PendingAnnotationOpDao {
     override suspend fun minCreateId() = rows.filter { it.kind == AnnotationOp.CREATE }.minOfOrNull { it.annotationId }
 }
 
+/** In-memory stand-in for the cached server copy of each book's highlights. */
+private class FakeCacheDao : AnnotationCacheDao {
+    val rows = mutableMapOf<Int, AnnotationCacheEntity>()
+
+    override suspend fun put(entity: AnnotationCacheEntity) {
+        rows[entity.bookId] = entity
+    }
+
+    override suspend fun get(bookId: Int) = rows[bookId]
+}
+
 class ReaderAnnotationRepositoryTest {
     private lateinit var api: ApiService
     private lateinit var dao: FakeOpDao
+    private lateinit var cache: FakeCacheDao
     private lateinit var repo: ReaderAnnotationRepository
 
     private val me = AuthUser(id = 1, username = "me")
@@ -81,8 +95,7 @@ class ReaderAnnotationRepositoryTest {
     fun setUp() {
         api = mockk(relaxed = true)
         dao = FakeOpDao()
-        val cache = mockk<AnnotationCacheDao>(relaxed = true)
-        coEvery { cache.get(any()) } returns null
+        cache = FakeCacheDao()
         val session = mockk<SessionManager>()
         every { session.currentUser } answers { signedIn }
         repo = ReaderAnnotationRepository(api, dao, cache, Json, mockk<SyncScheduler>(relaxed = true), session)
@@ -291,6 +304,54 @@ class ReaderAnnotationRepositoryTest {
         assertFalse(repo.flushPending())
         createOne("another")
         assertEquals(listOf(-2), dao.rows.map { it.annotationId })
+    }
+
+    private fun cacheOf(vararg annotations: BookAnnotation) {
+        cache.rows[1] = AnnotationCacheEntity(1, Json.encodeToString(ListSerializer(BookAnnotation.serializer()), annotations.toList()))
+    }
+
+    @Test
+    fun `a sent highlight goes into the cached copy, so it still shows if the reload fails`() = runTest {
+        cacheOf(onServer(3))
+        createOne()
+        coEvery { api.createAnnotation(any(), any()) } returns onServer(7)
+        assertFalse(repo.flushPending())
+        assertEquals(listOf(3, 7), repo.local(1).map { it.id })
+    }
+
+    @Test
+    fun `a sent highlight shows even before the book's highlights were ever loaded`() = runTest {
+        createOne()
+        coEvery { api.createAnnotation(any(), any()) } returns onServer(7)
+        assertFalse(repo.flushPending())
+        assertEquals(listOf(7), repo.local(1).map { it.id })
+    }
+
+    @Test
+    fun `a sent edit goes into the cached copy`() = runTest {
+        cacheOf(onServer(42))
+        repo.setColor(1, 42, "#4ADE80")
+        coEvery { api.updateAnnotation(1, 42, any()) } returns onServer(42).copy(color = "#4ADE80")
+        assertFalse(repo.flushPending())
+        assertTrue(dao.rows.isEmpty())
+        assertEquals("#4ADE80", repo.local(1).single().color)
+    }
+
+    @Test
+    fun `a sent delete leaves the cached copy`() = runTest {
+        cacheOf(onServer(42))
+        repo.delete(1, 42)
+        assertFalse(repo.flushPending())
+        assertTrue(repo.local(1).isEmpty())
+    }
+
+    @Test
+    fun `a highlight already gone on the server leaves the cached copy`() = runTest {
+        cacheOf(onServer(42))
+        repo.delete(1, 42)
+        coEvery { api.deleteAnnotation(any(), any()) } throws HttpException(Response.error<Any>(404, "".toResponseBody()))
+        assertFalse(repo.flushPending())
+        assertTrue(repo.local(1).isEmpty())
     }
 
     @Test
