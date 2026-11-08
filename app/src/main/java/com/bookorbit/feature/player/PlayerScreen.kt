@@ -19,13 +19,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Bedtime
-import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,6 +32,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material.icons.filled.Replay
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -266,7 +267,7 @@ fun PlayerScreen(
                 Icon(Icons.Filled.SkipPrevious, contentDescription = stringResource(R.string.previous_chapter))
             }
             IconButton(onClick = { vm.skipBack() }) {
-                Icon(Icons.Filled.Replay10, contentDescription = stringResource(R.string.skip_back))
+                SkipIcon(state.skipBackSeconds, forward = false)
             }
             Box(
                 modifier = Modifier
@@ -289,7 +290,7 @@ fun PlayerScreen(
                 }
             }
             IconButton(onClick = { vm.skipForward() }) {
-                Icon(Icons.Filled.Forward30, contentDescription = stringResource(R.string.skip_forward))
+                SkipIcon(state.skipForwardSeconds, forward = true)
             }
             IconButton(onClick = { nextChapter() }, enabled = state.chapters.isNotEmpty()) {
                 Icon(Icons.Filled.SkipNext, contentDescription = stringResource(R.string.next_chapter))
@@ -368,5 +369,18 @@ fun PlayerScreen(
             onCancel = { vm.cancelSleepTimer() },
             onDismiss = { showSleepTimerSheet = false },
         )
+    }
+}
+
+/** Circular-arrow skip icon (mirrored for forward) with the number of seconds over it. */
+@Composable
+private fun SkipIcon(seconds: Int, forward: Boolean) {
+    Box(contentAlignment = Alignment.Center) {
+        Icon(
+            Icons.Filled.Replay,
+            contentDescription = if (forward) "Skip forward $seconds seconds" else "Skip back $seconds seconds",
+            modifier = Modifier.graphicsLayer { scaleX = if (forward) -1f else 1f },
+        )
+        Text(seconds.toString(), fontSize = 9.sp, fontWeight = FontWeight.Bold)
     }
 }

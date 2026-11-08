@@ -144,7 +144,15 @@ class PlayerManager @Inject constructor(
         }
         scope.launch {
             livePrefs.settings.collect { s ->
-                _state.update { it.copy(progressBarMode = s.progressBarMode) }
+                // Skip lengths can change from Settings while a book is loaded.
+                settings = settings.copy(skipBackSeconds = s.skipBackSeconds, skipForwardSeconds = s.skipForwardSeconds)
+                _state.update {
+                    it.copy(
+                        progressBarMode = s.progressBarMode,
+                        skipBackSeconds = s.skipBackSeconds,
+                        skipForwardSeconds = s.skipForwardSeconds,
+                    )
+                }
             }
         }
     }
