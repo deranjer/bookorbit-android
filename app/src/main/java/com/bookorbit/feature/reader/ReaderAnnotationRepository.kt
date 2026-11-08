@@ -31,6 +31,7 @@ import javax.inject.Singleton
  *
  * Queued changes are coalesced so the server sees as few calls as possible: edits to a highlight that
  * hasn't been created yet go into its create; deleting it cancels the create; repeated edits merge.
+ * A change made while the row it merges into is being sent isn't lost: see [settle].
  *
  * Each change belongs to the account that made it and waits, without being dropped, while that account
  * is signed out.
@@ -51,6 +52,19 @@ class ReaderAnnotationRepository @Inject constructor(
      * same queued create and send it twice (which would make a duplicate highlight on the server).
      */
     private val flushLock = Mutex()
+
+    /**
+     * Changes to the queue, and the bookkeeping after each send, go through this lock. A flush doesn't
+     * hold it while waiting for the server, so the reader can keep queueing edits during a send.
+     */
+    private val queueLock = Mutex()
+
+    /**
+     * Placeholder id -> server id, for the highlights this process has created on the server. The
+     * reader shows the placeholder until it reloads, so an edit or a delete made in between is sent to
+     * the new highlight. Guarded by [queueLock].
+     */
+    private val createdIds = mutableMapOf<Int, Int>()
 
     private val currentUserId: Int? get() = session.currentUser?.id
 
@@ -82,23 +96,25 @@ class ReaderAnnotationRepository @Inject constructor(
         note: String?,
         chapterTitle: String?,
     ) {
-        // Placeholder ids are negative and descending so they never clash with a server id.
-        val tempId = (ops.minCreateId() ?: 0).coerceAtMost(0) - 1
-        ops.insert(
-            PendingAnnotationOpEntity(
-                bookId = bookId,
-                kind = AnnotationOp.CREATE,
-                annotationId = tempId,
-                cfi = cfi,
-                text = text,
-                color = color,
-                note = note,
-                noteSet = note != null,
-                chapterTitle = chapterTitle,
-                bookFileId = fileId,
-                userId = currentUserId,
-            ),
-        )
+        queueLock.withLock {
+            // Placeholder ids are negative and descending so they never clash with a server id.
+            val tempId = minOf(ops.minCreateId() ?: 0, createdIds.keys.minOrNull() ?: 0, 0) - 1
+            ops.insert(
+                PendingAnnotationOpEntity(
+                    bookId = bookId,
+                    kind = AnnotationOp.CREATE,
+                    annotationId = tempId,
+                    cfi = cfi,
+                    text = text,
+                    color = color,
+                    note = note,
+                    noteSet = note != null,
+                    chapterTitle = chapterTitle,
+                    bookFileId = fileId,
+                    userId = currentUserId,
+                ),
+            )
+        }
         syncScheduler.schedule()
     }
 
@@ -112,41 +128,63 @@ class ReaderAnnotationRepository @Inject constructor(
     }
 
     private suspend fun patch(bookId: Int, id: Int, change: (PendingAnnotationOpEntity) -> PendingAnnotationOpEntity) {
-        if (id < 0) {
-            // Not on the server yet: fold the edit into the queued create.
-            ops.find(AnnotationOp.CREATE, id)?.let { ops.update(change(it)) }
-        } else {
-            val existing = ops.find(AnnotationOp.UPDATE, id)
-            if (existing != null) ops.update(change(existing))
-            else ops.insert(change(PendingAnnotationOpEntity(bookId = bookId, kind = AnnotationOp.UPDATE, annotationId = id, userId = currentUserId)))
-        }
-        syncScheduler.schedule()
-    }
-
-    suspend fun delete(bookId: Int, id: Int) {
-        if (id < 0) {
-            // Never reached the server: just cancel the create.
-            ops.deleteFor(id, listOf(AnnotationOp.CREATE))
-        } else {
-            ops.deleteFor(id, listOf(AnnotationOp.UPDATE))
-            if (ops.find(AnnotationOp.DELETE, id) == null) {
-                ops.insert(PendingAnnotationOpEntity(bookId = bookId, kind = AnnotationOp.DELETE, annotationId = id, userId = currentUserId))
+        queueLock.withLock {
+            val create = if (id < 0) ops.find(AnnotationOp.CREATE, id) else null
+            if (create != null) {
+                // Not on the server yet: fold the edit into the queued create.
+                ops.update(change(create))
+            } else {
+                serverId(id)?.let { queueUpdate(bookId, it, currentUserId, change) }
             }
         }
         syncScheduler.schedule()
     }
 
+    suspend fun delete(bookId: Int, id: Int) {
+        queueLock.withLock {
+            if (id < 0 && ops.find(AnnotationOp.CREATE, id) != null) {
+                // Never reached the server: just cancel the create.
+                ops.deleteFor(id, listOf(AnnotationOp.CREATE))
+            } else {
+                serverId(id)?.let { queueDelete(bookId, it, currentUserId) }
+            }
+        }
+        syncScheduler.schedule()
+    }
+
+    /** The server id for an id the reader shows: a placeholder maps to its highlight once created. */
+    private fun serverId(id: Int): Int? = if (id < 0) createdIds[id] else id
+
+    private suspend fun queueUpdate(
+        bookId: Int,
+        id: Int,
+        userId: Int?,
+        change: (PendingAnnotationOpEntity) -> PendingAnnotationOpEntity,
+    ) {
+        val existing = ops.find(AnnotationOp.UPDATE, id)
+        if (existing != null) ops.update(change(existing))
+        else ops.insert(change(PendingAnnotationOpEntity(bookId = bookId, kind = AnnotationOp.UPDATE, annotationId = id, userId = userId)))
+    }
+
+    private suspend fun queueDelete(bookId: Int, id: Int, userId: Int?) {
+        ops.deleteFor(id, listOf(AnnotationOp.UPDATE))
+        if (ops.find(AnnotationOp.DELETE, id) == null) {
+            ops.insert(PendingAnnotationOpEntity(bookId = bookId, kind = AnnotationOp.DELETE, annotationId = id, userId = userId))
+        }
+    }
+
     /**
      * Replay the signed-in account's queued changes in order. Returns true if any of them remain (so the
      * caller retries later). Changes of an account that isn't signed in wait for its next sign-in, which
-     * schedules a new flush, so they don't count.
+     * schedules a new flush, so they don't count. The queue is read again after each send, so changes
+     * made during the flush go out in it too.
      */
     suspend fun flushPending(): Boolean = flushLock.withLock {
         val user = currentUserId ?: return@withLock false
-        for (op in mine(user)) {
+        var op = mine(user).firstOrNull()
+        while (op != null) {
             try {
-                send(op)
-                ops.delete(op.id)
+                settle(op, send(op))
             } catch (e: HttpException) {
                 // A permanent rejection won't succeed on retry; 404 means it's already gone.
                 if (isPermanentRejection(e.code())) {
@@ -159,27 +197,61 @@ class ReaderAnnotationRepository @Inject constructor(
                 // Offline (or server down): leave the rest queued, in order.
                 return@withLock true
             }
+            op = mine(user).firstOrNull()
         }
-        mine(user).isNotEmpty()
+        false
     }
 
     private suspend fun mine(user: Int) = ops.all().filter { it.ownedBy(user) }
 
-    private suspend fun send(op: PendingAnnotationOpEntity) {
-        when (op.kind) {
-            AnnotationOp.CREATE -> api.createAnnotation(
-                op.bookId,
-                CreateAnnotation(
-                    cfi = requireNotNull(op.cfi),
-                    bookFileId = requireNotNull(op.bookFileId),
-                    text = op.text.orEmpty(),
-                    color = op.color ?: COLORS.first().second,
-                    style = DEFAULT_STYLE,
-                    note = op.note?.takeIf { op.noteSet && it.isNotBlank() },
-                    chapterTitle = op.chapterTitle,
-                ),
-            )
-            AnnotationOp.UPDATE -> api.updateAnnotation(
+    /**
+     * [op] has reached the server; [createdId] is the id of the highlight it created, if it was a create.
+     * The row is dropped, unless the highlight was edited or deleted while the request was in flight:
+     * that change was merged into the row after [op] was read, so it hasn't been sent yet. An edited
+     * update stays queued and goes out again with its new values. A create's later changes become an
+     * update, or a delete, of the highlight the server has just made.
+     */
+    private suspend fun settle(op: PendingAnnotationOpEntity, createdId: Int?) = queueLock.withLock {
+        val now = ops.get(op.id)
+        if (op.kind == AnnotationOp.CREATE && createdId != null) {
+            createdIds[op.annotationId] = createdId
+            if (now == null) {
+                queueDelete(op.bookId, createdId, op.userId)
+                return@withLock
+            }
+            ops.delete(op.id)
+            val colorChanged = now.color != op.color
+            val noteChanged = now.noteSet != op.noteSet || now.note != op.note
+            if (colorChanged || noteChanged) {
+                queueUpdate(op.bookId, createdId, op.userId) {
+                    it.copy(
+                        color = if (colorChanged) now.color else it.color,
+                        note = if (noteChanged) now.note else it.note,
+                        noteSet = it.noteSet || noteChanged,
+                    )
+                }
+            }
+        } else if (now == op) {
+            ops.delete(op.id)
+        }
+    }
+
+    /** Sends [op]. For a create, returns the id the server gave the new highlight. */
+    private suspend fun send(op: PendingAnnotationOpEntity): Int? = when (op.kind) {
+        AnnotationOp.CREATE -> api.createAnnotation(
+            op.bookId,
+            CreateAnnotation(
+                cfi = requireNotNull(op.cfi),
+                bookFileId = requireNotNull(op.bookFileId),
+                text = op.text.orEmpty(),
+                color = op.color ?: COLORS.first().second,
+                style = DEFAULT_STYLE,
+                note = op.note?.takeIf { op.noteSet && it.isNotBlank() },
+                chapterTitle = op.chapterTitle,
+            ),
+        ).id
+        AnnotationOp.UPDATE -> {
+            api.updateAnnotation(
                 op.bookId,
                 op.annotationId,
                 buildJsonObject {
@@ -188,8 +260,13 @@ class ReaderAnnotationRepository @Inject constructor(
                     if (op.noteSet) put("note", if (op.note.isNullOrBlank()) JsonNull else JsonPrimitive(op.note))
                 },
             )
-            AnnotationOp.DELETE -> api.deleteAnnotation(op.bookId, op.annotationId)
+            null
         }
+        AnnotationOp.DELETE -> {
+            api.deleteAnnotation(op.bookId, op.annotationId)
+            null
+        }
+        else -> null
     }
 
     companion object {

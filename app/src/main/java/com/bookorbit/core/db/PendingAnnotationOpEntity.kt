@@ -63,6 +63,9 @@ interface PendingAnnotationOpDao {
     @Query("SELECT * FROM pending_annotation_ops WHERE kind = :kind AND annotationId = :annotationId LIMIT 1")
     suspend fun find(kind: String, annotationId: Int): PendingAnnotationOpEntity?
 
+    @Query("SELECT * FROM pending_annotation_ops WHERE id = :id")
+    suspend fun get(id: Long): PendingAnnotationOpEntity?
+
     @Query("DELETE FROM pending_annotation_ops WHERE id = :id")
     suspend fun delete(id: Long)
 

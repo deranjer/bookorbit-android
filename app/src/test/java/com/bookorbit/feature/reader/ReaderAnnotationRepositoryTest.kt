@@ -18,6 +18,10 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -48,6 +52,8 @@ private class FakeOpDao : PendingAnnotationOpDao {
     override suspend fun forBook(bookId: Int) = all().filter { it.bookId == bookId }
     override suspend fun find(kind: String, annotationId: Int) =
         rows.firstOrNull { it.kind == kind && it.annotationId == annotationId }
+
+    override suspend fun get(id: Long) = rows.firstOrNull { it.id == id }
 
     override suspend fun delete(id: Long) {
         rows.removeAll { it.id == id }
@@ -218,6 +224,73 @@ class ReaderAnnotationRepositoryTest {
         assertFalse(reader.await())
         assertFalse(worker.await())
         coVerify(exactly = 1) { api.createAnnotation(1, any<CreateAnnotation>()) }
+    }
+
+    private fun onServer(id: Int) = BookAnnotation(id = id, bookId = 1, cfi = "epubcfi(/6/2)", text = "a line")
+
+    @Test
+    fun `an edit made while its highlight is being created goes out as an update of the new highlight`() = runTest {
+        createOne()
+        coEvery { api.createAnnotation(any(), any()) } coAnswers {
+            repo.setColor(1, -1, "#4ADE80")
+            repo.setNote(1, -1, "remember this")
+            onServer(7)
+        }
+        val bodies = mutableListOf<JsonObject>()
+        coEvery { api.updateAnnotation(1, 7, capture(bodies)) } returns onServer(7)
+        assertFalse(repo.flushPending())
+        assertTrue(dao.rows.isEmpty())
+        assertEquals(listOf(buildJsonObject { put("color", "#4ADE80"); put("note", "remember this") }), bodies)
+    }
+
+    @Test
+    fun `deleting a highlight while it is being created deletes it on the server`() = runTest {
+        createOne()
+        coEvery { api.createAnnotation(any(), any()) } coAnswers {
+            repo.delete(1, -1)
+            onServer(7)
+        }
+        assertFalse(repo.flushPending())
+        assertTrue(dao.rows.isEmpty())
+        coVerify(exactly = 1) { api.deleteAnnotation(1, 7) }
+    }
+
+    @Test
+    fun `an edit made while an update is being sent goes out after it`() = runTest {
+        repo.setColor(1, 42, "#4ADE80")
+        val bodies = mutableListOf<JsonObject>()
+        coEvery { api.updateAnnotation(1, 42, capture(bodies)) } coAnswers {
+            if (bodies.size == 1) repo.setNote(1, 42, "n")
+            onServer(42)
+        }
+        assertFalse(repo.flushPending())
+        assertTrue(dao.rows.isEmpty())
+        assertEquals(2, bodies.size)
+        assertEquals(JsonPrimitive("n"), bodies[1]["note"])
+    }
+
+    @Test
+    fun `the placeholder id still on screen after the create was sent reaches the new highlight`() = runTest {
+        createOne()
+        coEvery { api.createAnnotation(any(), any()) } returns onServer(7)
+        assertFalse(repo.flushPending())
+
+        // The reader hasn't reloaded yet, so it still shows the highlight under its placeholder id.
+        repo.setColor(1, -1, "#F472B6")
+        assertEquals(listOf(AnnotationOp.UPDATE to 7), dao.rows.map { it.kind to it.annotationId })
+        repo.delete(1, -1)
+        assertEquals(listOf(AnnotationOp.DELETE to 7), dao.rows.map { it.kind to it.annotationId })
+        assertFalse(repo.flushPending())
+        coVerify(exactly = 1) { api.deleteAnnotation(1, 7) }
+    }
+
+    @Test
+    fun `a placeholder id isn't given out again once its highlight is created`() = runTest {
+        createOne()
+        coEvery { api.createAnnotation(any(), any()) } returns onServer(7)
+        assertFalse(repo.flushPending())
+        createOne("another")
+        assertEquals(listOf(-2), dao.rows.map { it.annotationId })
     }
 
     @Test
