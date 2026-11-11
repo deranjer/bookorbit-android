@@ -283,16 +283,21 @@ class PlayerManager @Inject constructor(
      * sync path covers both phone- and car-initiated playback. The car already set + prepared the
      * items, so this only observes — it does not touch the controller's queue.
      */
-    fun adoptExternalQueue(book: BookDetail, files: List<BookFileRef>) {
-        loadGeneration.incrementAndGet()
+    fun adoptExternalQueue(book: BookDetail, files: List<BookFileRef>, speed: Float, speedIsPerBook: Boolean) {
+        val generation = loadGeneration.incrementAndGet()
         scope.launch {
             controller() // ensure the listener is attached so play/pause state tracks
+            if (generation != loadGeneration.get()) return@launch
+            cancelSleepTimer()
             _state.update {
                 it.copy(
                     currentBook = book,
                     files = files,
                     chapters = PlaybackQueue.resolveChapters(book, PlaybackQueue.totalDurationSec(files)),
                     totalDurationSec = PlaybackQueue.totalDurationSec(files),
+                    speed = speed,
+                    speedIsPerBook = speedIsPerBook,
+                    playerError = null,
                 )
             }
             startPoller()

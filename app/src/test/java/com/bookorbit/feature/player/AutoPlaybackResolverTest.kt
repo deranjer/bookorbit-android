@@ -16,7 +16,11 @@ class AutoPlaybackResolverTest {
     private val repository = mockk<PlayerRepository>()
     private val progress = mockk<AudioProgressRepository>(relaxed = true)
     private val candidates = mockk<RestoreCandidateFinder>()
-    private val resolver = AutoPlaybackResolver(repository, progress, candidates)
+    private val settings = mockk<AudioSettingsStore> {
+        coEvery { load() } returns AudioSettings(speed = 1.25f)
+        coEvery { bookSpeed(any()) } returns null
+    }
+    private val resolver = AutoPlaybackResolver(repository, progress, candidates, settings)
     private val book = BookDetail(1, 1, "Library", "", "", title = "Book")
     private val data = PlayerRepository.PlayerData(book, listOf(BookFileRef(10, "mp3", "AUDIOBOOK", durationSeconds = 60.0)), emptyList())
 
@@ -56,5 +60,17 @@ class AutoPlaybackResolverTest {
     @Test fun `resume offset is bounded by the file duration`() = runTest {
         coEvery { repository.resolve(1) } returns data
         assertEquals(60_000, resolver.resolve(1, resume = AudioProgress(10, 900.0, 50.0))!!.positionMs)
+    }
+
+    @Test fun `car starts apply a book override then return to the global speed`() = runTest {
+        coEvery { repository.resolve(1) } returns data
+        coEvery { settings.bookSpeed(1) } returns 1.75f
+        val overridden = resolver.resolve(1)!!
+        assertEquals(1.75f, overridden.speed, 0.001f)
+        assertEquals(true, overridden.speedIsPerBook)
+        coEvery { settings.bookSpeed(1) } returns null
+        val global = resolver.resolve(1)!!
+        assertEquals(1.25f, global.speed, 0.001f)
+        assertEquals(false, global.speedIsPerBook)
     }
 }
