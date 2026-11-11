@@ -118,11 +118,11 @@ class AutoBrowseTreeTest {
     private val current = CurrentBookInfo(bookId = 7, title = "Dune", ranges = ranges, positionSec = 75.0)
 
     @Test
-    fun `rootChildren leads with the chapters node only when a chaptered book is loaded`() {
+    fun `rootChildren keeps shelves stable and appends chapters when loaded`() {
         assertEquals(listOf(AutoBrowseTree.CONTINUE_ID, AutoBrowseTree.DOWNLOADS_ID, AutoBrowseTree.LIBRARY_ID), AutoBrowseTree.rootChildren(null, labels).map { it.mediaId })
         val withBook = AutoBrowseTree.rootChildren(current, labels)
-        assertEquals(AutoBrowseTree.NOW_PLAYING_CHAPTERS_ID, withBook.first().mediaId)
-        assertEquals("Chapters* Dune", withBook.first().title)
+        assertEquals(AutoBrowseTree.NOW_PLAYING_CHAPTERS_ID, withBook.last().mediaId)
+        assertEquals("Chapters* Dune", withBook.last().title)
         assertEquals(4, withBook.size)
         assertEquals(3, AutoBrowseTree.rootChildren(current.copy(ranges = emptyList()), labels).size)
     }
@@ -155,5 +155,36 @@ class AutoBrowseTreeTest {
     fun `an untitled download falls back to the audiobook label`() {
         val entry = AutoBrowseTree.downloadedAudiobooks(listOf(download(9).copy(title = null)), labels).single()
         assertEquals("Audiobook*", entry.title)
+    }
+
+    @Test fun `large download shelves stay bounded without losing books`() {
+        val entries = (1..5000).map { AutoBrowseTree.BrowseEntry("book/$it", "Book $it", null, null, true) }
+        fun flatten(start: Int = 0, end: Int = entries.size): List<String> {
+            val children = AutoBrowseTree.grouped(AutoBrowseTree.DOWNLOADS_ID, entries, labels, start, end)
+            assertTrue(children.size <= 40)
+            return children.flatMap { entry ->
+                val group = AutoBrowseTree.parseGroup(entry.mediaId)
+                if (group == null) listOf(entry.mediaId) else flatten(group.start, group.end)
+            }
+        }
+        assertEquals(entries.map { it.mediaId }, flatten())
+    }
+
+    @Test fun `large online libraries use bounded range folders`() {
+        fun pages(start: Int = 0, count: Int = 126): List<Int> {
+            val folders = AutoBrowseTree.libraryFolders(5001, labels, start, count)
+            assertTrue(folders.size <= 40)
+            return folders.flatMap {
+                val range = AutoBrowseTree.parseLibraryRange(it.mediaId)
+                if (range == null) listOf(AutoBrowseTree.parseLibraryPage(it.mediaId)!!) else pages(range.first, range.second)
+            }
+        }
+        assertEquals((0..125).toList(), pages())
+    }
+
+    @Test fun `invalid grouping IDs cannot request arbitrary parents or ranges`() {
+        assertNull(AutoBrowseTree.parseGroup("group/secret/0/40"))
+        assertNull(AutoBrowseTree.parseGroup("group/downloads/-1/40"))
+        assertNull(AutoBrowseTree.parseLibraryRange("audiobooks/range/0/2147483647"))
     }
 }
