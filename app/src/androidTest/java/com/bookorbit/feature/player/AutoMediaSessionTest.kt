@@ -98,6 +98,11 @@ class AutoMediaSessionTest {
             assertTrue(root.params!!.extras.getBoolean("android.media.browse.SEARCH_SUPPORTED"))
             val shelves = main { client.getChildren(AutoBrowseTree.ROOT_ID, 0, Int.MAX_VALUE, null) }.get(10, TimeUnit.SECONDS).value!!
             assertEquals(AutoBrowseTree.CONTINUE_ID, shelves.first().mediaId)
+            val modes = main { client.getChildren(AutoBrowseTree.LIBRARY_ID, 0, Int.MAX_VALUE, null) }
+                .get(10, TimeUnit.SECONDS).value!!
+            assertEquals(listOf(AutoLibraryTree.TITLES, AutoLibraryTree.AUTHORS, AutoLibraryTree.SERIES), modes.map { it.mediaId })
+            assertTrue(main { client.getChildren(AutoLibraryTree.TITLES, 0, 40, null) }
+                .get(15, TimeUnit.SECONDS).value!!.any { it.mediaId == AutoBrowseTree.bookMediaId(id) })
             main { client.subscribe(AutoBrowseTree.DOWNLOADS_ID, null) }.get(10, TimeUnit.SECONDS)
             val before = notifications.get()
             dao.upsert(record.copy(bookId = otherId, title = "Other fixture"))

@@ -53,6 +53,7 @@ class MediaLibraryCallback @Inject constructor(
     private val castProxyServer: CastProxyServer,
     private val artwork: AutoArtwork,
     private val autoCatalog: AutoCatalog,
+    private val autoLibrary: AutoLibraryRepository,
     private val search: AutoSearch,
     private val sessionManager: SessionManager,
 ) : MediaLibrarySession.Callback {
@@ -142,7 +143,9 @@ class MediaLibraryCallback @Inject constructor(
     fun refresh(session: MediaLibrarySession, shelves: Set<String>) {
         scope.launch {
             val parents = subscriptions.values.flatMap { it }.toSet().filter {
-                (AutoBrowseTree.parseGroup(it)?.parent ?: it) in shelves
+                (AutoBrowseTree.parseGroup(it)?.parent ?: it) in shelves ||
+                    (AutoBrowseTree.DOWNLOADS_ID in shelves &&
+                        (it.startsWith("${AutoBrowseTree.LIBRARY_ID}/") || AutoLibraryTree.parseGroup(it) != null))
             }
             for (parent in parents) {
                 try {
@@ -162,19 +165,7 @@ class MediaLibraryCallback @Inject constructor(
             AutoBrowseTree.NOW_PLAYING_CHAPTERS_ID -> current()?.let(AutoBrowseTree::chapterEntries).orEmpty()
             AutoBrowseTree.DOWNLOADS_ID -> AutoBrowseTree.downloadedAudiobooks(catalog(), labels())
             AutoBrowseTree.CONTINUE_ID -> autoCatalog.continueListening(labels())
-            AutoBrowseTree.LIBRARY_ID -> {
-                val first = autoCatalog.page(0, labels())
-                return if (first.total <= AutoCatalog.PAGE_SIZE) first.entries else AutoBrowseTree.libraryFolders(first.total, labels())
-            }
-            else -> {
-                AutoBrowseTree.parseLibraryRange(parent)?.let { (start, count) ->
-                    val total = autoCatalog.page(0, labels()).total
-                    val remaining = ((total.toLong() + 39) / 40 - start).coerceAtLeast(0).toInt()
-                    return AutoBrowseTree.libraryFolders(total, labels(), start, minOf(count, remaining))
-                }
-                return AutoBrowseTree.parseLibraryPage(parent)?.let { autoCatalog.page(it, labels()).entries }
-                    ?: throw AutoRequestException(AutoFailure.INVALID_REQUEST)
-            }
+            else -> return autoLibrary.children(parent, labels())
         }
         return AutoBrowseTree.grouped(parent, entries, labels(), group?.start ?: 0, group?.end ?: entries.size)
     }
@@ -197,14 +188,21 @@ class MediaLibraryCallback @Inject constructor(
         } else {
             val node = AutoBrowseTree.rootChildren(current(), labels()).find { it.mediaId == mediaId }
             val group = AutoBrowseTree.parseGroup(mediaId)
-            val page = AutoBrowseTree.parseLibraryPage(mediaId)
-            val range = AutoBrowseTree.parseLibraryRange(mediaId)
             val folder = when {
                 node != null -> node
-                group != null -> AutoBrowseTree.BrowseEntry(mediaId, labels().itemRange(group.start + 1, group.end), null, null, false)
-                page != null -> AutoBrowseTree.BrowseEntry(mediaId, labels().itemRange(page * 40 + 1, ((page.toLong() + 1) * 40).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()), null, null, false)
-                range != null -> AutoBrowseTree.BrowseEntry(mediaId, labels().itemRange(range.first * 40 + 1, ((range.first.toLong() + range.second) * 40).toInt()), null, null, false)
-                else -> null
+                group != null -> run {
+                    // Resolve the range's actual titles, including nested local shelf groups.
+                    val all = when (group.parent) {
+                        AutoBrowseTree.DOWNLOADS_ID -> AutoBrowseTree.downloadedAudiobooks(catalog(), labels())
+                        AutoBrowseTree.CONTINUE_ID -> autoCatalog.continueListening(labels())
+                        else -> current()?.let(AutoBrowseTree::chapterEntries).orEmpty()
+                    }
+                    all.getOrNull(group.start)?.let { first -> all.getOrNull(group.end - 1)?.let { last ->
+                        AutoBrowseTree.BrowseEntry(mediaId, labels().titleRange(first.title, last.title), null, null, false)
+                    } }
+                }
+                mediaId == AutoBrowseTree.ROOT_ID -> null
+                else -> autoLibrary.item(mediaId, labels())
             }
             when {
                 mediaId == AutoBrowseTree.ROOT_ID -> LibraryResult.ofItem(AutoBrowseTree.rootMediaItem(labels()), null)
@@ -300,8 +298,12 @@ class MediaLibraryCallback @Inject constructor(
         audiobook = context.getString(R.string.player_audiobook),
         chaptersOf = { title -> context.getString(R.string.auto_chapters_of, title) },
         audiobooks = context.getString(R.string.auto_audiobooks),
-        moreAudiobooks = context.getString(R.string.auto_more_audiobooks),
-        itemRange = { from, to -> context.getString(R.string.auto_item_range, from, to) },
+        byTitle = context.getString(R.string.auto_by_title),
+        byAuthor = context.getString(R.string.auto_by_author),
+        bySeries = context.getString(R.string.auto_by_series),
+        unknownAuthor = context.getString(R.string.auto_unknown_author),
+        bookCount = { count -> context.resources.getQuantityString(R.plurals.auto_book_count, count, count) },
+        titleRange = { first, last -> context.getString(R.string.auto_title_range, first, last) },
     )
 
     private fun current() = AutoBrowseTree.currentBookInfo(playerManager.state.value, labels())

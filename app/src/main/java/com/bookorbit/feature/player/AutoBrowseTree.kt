@@ -23,11 +23,6 @@ object AutoBrowseTree {
     const val DOWNLOADS_ID = "downloads"
     const val LIBRARY_ID = "audiobooks"
 
-    fun libraryPageId(page: Int) = "$LIBRARY_ID/$page"
-    fun parseLibraryPage(mediaId: String): Int? =
-        if (mediaId == LIBRARY_ID) 0 else mediaId.removePrefix("$LIBRARY_ID/")
-            .takeIf { it != mediaId }?.toIntOrNull()?.takeIf { it in 0..(Int.MAX_VALUE / 40) }
-
     data class Group(val parent: String, val start: Int, val end: Int)
     fun parseGroup(id: String): Group? {
         val parts = id.split('/')
@@ -37,7 +32,7 @@ object AutoBrowseTree {
         return Group(parts[1], start, end).takeIf { start >= 0 && end > start }
     }
 
-    /** Explicit folders keep every browse response within the car's item limit. */
+    /** Keep long local shelves manageable without relying on host-side pagination. */
     fun grouped(parent: String, entries: List<BrowseEntry>, labels: Labels, start: Int = 0, end: Int = entries.size): List<BrowseEntry> {
         val from = start.coerceIn(0, entries.size)
         val until = end.coerceIn(from, entries.size)
@@ -46,25 +41,7 @@ object AutoBrowseTree {
         val step = maxOf(40, ((count.toLong() + 39) / 40).toInt())
         return (from until until step step).map { offset ->
             val next = (offset.toLong() + step).coerceAtMost(until.toLong()).toInt()
-            BrowseEntry("group/$parent/$offset/$next", labels.itemRange(offset + 1, next), null, null, false)
-        }
-    }
-
-    fun parseLibraryRange(id: String): Pair<Int, Int>? {
-        val parts = id.split('/')
-        if (parts.size != 4 || parts[0] != LIBRARY_ID || parts[1] != "range") return null
-        val start = parts[2].toIntOrNull() ?: return null
-        val count = parts[3].toIntOrNull() ?: return null
-        return (start to count).takeIf { start >= 0 && count > 0 && start.toLong() + count <= Int.MAX_VALUE / 40 }
-    }
-
-    fun libraryFolders(total: Int, labels: Labels, startPage: Int = 0, pageCount: Int = ((total.toLong() + 39) / 40).toInt()): List<BrowseEntry> {
-        val step = maxOf(1, ((pageCount.toLong() + 39) / 40).toInt())
-        return (0 until pageCount step step).map { offset ->
-            val count = minOf(step, pageCount - offset)
-            val page = startPage + offset
-            val id = if (count == 1) libraryPageId(page) else "$LIBRARY_ID/range/$page/$count"
-            BrowseEntry(id, labels.itemRange(page * 40 + 1, minOf((page.toLong() + count) * 40, total.toLong()).toInt()), null, null, false)
+            BrowseEntry("group/$parent/$offset/$next", labels.titleRange(entries[offset].title, entries[next - 1].title), null, null, false)
         }
     }
 
@@ -105,8 +82,12 @@ object AutoBrowseTree {
         /** "Chapters · <book title>" */
         val chaptersOf: (bookTitle: String) -> String,
         val audiobooks: String = "",
-        val moreAudiobooks: String = "",
-        val itemRange: (Int, Int) -> String = { from, to -> "$from–$to" },
+        val byTitle: String = "By title",
+        val byAuthor: String = "By author",
+        val bySeries: String = "By series",
+        val unknownAuthor: String = "Unknown author",
+        val bookCount: (Int) -> String = { "$it books" },
+        val titleRange: (String, String) -> String = { first, last -> "$first – $last" },
     )
 
     data class CurrentBookInfo(val bookId: Int, val title: String, val ranges: List<ChapterRange>, val positionSec: Double)

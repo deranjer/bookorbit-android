@@ -431,8 +431,15 @@
     <string name="auto_continue_listening">Continue listening</string>
     <string name="auto_downloaded">Downloaded</string>
     <string name="auto_audiobooks">Audiobooks</string>
-    <string name="auto_more_audiobooks">More audiobooks</string>
-    <string name="auto_item_range">Items %1$d–%2$d</string>
+    <string name="auto_by_title">By title</string>
+    <string name="auto_by_author">By author</string>
+    <string name="auto_by_series">By series</string>
+    <string name="auto_unknown_author">Unknown author</string>
+    <string name="auto_title_range">%1$s – %2$s</string>
+    <plurals name="auto_book_count">
+        <item quantity="one">%d book</item>
+        <item quantity="other">%d books</item>
+    </plurals>
     <string name="auto_err_sign_in">Sign in to BookOrbit on your phone when it is safe to do so.</string>
     <string name="auto_err_network">Cannot reach BookOrbit. Check your connection or choose a downloaded audiobook.</string>
     <string name="auto_err_no_results">No matching audiobooks found.</string>
