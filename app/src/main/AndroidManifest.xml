@@ -65,6 +65,12 @@
             </intent-filter>
         </service>
 
+        <provider
+            android:name=".feature.player.AutoArtworkProvider"
+            android:authorities="${applicationId}.artwork"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
         <!-- Declares BookOrbit as an Android Auto media app (see res/xml/automotive_app_desc.xml). -->
         <meta-data
             android:name="com.google.android.gms.car.application"

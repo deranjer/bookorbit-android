@@ -30,6 +30,7 @@ class PlayerRepository @Inject constructor(
     private val audiobookAssets: AudiobookAssetResolver,
     private val json: Json,
     @ApplicationContext private val context: Context,
+    private val artwork: AutoArtwork,
 ) {
     data class PlayerData(
         val book: BookDetail,
@@ -52,7 +53,6 @@ class PlayerRepository @Inject constructor(
         val base = session.serverUrl
 
         val localFiles = downloads.localFiles(bookId)
-        val coverPath = downloads.coverPath(bookId)
         val localRefs = files.associate { file ->
             file.id to localFiles[file.id]?.let(LocalRef::parse)?.takeIf { it.exists(context) }
         }
@@ -86,10 +86,7 @@ class PlayerRepository @Inject constructor(
                 .setTitle(book.title ?: "Audiobook")
                 .setArtist(performer)
                 .setExtras(extras)
-                .apply {
-                    // Lock-screen art only for local covers (the remote endpoint needs auth headers).
-                    if (localRef != null && coverPath != null) setArtworkUri(LocalRef.parse(coverPath).toUri())
-                }
+                .setArtworkUri(artwork.uri(bookId))
                 .build()
             MediaItem.Builder()
                 .setMediaId(file.id.toString())
