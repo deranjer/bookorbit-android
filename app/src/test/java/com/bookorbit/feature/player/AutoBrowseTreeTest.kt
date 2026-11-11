@@ -100,7 +100,7 @@ class AutoBrowseTreeTest {
     @Test
     fun `root has continue and downloads shelves`() {
         assertEquals(
-            listOf(AutoBrowseTree.CONTINUE_ID, AutoBrowseTree.DOWNLOADS_ID),
+            listOf(AutoBrowseTree.CONTINUE_ID, AutoBrowseTree.DOWNLOADS_ID, AutoBrowseTree.LIBRARY_ID),
             AutoBrowseTree.rootChildren(null, labels).map { it.mediaId },
         )
     }
@@ -119,12 +119,12 @@ class AutoBrowseTreeTest {
 
     @Test
     fun `rootChildren leads with the chapters node only when a chaptered book is loaded`() {
-        assertEquals(listOf(AutoBrowseTree.CONTINUE_ID, AutoBrowseTree.DOWNLOADS_ID), AutoBrowseTree.rootChildren(null, labels).map { it.mediaId })
+        assertEquals(listOf(AutoBrowseTree.CONTINUE_ID, AutoBrowseTree.DOWNLOADS_ID, AutoBrowseTree.LIBRARY_ID), AutoBrowseTree.rootChildren(null, labels).map { it.mediaId })
         val withBook = AutoBrowseTree.rootChildren(current, labels)
         assertEquals(AutoBrowseTree.NOW_PLAYING_CHAPTERS_ID, withBook.first().mediaId)
         assertEquals("Chapters* Dune", withBook.first().title)
-        assertEquals(3, withBook.size)
-        assertEquals(2, AutoBrowseTree.rootChildren(current.copy(ranges = emptyList()), labels).size)
+        assertEquals(4, withBook.size)
+        assertEquals(3, AutoBrowseTree.rootChildren(current.copy(ranges = emptyList()), labels).size)
     }
 
     @Test
@@ -147,7 +147,7 @@ class AutoBrowseTreeTest {
     @Test
     fun `root shelves use the supplied labels, not built-in text`() {
         val shelves = AutoBrowseTree.rootChildren(null, labels)
-        assertEquals(listOf("Continue*", "Downloaded*"), shelves.map { it.title })
+        assertEquals(listOf("Continue*", "Downloaded*", ""), shelves.map { it.title })
         assertEquals("App*", AutoBrowseTree.rootMediaItem(labels).mediaMetadata.title.toString())
     }
 

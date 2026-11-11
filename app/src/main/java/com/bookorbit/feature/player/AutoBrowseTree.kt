@@ -22,6 +22,12 @@ object AutoBrowseTree {
     const val ROOT_ID = "root"
     const val CONTINUE_ID = "continue"
     const val DOWNLOADS_ID = "downloads"
+    const val LIBRARY_ID = "audiobooks"
+
+    fun libraryPageId(page: Int) = "$LIBRARY_ID/$page"
+    fun parseLibraryPage(mediaId: String): Int? =
+        if (mediaId == LIBRARY_ID) 0 else mediaId.removePrefix("$LIBRARY_ID/")
+            .takeIf { it != mediaId }?.toIntOrNull()?.takeIf { it >= 0 }
 
     const val NOW_PLAYING_CHAPTERS_ID = "now_playing_chapters"
 
@@ -59,6 +65,8 @@ object AutoBrowseTree {
         val audiobook: String,
         /** "Chapters · <book title>" */
         val chaptersOf: (bookTitle: String) -> String,
+        val audiobooks: String = "",
+        val moreAudiobooks: String = "",
     )
 
     data class CurrentBookInfo(val bookId: Int, val title: String, val ranges: List<ChapterRange>, val positionSec: Double)
@@ -76,6 +84,7 @@ object AutoBrowseTree {
         }
         add(BrowseEntry(CONTINUE_ID, labels.continueListening, null, null, isPlayable = false))
         add(BrowseEntry(DOWNLOADS_ID, labels.downloaded, null, null, isPlayable = false))
+        add(BrowseEntry(LIBRARY_ID, labels.audiobooks, null, null, isPlayable = false))
     }
 
     fun chapterMediaId(bookId: Int, index: Int) = "$CHAPTER_PREFIX$bookId/$index"

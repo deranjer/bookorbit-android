@@ -43,10 +43,10 @@ class MediaLibraryCallback @Inject constructor(
     @ApplicationContext private val context: Context,
     private val downloads: DownloadsRepository,
     private val playbackResolver: AutoPlaybackResolver,
-    private val audioProgress: AudioProgressRepository,
     private val playerManager: PlayerManager,
     private val castProxyServer: CastProxyServer,
     private val artwork: AutoArtwork,
+    private val autoCatalog: AutoCatalog,
 ) : MediaLibrarySession.Callback {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -106,9 +106,14 @@ class MediaLibraryCallback @Inject constructor(
             AutoBrowseTree.NOW_PLAYING_CHAPTERS_ID ->
                 current()?.let { AutoBrowseTree.chapterEntries(it) } ?: emptyList()
             AutoBrowseTree.DOWNLOADS_ID -> AutoBrowseTree.downloadedAudiobooks(catalog(), labels())
-            AutoBrowseTree.CONTINUE_ID ->
-                AutoBrowseTree.continueListening(catalog(), audioProgress.recent(), labels())
-            else -> emptyList()
+            AutoBrowseTree.CONTINUE_ID -> autoCatalog.continueListening(labels())
+            else -> AutoBrowseTree.parseLibraryPage(parentId)?.let { page ->
+                val result = autoCatalog.page(page, labels())
+                result.entries + if ((page.toLong() + 1) * AutoCatalog.PAGE_SIZE < result.total) {
+                    listOf(AutoBrowseTree.BrowseEntry(AutoBrowseTree.libraryPageId(page + 1), labels().moreAudiobooks,
+                        null, null, false))
+                } else emptyList()
+            } ?: emptyList()
         }
         val items = ImmutableList.copyOf(entries.map { mediaItem(it) })
         LibraryResult.ofItemList(items, params)
@@ -126,7 +131,7 @@ class MediaLibraryCallback @Inject constructor(
             if (entry != null) LibraryResult.ofItem(mediaItem(entry), null)
             else LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
         } else if (bookId != null) {
-            val entry = AutoBrowseTree.downloadedAudiobooks(catalog(), labels()).find { it.mediaId == mediaId }
+            val entry = autoCatalog.item(bookId, labels())
             if (entry != null) LibraryResult.ofItem(mediaItem(entry), null)
             else LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
         } else {
@@ -183,6 +188,8 @@ class MediaLibraryCallback @Inject constructor(
         downloaded = context.getString(R.string.auto_downloaded),
         audiobook = context.getString(R.string.player_audiobook),
         chaptersOf = { title -> context.getString(R.string.auto_chapters_of, title) },
+        audiobooks = context.getString(R.string.auto_audiobooks),
+        moreAudiobooks = context.getString(R.string.auto_more_audiobooks),
     )
 
     private fun current() = AutoBrowseTree.currentBookInfo(playerManager.state.value, labels())
