@@ -34,7 +34,18 @@ class BookAggregatingPlayer(
     player: Player,
     private val prefs: StateFlow<AudioSettings>,
     private val sourceQueue: (() -> List<MediaItem>?)? = null,
+    private val beforePlay: () -> Unit = {},
 ) : ForwardingPlayer(player) {
+
+    override fun play() {
+        beforePlay()
+        super.play()
+    }
+
+    override fun setPlayWhenReady(playWhenReady: Boolean) {
+        if (playWhenReady) beforePlay()
+        super.setPlayWhenReady(playWhenReady)
+    }
 
     private val window = Timeline.Window()
 

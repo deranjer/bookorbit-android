@@ -5,6 +5,8 @@ import com.bookorbit.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.os.Bundle
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import com.bookorbit.core.auth.SessionManager
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaConstants
@@ -22,6 +24,9 @@ import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
 import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.MoreExecutors
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -49,11 +54,12 @@ class MediaLibraryCallback @Inject constructor(
     private val artwork: AutoArtwork,
     private val autoCatalog: AutoCatalog,
     private val search: AutoSearch,
+    private val sessionManager: SessionManager,
 ) : MediaLibrarySession.Callback {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var queueRequestGeneration = 0L
-    private data class SearchSnapshot(val query: String, val entries: List<AutoBrowseTree.BrowseEntry>)
+    private data class SearchSnapshot(val query: String, val scope: String, val entries: List<AutoBrowseTree.BrowseEntry>)
     private val searchResults = ConcurrentHashMap<ControllerInfo, SearchSnapshot>()
     private val subscriptions = ConcurrentHashMap<ControllerInfo, Set<String>>()
 
@@ -99,7 +105,7 @@ class MediaLibraryCallback @Inject constructor(
         session: MediaLibrarySession,
         browser: ControllerInfo,
         params: LibraryParams?,
-    ): ListenableFuture<LibraryResult<MediaItem>> = future {
+    ): ListenableFuture<LibraryResult<MediaItem>> = libraryFuture {
         LibraryResult.ofItem(AutoBrowseTree.rootMediaItem(labels()), contentStyledParams(params))
     }
 
@@ -110,7 +116,7 @@ class MediaLibraryCallback @Inject constructor(
         page: Int,
         pageSize: Int,
         params: LibraryParams?,
-    ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = future {
+    ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = libraryFuture {
         val entries = children(parentId)
         artwork.grantTo(browser.packageName)
         val items = ImmutableList.copyOf(entries.map { mediaItem(it) })
@@ -119,7 +125,7 @@ class MediaLibraryCallback @Inject constructor(
 
     override fun onSubscribe(
         session: MediaLibrarySession, browser: ControllerInfo, parentId: String, params: LibraryParams?,
-    ): ListenableFuture<LibraryResult<Void>> = future {
+    ): ListenableFuture<LibraryResult<Void>> = libraryFuture {
         val count = children(parentId).size
         subscriptions.compute(browser) { _, parents -> parents.orEmpty() + parentId }
         withContext(Dispatchers.Main.immediate) { session.notifyChildrenChanged(browser, parentId, count, params) }
@@ -166,7 +172,8 @@ class MediaLibraryCallback @Inject constructor(
                     val remaining = ((total.toLong() + 39) / 40 - start).coerceAtLeast(0).toInt()
                     return AutoBrowseTree.libraryFolders(total, labels(), start, minOf(count, remaining))
                 }
-                return AutoBrowseTree.parseLibraryPage(parent)?.let { autoCatalog.page(it, labels()).entries }.orEmpty()
+                return AutoBrowseTree.parseLibraryPage(parent)?.let { autoCatalog.page(it, labels()).entries }
+                    ?: throw AutoRequestException(AutoFailure.INVALID_REQUEST)
             }
         }
         return AutoBrowseTree.grouped(parent, entries, labels(), group?.start ?: 0, group?.end ?: entries.size)
@@ -176,29 +183,42 @@ class MediaLibraryCallback @Inject constructor(
         session: MediaLibrarySession,
         browser: ControllerInfo,
         mediaId: String,
-    ): ListenableFuture<LibraryResult<MediaItem>> = future {
+    ): ListenableFuture<LibraryResult<MediaItem>> = libraryFuture {
         val bookId = AutoBrowseTree.parseBookId(mediaId)
         val chapterRef = AutoBrowseTree.parseChapterId(mediaId)
         if (chapterRef != null) {
             val entry = current()?.let { AutoBrowseTree.chapterEntries(it) }?.find { it.mediaId == mediaId }
             if (entry != null) LibraryResult.ofItem(mediaItem(entry), null)
-            else LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
+            else throw AutoRequestException(AutoFailure.UNAVAILABLE)
         } else if (bookId != null) {
             val entry = autoCatalog.item(bookId, labels())
             if (entry != null) LibraryResult.ofItem(mediaItem(entry), null)
-            else LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
+            else throw AutoRequestException(AutoFailure.UNAVAILABLE)
         } else {
             val node = AutoBrowseTree.rootChildren(current(), labels()).find { it.mediaId == mediaId }
-            if (node != null) LibraryResult.ofItem(mediaItem(node), null)
-            else LibraryResult.ofItem(AutoBrowseTree.rootMediaItem(labels()), null)
+            val group = AutoBrowseTree.parseGroup(mediaId)
+            val page = AutoBrowseTree.parseLibraryPage(mediaId)
+            val range = AutoBrowseTree.parseLibraryRange(mediaId)
+            val folder = when {
+                node != null -> node
+                group != null -> AutoBrowseTree.BrowseEntry(mediaId, labels().itemRange(group.start + 1, group.end), null, null, false)
+                page != null -> AutoBrowseTree.BrowseEntry(mediaId, labels().itemRange(page * 40 + 1, ((page.toLong() + 1) * 40).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()), null, null, false)
+                range != null -> AutoBrowseTree.BrowseEntry(mediaId, labels().itemRange(range.first * 40 + 1, ((range.first.toLong() + range.second) * 40).toInt()), null, null, false)
+                else -> null
+            }
+            when {
+                mediaId == AutoBrowseTree.ROOT_ID -> LibraryResult.ofItem(AutoBrowseTree.rootMediaItem(labels()), null)
+                folder != null -> LibraryResult.ofItem(mediaItem(folder), null)
+                else -> throw AutoRequestException(AutoFailure.INVALID_REQUEST)
+            }
         }
     }
 
     override fun onSearch(
         session: MediaLibrarySession, browser: ControllerInfo, query: String, params: LibraryParams?,
-    ): ListenableFuture<LibraryResult<Void>> = future {
+    ): ListenableFuture<LibraryResult<Void>> = libraryFuture {
         val results = search.find(query, labels(), current()?.bookId)
-        searchResults[browser] = SearchSnapshot(query, results)
+        searchResults[browser] = SearchSnapshot(query, dataScope(), results)
         withContext(Dispatchers.Main.immediate) {
             session.notifySearchResultChanged(browser, query, results.size, params)
         }
@@ -208,8 +228,8 @@ class MediaLibraryCallback @Inject constructor(
     override fun onGetSearchResult(
         session: MediaLibrarySession, browser: ControllerInfo, query: String,
         page: Int, pageSize: Int, params: LibraryParams?,
-    ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = future {
-        val results = searchResults[browser]?.takeIf { it.query == query }?.entries
+    ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = libraryFuture {
+        val results = searchResults[browser]?.takeIf { it.query == query && it.scope == dataScope() }?.entries
             ?: search.find(query, labels(), current()?.bookId)
         val offset = (page.toLong().coerceAtLeast(0) * pageSize.coerceAtLeast(0)).coerceAtMost(results.size.toLong()).toInt()
         LibraryResult.ofItemList(ImmutableList.copyOf(results.drop(offset).take(pageSize.coerceAtLeast(0)).map(::mediaItem)), params)
@@ -222,35 +242,42 @@ class MediaLibraryCallback @Inject constructor(
         mediaItems: List<MediaItem>,
         startIndex: Int,
         startPositionMs: Long,
-    ): ListenableFuture<MediaItemsWithStartPosition> = future {
-        val query = mediaItems.getOrNull(startIndex)?.requestMetadata?.searchQuery
-            ?: mediaItems.firstOrNull()?.requestMetadata?.searchQuery
+    ): ListenableFuture<MediaItemsWithStartPosition> = playbackFuture(mediaSession) {
+        if (mediaItems.isEmpty()) return@playbackFuture MediaItemsWithStartPosition(emptyList(), 0, 0)
+        val selected = mediaItems.getOrNull(startIndex) ?: mediaItems.first()
+        val query = selected.requestMetadata.searchQuery
         if (query != null) {
             val resolved = if (query.isBlank()) playbackResolver.resume() else {
-                search.find(query, labels(), current()?.bookId).firstOrNull()
-                    ?.mediaId?.let(AutoBrowseTree::parseBookId)?.let { playbackResolver.resolve(it) }
+                val match = search.find(query, labels(), current()?.bookId).firstOrNull()
+                    ?: throw AutoRequestException(AutoFailure.NO_RESULTS)
+                match.mediaId.let(AutoBrowseTree::parseBookId)?.let { playbackResolver.resolve(it) }
+                    ?: throw AutoRequestException(AutoFailure.UNAVAILABLE)
             }
-            return@future routeQueue(resolved?.let { adopt(mediaSession, it) }
-                ?: MediaItemsWithStartPosition(emptyList(), 0, 0))
+            if (resolved == null) throw AutoRequestException(if (query.isBlank()) AutoFailure.NO_HISTORY else AutoFailure.NO_RESULTS)
+            return@playbackFuture routeQueue(adopt(mediaSession, resolved))
         }
-        val chapterRef = mediaItems.firstNotNullOfOrNull { AutoBrowseTree.parseChapterId(it.mediaId) }
+        val chapterRef = AutoBrowseTree.parseChapterId(selected.mediaId)
         if (chapterRef != null) {
             val (chapterBookId, index) = chapterRef
-            return@future routeQueue(resolveQueue(mediaSession, chapterBookId, startAtChapterIndex = index)
-                ?: MediaItemsWithStartPosition(mediaItems, startIndex, startPositionMs))
+            return@playbackFuture routeQueue(resolveQueue(mediaSession, chapterBookId, startAtChapterIndex = index)
+                ?: throw AutoRequestException(AutoFailure.UNAVAILABLE))
         }
-        val bookId = mediaItems.firstNotNullOfOrNull { AutoBrowseTree.parseBookId(it.mediaId) }
-        routeQueue(bookId?.let { resolveQueue(mediaSession, it) }
-            ?: MediaItemsWithStartPosition(mediaItems, startIndex, startPositionMs))
+        val bookId = AutoBrowseTree.parseBookId(selected.mediaId)
+        if (bookId != null) return@playbackFuture routeQueue(resolveQueue(mediaSession, bookId)
+            ?: throw AutoRequestException(AutoFailure.UNAVAILABLE))
+        if (controller.packageName == context.packageName && mediaItems.all { it.localConfiguration != null }) {
+            return@playbackFuture routeQueue(MediaItemsWithStartPosition(mediaItems, startIndex, startPositionMs))
+        }
+        throw AutoRequestException(AutoFailure.INVALID_REQUEST)
     }
 
     /** Pressing play with an empty queue (e.g. "resume" from the car): replay the last book. */
     override fun onPlaybackResumption(
         mediaSession: MediaSession,
         controller: ControllerInfo,
-    ): ListenableFuture<MediaItemsWithStartPosition> = future {
+    ): ListenableFuture<MediaItemsWithStartPosition> = playbackFuture(mediaSession) {
         routeQueue(playbackResolver.resume()?.let { adopt(mediaSession, it) }
-            ?: MediaItemsWithStartPosition(emptyList(), 0, 0))
+            ?: throw AutoRequestException(AutoFailure.NO_HISTORY))
     }
 
     /** Queue replacement follows the active output, including a second book in the same session. */
@@ -310,16 +337,56 @@ class MediaLibraryCallback @Inject constructor(
                 MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_LIST_ITEM,
             )
         }
-        return LibraryParams.Builder().setExtras(extras).build()
+        return LibraryParams.Builder().setExtras(extras)
+            .setRecent(params?.isRecent ?: false).setOffline(params?.isOffline ?: false)
+            .setSuggested(params?.isSuggested ?: false).build()
+    }
+
+    private fun dataScope() = "${sessionManager.serverUrl}|${sessionManager.currentUser?.id}"
+
+    private fun error(error: Throwable): SessionError {
+        val reason = if (sessionManager.accessToken == null && error is java.io.IOException) AutoFailure.SIGN_IN else AutoFailure.from(error)
+        val (code, message) = when (reason) {
+            AutoFailure.SIGN_IN -> SessionError.ERROR_SESSION_AUTHENTICATION_EXPIRED to R.string.auto_err_sign_in
+            AutoFailure.NETWORK -> SessionError.ERROR_IO to R.string.auto_err_network
+            AutoFailure.NO_RESULTS -> SessionError.ERROR_BAD_VALUE to R.string.auto_err_no_results
+            AutoFailure.NO_HISTORY -> SessionError.ERROR_SESSION_END_OF_PLAYLIST to R.string.auto_err_no_history
+            AutoFailure.INVALID_REQUEST -> SessionError.ERROR_BAD_VALUE to R.string.auto_err_invalid
+            AutoFailure.UNAVAILABLE -> SessionError.ERROR_BAD_VALUE to R.string.auto_err_unavailable
+        }
+        return SessionError(code, context.getString(message), Bundle.EMPTY)
+    }
+
+    private fun <T : Any> libraryFuture(block: suspend () -> LibraryResult<T>): ListenableFuture<LibraryResult<T>> = future {
+        try { block() }
+        catch (e: CancellationException) {
+            if (e !is TimeoutCancellationException) throw e
+            LibraryResult.ofError<T>(error(e))
+        } catch (e: Exception) { LibraryResult.ofError<T>(error(e)) }
+    }
+
+    private fun playbackFuture(session: MediaSession, block: suspend () -> MediaItemsWithStartPosition): ListenableFuture<MediaItemsWithStartPosition> = future {
+        try { block() }
+        catch (e: CancellationException) {
+            if (e !is TimeoutCancellationException) throw e
+            val failure = error(e)
+            withContext(Dispatchers.Main.immediate) { session.sendError(failure) }
+            throw PlaybackException(failure.message, e, failure.code)
+        } catch (e: Exception) {
+            val failure = error(e)
+            withContext(Dispatchers.Main.immediate) { session.sendError(failure) }
+            throw PlaybackException(failure.message, e, failure.code)
+        }
     }
 
     private fun <T> future(block: suspend () -> T): ListenableFuture<T> {
         val settable = SettableFuture.create<T>()
-        scope.launch {
-            runCatching { block() }
-                .onSuccess { settable.set(it) }
-                .onFailure { settable.setException(it) }
+        val job = scope.launch {
+            try { settable.set(block()) }
+            catch (e: CancellationException) { settable.cancel(false) }
+            catch (e: Exception) { settable.setException(e) }
         }
+        settable.addListener({ if (settable.isCancelled) job.cancel() }, MoreExecutors.directExecutor())
         return settable
     }
 }

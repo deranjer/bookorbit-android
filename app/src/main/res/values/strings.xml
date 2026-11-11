@@ -433,6 +433,12 @@
     <string name="auto_audiobooks">Audiobooks</string>
     <string name="auto_more_audiobooks">More audiobooks</string>
     <string name="auto_item_range">Items %1$d–%2$d</string>
+    <string name="auto_err_sign_in">Sign in to BookOrbit on your phone when it is safe to do so.</string>
+    <string name="auto_err_network">Cannot reach BookOrbit. Check your connection or choose a downloaded audiobook.</string>
+    <string name="auto_err_no_results">No matching audiobooks found.</string>
+    <string name="auto_err_no_history">No unfinished audiobook is available to resume. Choose a book to start listening.</string>
+    <string name="auto_err_invalid">This selection is no longer available. Open the library again.</string>
+    <string name="auto_err_unavailable">This audiobook could not be loaded. Check its files or choose another book.</string>
     <string name="auto_chapters_of">Chapters · %1$s</string>
     <string name="nav_stats">Stats</string>
     <string name="settings_nav_bar">Navigation bar</string>

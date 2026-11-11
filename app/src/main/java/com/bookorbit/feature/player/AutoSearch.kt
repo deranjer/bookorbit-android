@@ -24,11 +24,14 @@ class AutoSearch @Inject constructor(
             val record = metadata[entry.mediaId]
             matches(term, "${entry.title} ${record?.authors.orEmpty()} ${record?.narrators.orEmpty()}")
         }
+        var failure: Exception? = null
         val online = try { catalog.page(0, labels, query.trim()).entries }
         catch (e: CancellationException) {
             if (e !is kotlinx.coroutines.TimeoutCancellationException) throw e
+            failure = e
             emptyList()
-        } catch (_: Exception) { emptyList() }
+        } catch (e: Exception) { failure = e; emptyList() }
+        if (local.isEmpty() && online.isEmpty()) failure?.let { throw it }
         val recent = progress.recent().mapIndexed { index, p -> AutoBrowseTree.bookMediaId(p.bookId) to index }.toMap()
         val current = currentBookId?.let(AutoBrowseTree::bookMediaId)
         return (local + online).distinctBy { it.mediaId }.sortedWith(
