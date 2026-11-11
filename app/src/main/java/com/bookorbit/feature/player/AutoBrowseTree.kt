@@ -117,7 +117,7 @@ object AutoBrowseTree {
         labels: Labels,
     ): List<BrowseEntry> {
         val byId = downloads.filter { it.isComplete }.associateBy { it.bookId }
-        return progress.sortedByDescending { it.updatedAt }
+        return progress.filter { it.percentage < ResumeCandidates.FINISHED_PERCENT }.sortedByDescending { it.updatedAt }
             .mapNotNull { byId[it.bookId]?.toBrowseEntry(labels) }
     }
 

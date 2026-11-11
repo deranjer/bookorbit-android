@@ -42,7 +42,7 @@ import javax.inject.Singleton
 class MediaLibraryCallback @Inject constructor(
     @ApplicationContext private val context: Context,
     private val downloads: DownloadsRepository,
-    private val playerRepo: PlayerRepository,
+    private val playbackResolver: AutoPlaybackResolver,
     private val audioProgress: AudioProgressRepository,
     private val playerManager: PlayerManager,
     private val castProxyServer: CastProxyServer,
@@ -158,7 +158,7 @@ class MediaLibraryCallback @Inject constructor(
         mediaSession: MediaSession,
         controller: ControllerInfo,
     ): ListenableFuture<MediaItemsWithStartPosition> = future {
-        routeQueue(audioProgress.recent().firstNotNullOfOrNull { resolveQueue(it.bookId) }
+        routeQueue(playbackResolver.resume()?.let { adopt(it) }
             ?: MediaItemsWithStartPosition(emptyList(), 0, 0))
     }
 
@@ -186,28 +186,12 @@ class MediaLibraryCallback @Inject constructor(
     private fun current() = AutoBrowseTree.currentBookInfo(playerManager.state.value, labels())
 
     private suspend fun resolveQueue(bookId: Int, startAtChapterIndex: Int? = null): MediaItemsWithStartPosition? {
-        val data = playerRepo.resolve(bookId) ?: return null
-        // Chapter start comes from the resolved book, not PlayerManager state (which may be cleared or stale).
-        val startAtBookSec = startAtChapterIndex?.let { i ->
-            val total = PlaybackQueue.totalDurationSec(data.files)
-            PlaybackQueue.chapterRanges(PlaybackQueue.resolveChapters(data.book, total), total).getOrNull(i)?.startSec
-        }
-        val index: Int
-        val positionMs: Long
-        if (startAtBookSec != null) {
-            val loc = PlaybackQueue.locateAbsolute(data.files, startAtBookSec)
-            index = loc.index
-            positionMs = (loc.offsetSec * 1000).toLong()
-        } else {
-            val resume = audioProgress.resolveResume(bookId)
-            index = resume
-                ?.let { data.files.indexOfFirst { f -> f.id == it.currentFileId } }
-                ?.coerceAtLeast(0) ?: 0
-            positionMs = ((resume?.positionSeconds ?: 0.0) * 1000).toLong()
-        }
-        // Seed the in-app player state so the shared progress poller reports car-started playback.
-        playerManager.adoptExternalQueue(data.book, data.files)
-        return MediaItemsWithStartPosition(data.mediaItems, index, positionMs)
+        return playbackResolver.resolve(bookId, startAtChapterIndex)?.let { adopt(it) }
+    }
+
+    private fun adopt(resolved: AutoPlaybackResolver.Resolved): MediaItemsWithStartPosition {
+        playerManager.adoptExternalQueue(resolved.data.book, resolved.data.files)
+        return MediaItemsWithStartPosition(resolved.data.mediaItems, resolved.index, resolved.positionMs)
     }
 
     private suspend fun catalog() = downloads.downloads.first()
