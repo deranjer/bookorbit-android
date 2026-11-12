@@ -34,6 +34,15 @@ data class ReadingGoalWidget(
     val year: Int = 0,
 )
 
+@Serializable
+data class DashboardWidgetRequest(val widgets: List<String>)
+
+@Serializable
+data class DashboardWidgetResult(val type: String, val data: JsonElement? = null, val failed: Boolean = false)
+
+@Serializable
+data class DashboardWidgetResponse(val items: List<DashboardWidgetResult>)
+
 /** Scroller types accepted by `GET /dashboard/scrollers/:type`. */
 object ScrollerType {
     const val RECENTLY_ADDED = "recently-added"

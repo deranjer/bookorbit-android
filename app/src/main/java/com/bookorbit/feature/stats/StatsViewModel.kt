@@ -8,6 +8,7 @@ import com.bookorbit.core.model.SourceDistribution
 import com.bookorbit.core.model.UserDailyReading
 import com.bookorbit.core.model.UserStatsSummary
 import com.bookorbit.core.network.ApiService
+import com.bookorbit.core.network.ReadingWidgetsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,7 @@ private const val SOURCE_DAYS = 365
 @HiltViewModel
 class StatsViewModel @Inject constructor(
     private val api: ApiService,
+    private val widgets: ReadingWidgetsRepository,
 ) : ViewModel() {
 
     data class UiState(
@@ -50,8 +52,7 @@ class StatsViewModel @Inject constructor(
         viewModelScope.launch {
             // Each section loads on its own: an older server may lack some, and that shouldn't blank the rest.
             val summary = async { runCatching { api.getUserStatsSummary() }.getOrNull() }
-            val streak = async { runCatching { api.getReadingStreak() }.getOrNull() }
-            val goal = async { runCatching { api.getReadingGoal() }.getOrNull() }
+            val readingWidgets = async { runCatching { widgets.load() }.getOrNull() }
             val daily = async { runCatching { api.getDailyReading(HEATMAP_DAYS) }.getOrNull() }
             val sources = async { runCatching { api.getReadingSources(SOURCE_DAYS) }.getOrNull() }
 
@@ -60,8 +61,8 @@ class StatsViewModel @Inject constructor(
             val state = UiState(
                 loading = false,
                 summary = s,
-                streak = streak.await(),
-                goal = goal.await(),
+                streak = readingWidgets.await()?.streak,
+                goal = readingWidgets.await()?.goal,
                 daily = dailyList?.let(::fillDays).orEmpty(),
                 sources = sources.await(),
             )

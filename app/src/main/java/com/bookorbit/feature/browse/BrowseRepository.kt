@@ -6,6 +6,7 @@ import com.bookorbit.core.model.BookQuery
 import com.bookorbit.core.model.BooksPage
 import com.bookorbit.core.model.Collection
 import com.bookorbit.core.model.Library
+import com.bookorbit.core.model.Pagination
 import com.bookorbit.core.model.SearchResult
 import com.bookorbit.core.model.SeriesBooksPage
 import com.bookorbit.core.model.SeriesPage
@@ -13,6 +14,7 @@ import com.bookorbit.core.model.ScrollerBooks
 import com.bookorbit.core.model.SmartScope
 import com.bookorbit.core.network.ApiService
 import kotlinx.serialization.json.Json
+import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -34,8 +36,13 @@ class BrowseRepository @Inject constructor(
 
     suspend fun smartScopes(): List<SmartScope> = api.getSmartScopes()
 
-    suspend fun smartScopeBooks(id: Int, page: Int, size: Int): BooksPage =
+    suspend fun smartScopeBooks(id: Int, page: Int, size: Int): BooksPage = try {
+        // Standard session query API. The legacy GET requires official-app attestation on 3.7+.
+        api.querySmartScopeBooks(id, BookQuery(pagination = Pagination(page, size)))
+    } catch (error: HttpException) {
+        if (error.code() !in listOf(404, 405)) throw error
         api.getSmartScopeBooks(id, page, size)
+    }
 
     suspend fun collections(): List<Collection> = api.getCollections()
 
@@ -54,10 +61,6 @@ class BrowseRepository @Inject constructor(
 
     suspend fun scroller(type: String, limit: Int = 20, smartScopeId: Int? = null): List<BookCard> =
         ScrollerBooks.decode(json, api.getScroller(type, limit, smartScopeId))
-
-    suspend fun readingStreak() = api.getReadingStreak()
-
-    suspend fun readingGoal() = api.getReadingGoal()
 
     /** Catalog typeahead for the filter sheet (authors/genres/tags/languages). */
     suspend fun searchCatalog(kind: String, q: String): List<String> =
