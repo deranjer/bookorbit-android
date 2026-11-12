@@ -105,6 +105,15 @@ class AutoBrowseTreeTest {
         )
     }
 
+    @Test
+    fun `continueListening excludes finished downloads`() {
+        val items = AutoBrowseTree.continueListening(
+            listOf(download(1), download(2)),
+            listOf(progress(1, 200).copy(percentage = 99.5), progress(2, 100)), labels,
+        )
+        assertEquals(listOf("book/2"), items.map { it.mediaId })
+    }
+
     private val ranges = listOf(ChapterRange(0, "One", 0.0, 60.0), ChapterRange(1, "Two", 60.0, 150.0), ChapterRange(2, "Three", 150.0, 200.0))
     private val current = CurrentBookInfo(bookId = 7, title = "Dune", ranges = ranges, positionSec = 75.0)
 

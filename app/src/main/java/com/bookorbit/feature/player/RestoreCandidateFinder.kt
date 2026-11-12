@@ -30,12 +30,12 @@ class RestoreCandidateFinder @Inject constructor(
                 runCatching { browse.scroller(ScrollerType.CONTINUE_LISTENING, limit = SERVER_CANDIDATES) }.getOrNull()
             }.orEmpty().map { it.id }
         }
-        val localId = audioProgress.recent()
-            .firstOrNull { it.percentage < ResumeCandidates.FINISHED_PERCENT }?.bookId
-        val local = localId?.let { id -> async { id to point(id) } }
-        val server = serverIds.await().filter { it != localId }.map { id -> async { id to point(id) } }
+        val localIds = audioProgress.recent()
+            .filter { it.percentage < ResumeCandidates.FINISHED_PERCENT }.take(SERVER_CANDIDATES).map { it.bookId }
+        val local = localIds.map { id -> async { id to point(id) } }
+        val server = serverIds.await().distinct().filter { it !in localIds }.map { id -> async { id to point(id) } }
 
-        val points = (listOfNotNull(local) + server).awaitAll()
+        val points = (local + server).awaitAll()
         val byId = points.toMap()
         val ranked = ResumeCandidates.rank(
             points.mapNotNull { (id, p) -> p?.let { ResumeCandidate(id, it.progress.percentage, it.lastActivityMillis) } },
