@@ -145,11 +145,11 @@ class MediaLibraryCallback @Inject constructor(
         val chapterRef = mediaItems.firstNotNullOfOrNull { AutoBrowseTree.parseChapterId(it.mediaId) }
         if (chapterRef != null) {
             val (chapterBookId, index) = chapterRef
-            return@future routeQueue(resolveQueue(chapterBookId, startAtChapterIndex = index)
+            return@future routeQueue(resolveQueue(mediaSession, chapterBookId, startAtChapterIndex = index)
                 ?: MediaItemsWithStartPosition(mediaItems, startIndex, startPositionMs))
         }
         val bookId = mediaItems.firstNotNullOfOrNull { AutoBrowseTree.parseBookId(it.mediaId) }
-        routeQueue(bookId?.let { resolveQueue(it) }
+        routeQueue(bookId?.let { resolveQueue(mediaSession, it) }
             ?: MediaItemsWithStartPosition(mediaItems, startIndex, startPositionMs))
     }
 
@@ -158,7 +158,7 @@ class MediaLibraryCallback @Inject constructor(
         mediaSession: MediaSession,
         controller: ControllerInfo,
     ): ListenableFuture<MediaItemsWithStartPosition> = future {
-        routeQueue(playbackResolver.resume()?.let { adopt(it) }
+        routeQueue(playbackResolver.resume()?.let { adopt(mediaSession, it) }
             ?: MediaItemsWithStartPosition(emptyList(), 0, 0))
     }
 
@@ -185,14 +185,16 @@ class MediaLibraryCallback @Inject constructor(
 
     private fun current() = AutoBrowseTree.currentBookInfo(playerManager.state.value, labels())
 
-    private suspend fun resolveQueue(bookId: Int, startAtChapterIndex: Int? = null): MediaItemsWithStartPosition? {
-        return playbackResolver.resolve(bookId, startAtChapterIndex)?.let { adopt(it) }
+    private suspend fun resolveQueue(session: MediaSession, bookId: Int, startAtChapterIndex: Int? = null): MediaItemsWithStartPosition? {
+        return playbackResolver.resolve(bookId, startAtChapterIndex)?.let { adopt(session, it) }
     }
 
-    private fun adopt(resolved: AutoPlaybackResolver.Resolved): MediaItemsWithStartPosition {
-        playerManager.adoptExternalQueue(resolved.data.book, resolved.data.files)
-        return MediaItemsWithStartPosition(resolved.data.mediaItems, resolved.index, resolved.positionMs)
-    }
+    private suspend fun adopt(session: MediaSession, resolved: AutoPlaybackResolver.Resolved): MediaItemsWithStartPosition =
+        withContext(Dispatchers.Main.immediate) {
+            session.player.setPlaybackSpeed(resolved.speed)
+            playerManager.adoptExternalQueue(resolved.data.book, resolved.data.files, resolved.speed, resolved.speedIsPerBook)
+            MediaItemsWithStartPosition(resolved.data.mediaItems, resolved.index, resolved.positionMs)
+        }
 
     private suspend fun catalog() = downloads.downloads.first()
 
