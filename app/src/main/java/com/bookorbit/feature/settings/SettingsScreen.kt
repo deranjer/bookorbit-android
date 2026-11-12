@@ -48,8 +48,10 @@ import androidx.compose.material3.Slider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -65,6 +67,7 @@ import com.bookorbit.feature.player.SKIP_STEP_SECONDS
 import com.bookorbit.feature.player.SPEED_PRESETS
 import kotlin.math.abs
 import kotlin.math.pow
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,6 +89,8 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val downloadTreeUri by vm.downloadTreeUri.collectAsStateWithLifecycle()
     val downloadLocationLabel by vm.downloadLocationLabel.collectAsStateWithLifecycle()
     val appContext = androidx.compose.ui.platform.LocalContext.current
+    val uriHandler = LocalUriHandler.current
+    val scope = rememberCoroutineScope()
     val downloadLocationAccessible by vm.downloadLocationAccessible.collectAsStateWithLifecycle()
     val appInfo by vm.appInfo.collectAsStateWithLifecycle()
 
@@ -354,6 +359,30 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
 
             item { HorizontalDivider() }
             item { SectionHeader(stringResource(R.string.about)) }
+            item {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    Text(
+                        stringResource(R.string.settings_maintenance_title),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        stringResource(R.string.settings_maintenance_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = {
+                        try {
+                            uriHandler.openUri("https://github.com/deranjer/bookorbit-android/blob/main/README.md#no-longer-maintained")
+                        } catch (_: IllegalArgumentException) {
+                            scope.launch {
+                                snackbarHostState.showSnackbar(appContext.getString(R.string.settings_readme_open_failed))
+                            }
+                        }
+                    }) {
+                        Text(stringResource(R.string.settings_read_readme))
+                    }
+                }
+            }
             item {
                 SettingsRow(
                     title = stringResource(R.string.settings_app_version),

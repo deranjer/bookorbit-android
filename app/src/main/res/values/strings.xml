@@ -217,6 +217,10 @@
     <string name="settings_folder_inaccessible">This folder isn\'t accessible anymore (permission revoked or the storage was removed). New downloads will use app storage until you pick a new folder.</string>
     <string name="settings_progress_book">Whole book</string>
     <string name="settings_progress_chapter">Chapter</string>
+    <string name="settings_maintenance_title">No longer maintained</string>
+    <string name="settings_maintenance_description">Development has ended. BookOrbit now restricts some server features to its official apps. See the README for details and alternatives.</string>
+    <string name="settings_read_readme">Read README</string>
+    <string name="settings_readme_open_failed">Could not open the README. Please install or enable a web browser.</string>
     <string name="settings_app_version">App version</string>
     <string name="settings_update_available">Update available</string>
     <string name="settings_up_to_date">Up to date</string>
