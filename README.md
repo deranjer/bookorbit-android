@@ -1,19 +1,43 @@
 # BookOrbit — Android (native)
 
+## No longer maintained
+
+This project will no longer be maintained. I am ending development because BookOrbit's server
+has begun restricting selected API routes to its official applications through app attestation,
+making continued support for an independently signed, open-source Android client uncertain.
+
+The server [added attestation requirements to existing routes](https://github.com/bookorbit/bookorbit/commit/b44d902eca79c082f8378ae336b9cc89c6a7de4e),
+and its [Android attestation policy](https://github.com/bookorbit/bookorbit/blob/v3.8.0/server/src/modules/app-attest/app-attest.policy.ts)
+accepts only the official package and approved signing certificates. Some routes remain available
+to other clients, and alternatives exist for the current widget and smart-scope restrictions;
+this does not mean every backend request is blocked today. Future server compatibility, fixes,
+and new features will no longer be maintained here.
+
+For a maintained alternative, use the
+[official BookOrbit Android application](https://play.google.com/store/apps/details?id=app.bookorbit.reader).
+The official Android app is not open source and offers paid Premium features; see its
+[purchase information](https://bookorbit.app/android/support/). As of November 11, 2026, the
+[official announcement](https://github.com/bookorbit/bookorbit/issues/2001) describes a closed
+Google Play beta with Premium free during testing. Follow that announcement for access instructions
+and check the current app listing for availability and purchase terms.
+
+The source and build instructions below remain available for reference and for anyone who wants
+to fork the project.
+
 Native Kotlin / Jetpack Compose client for a self-hosted
 [BookOrbit](https://github.com/bookorbit/bookorbit) server. This is a **standalone Gradle project** —
 open this repository's root directly in Android Studio.
 
 > User-facing docs: **https://deranjer.github.io/bookorbit-android/** (source in [`website/`](website/)).
 > Privacy policy: **https://deranjer.github.io/bookorbit-android/privacy.html**.
-> Planned work: see [`ROADMAP.md`](ROADMAP.md).
+> Historical roadmap: see [`ROADMAP.md`](ROADMAP.md); development has ended.
 > Also available via [F-Droid](https://deranjer.github.io/fdroid/repo) (self-hosted repo).
 
-> **Status:** this is the BookOrbit mobile client. It supports auth + OIDC, library browsing, search,
+> **Existing features (unmaintained):** auth + OIDC, library browsing, search,
 > smart scopes, collections, authors/series, book detail, the foliate.js ebook reader, the Media3
 > audiobook player (with sleep timer and Chromecast), and downloads/offline. See
 > [Architecture & conventions](#architecture--conventions) below, the
-> [Cross-repo couplings](#cross-repo-couplings) section, and [`ROADMAP.md`](ROADMAP.md) for what's next.
+> [Cross-repo couplings](#cross-repo-couplings) section. [`ROADMAP.md`](ROADMAP.md) records historical plans.
 
 ## Prerequisites
 
