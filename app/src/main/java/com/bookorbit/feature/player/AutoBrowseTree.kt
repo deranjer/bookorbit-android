@@ -11,9 +11,8 @@ import com.bookorbit.core.db.DownloadEntity
 import com.bookorbit.feature.downloads.isCompleteDownloadStatus
 
 /**
- * Builds the Android Auto browse hierarchy from the offline catalog. The car shows a root with two
- * shelves — "Continue listening" and "Downloaded" — both sourced from completed audiobook downloads
- * so browsing works fully offline (no auth headers needed for cover art over the car connection).
+ * Pure browse IDs, offline shelves and bounded grouping for Android Auto. Online shelves are
+ * supplied by AutoCatalog; the first three root shelves keep stable positions as playback changes.
  *
  * The filtering/ordering is kept pure (operating on entities) so it is unit-testable; only
  * [toMediaItem] touches the Android framework ([Uri]).
@@ -27,7 +26,7 @@ object AutoBrowseTree {
     fun libraryPageId(page: Int) = "$LIBRARY_ID/$page"
     fun parseLibraryPage(mediaId: String): Int? =
         if (mediaId == LIBRARY_ID) 0 else mediaId.removePrefix("$LIBRARY_ID/")
-            .takeIf { it != mediaId }?.toIntOrNull()?.takeIf { it >= 0 }
+            .takeIf { it != mediaId }?.toIntOrNull()?.takeIf { it in 0..(Int.MAX_VALUE / 40) }
 
     data class Group(val parent: String, val start: Int, val end: Int)
     fun parseGroup(id: String): Group? {
@@ -78,7 +77,7 @@ object AutoBrowseTree {
 
     /** Parses a `book/<id>` media id back to its book id, or null if it isn't a book media id. */
     fun parseBookId(mediaId: String): Int? =
-        mediaId.removePrefix(BOOK_PREFIX).takeIf { it != mediaId }?.toIntOrNull()
+        mediaId.removePrefix(BOOK_PREFIX).takeIf { it != mediaId }?.toIntOrNull()?.takeIf { it > 0 }
 
     /** A browse node or playable book, decoupled from the Android [MediaItem] for testability. */
     data class BrowseEntry(
@@ -136,7 +135,7 @@ object AutoBrowseTree {
         if (parts.size != 2) return null
         val book = parts[0].toIntOrNull() ?: return null
         val idx = parts[1].toIntOrNull() ?: return null
-        return book to idx
+        return (book to idx).takeIf { book > 0 && idx >= 0 }
     }
 
     fun chapterEntries(current: CurrentBookInfo): List<BrowseEntry> = current.ranges.map { r ->

@@ -4,12 +4,6 @@ import android.content.ContentResolver
 import android.net.Uri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import androidx.room.Room
-import com.bookorbit.app.BookOrbitApplication
-import com.bookorbit.core.db.BookOrbitDatabase
-import com.bookorbit.core.db.MIGRATION_5_6
-import com.bookorbit.core.db.MIGRATION_6_7
-import com.bookorbit.core.db.MIGRATION_7_8
 import com.bookorbit.core.db.DownloadEntity
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.runBlocking
@@ -25,10 +19,7 @@ class AutoArtworkProviderTest {
     private val dependencies get() = EntryPointAccessors.fromApplication(context, AutoArtworkProvider.Dependencies::class.java)
 
     @Test fun downloadedCoverIsReadableThroughContentResolver() = runBlocking {
-        val scope = (context.applicationContext as BookOrbitApplication).sessionManager.dataScope
-        val database = Room.databaseBuilder(context, BookOrbitDatabase::class.java,
-            if (scope.isEmpty()) "bookorbit.db" else "bookorbit-$scope.db")
-            .addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8).build()
+        val database = EntryPointAccessors.fromApplication(context, AutoTestDependencies::class.java).database()
         val dao = database.downloadDao()
         val id = 2_000_000_001
         val previous = dao.get(id)
@@ -44,7 +35,6 @@ class AutoArtworkProviderTest {
         } finally {
             if (previous == null) dao.delete(id) else dao.upsert(previous)
             file.delete()
-            database.close()
         }
     }
 

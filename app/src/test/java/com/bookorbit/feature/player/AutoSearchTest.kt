@@ -61,4 +61,12 @@ class AutoSearchTest {
             download(2, "Dune").copy(status = "DOWNLOADING"))
         assertEquals(emptyList<String>(), search.find("Dune", labels).map { it.mediaId })
     }
+
+    @Test fun `server failure without an offline match is not reported as zero results`() = runTest {
+        coEvery { catalog.page(any(), any(), any()) } throws java.io.IOException("offline")
+        try {
+            search.find("Missing book", labels)
+            org.junit.Assert.fail("Expected a network failure")
+        } catch (_: java.io.IOException) { }
+    }
 }

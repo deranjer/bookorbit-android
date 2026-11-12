@@ -2,6 +2,14 @@ package com.bookorbit.feature.player
 
 import android.util.Log
 import android.app.PendingIntent
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.pm.ServiceInfo
+import android.os.Build
+import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
+import androidx.media3.session.DefaultMediaNotificationProvider
+import com.bookorbit.R
 import android.content.Intent
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
@@ -74,6 +82,7 @@ class PlaybackService : MediaLibraryService() {
 
     private var mediaSession: MediaLibrarySession? = null
     private var usingCast = false
+    private var earlyForeground = false
 
     override fun onCreate() {
         super.onCreate()
@@ -121,7 +130,35 @@ class PlaybackService : MediaLibraryService() {
 
     private fun wrap(p: Player, cast: Boolean = false) = BookAggregatingPlayer(
         p, livePrefs.settings, if (cast) ({ castProxyServer.sourceQueue?.castItems }) else null,
+        beforePlay = ::ensureForegroundBeforePlay,
     ).also { activeBookPlayer.current = it }
+
+    /** API 35+ denies audio focus to a cold background service before the first play call. */
+    private fun ensureForegroundBeforePlay() {
+        if (Build.VERSION.SDK_INT < 35) return
+        val session = mediaSession ?: return
+        val manager = getSystemService(NotificationManager::class.java)
+        val channel = DefaultMediaNotificationProvider.DEFAULT_CHANNEL_ID
+        manager.createNotificationChannel(NotificationChannel(channel, getString(R.string.app_name), NotificationManager.IMPORTANCE_LOW))
+        val notification = NotificationCompat.Builder(this, channel)
+            .setSmallIcon(R.drawable.ic_orbit)
+            .setContentTitle(session.player.mediaMetadata.title ?: getString(R.string.app_name))
+            .setContentIntent(session.sessionActivity)
+            .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+            .setOngoing(true).setSilent(true).build()
+        // Reuse Media3's notification ID; its regular media controls replace this immediately.
+        ServiceCompat.startForeground(this, DefaultMediaNotificationProvider.DEFAULT_NOTIFICATION_ID,
+            notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+        earlyForeground = true
+    }
+
+    override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
+        super.onUpdateNotification(session, startInForegroundRequired)
+        if (earlyForeground && !startInForegroundRequired && !session.player.playWhenReady) {
+            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_DETACH)
+            earlyForeground = false
+        }
+    }
 
     /** Moves playback from the local [player] to [cast], preserving position and play state. */
     private fun switchToCast(cast: Player) {
@@ -193,6 +230,7 @@ class PlaybackService : MediaLibraryService() {
 
     override fun onDestroy() {
         serviceScope.cancel()
+        if (earlyForeground) ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         // Release both possible players explicitly rather than through `mediaSession.player.release()`
         // - if the service is destroyed while casting, the session's active player is the cast one,
         // and that call alone would leak the local `player` (ExoPlayer) instance.
