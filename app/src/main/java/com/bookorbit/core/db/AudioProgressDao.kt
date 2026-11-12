@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AudioProgressDao {
@@ -19,6 +20,9 @@ interface AudioProgressDao {
     /** Most recently played first — drives the Android Auto "Continue listening" shelf. */
     @Query("SELECT * FROM audio_progress ORDER BY updatedAt DESC")
     suspend fun recent(): List<AudioProgressEntity>
+
+    @Query("SELECT * FROM audio_progress ORDER BY updatedAt DESC")
+    fun observeRecent(): Flow<List<AudioProgressEntity>>
 
     @Query("UPDATE audio_progress SET dirty = 0 WHERE bookId = :bookId")
     suspend fun markSynced(bookId: Int)

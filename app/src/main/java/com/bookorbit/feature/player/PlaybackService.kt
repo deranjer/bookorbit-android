@@ -19,6 +19,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
+import com.bookorbit.feature.downloads.DownloadsRepository
+import com.bookorbit.feature.downloads.isCompleteDownloadStatus
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -62,6 +66,9 @@ class PlaybackService : MediaLibraryService() {
     @Inject
     lateinit var playerManager: PlayerManager
 
+    @Inject lateinit var downloads: DownloadsRepository
+    @Inject lateinit var audioProgress: AudioProgressRepository
+
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var lastNotifiedBookId: Int? = null
 
@@ -91,10 +98,19 @@ class PlaybackService : MediaLibraryService() {
                     val session = mediaSession ?: return@collect
                     if (bookId != lastNotifiedBookId) {
                         lastNotifiedBookId = bookId
-                        session.notifyChildrenChanged(AutoBrowseTree.ROOT_ID, Int.MAX_VALUE, null)
+                        callback.refresh(session, setOf(AutoBrowseTree.ROOT_ID, AutoBrowseTree.CONTINUE_ID))
                     }
-                    session.notifyChildrenChanged(AutoBrowseTree.NOW_PLAYING_CHAPTERS_ID, Int.MAX_VALUE, null)
+                    callback.refresh(session, setOf(AutoBrowseTree.NOW_PLAYING_CHAPTERS_ID))
                 }
+        }
+
+        serviceScope.launch {
+            combine(
+                downloads.downloads.map { rows -> rows.filter { it.isAudiobook && it.status.isCompleteDownloadStatus() } },
+                audioProgress.observeRecent().map { rows -> rows.map { it.bookId to (it.percentage >= ResumeCandidates.FINISHED_PERCENT) } },
+            ) { books, history -> books to history }.distinctUntilChanged().drop(1).collect {
+                mediaSession?.let { callback.refresh(it, setOf(AutoBrowseTree.DOWNLOADS_ID, AutoBrowseTree.CONTINUE_ID)) }
+            }
         }
 
         castHandoff.initialize(this, onSessionAvailable = ::switchToCast, onSessionUnavailable = ::switchToLocal)

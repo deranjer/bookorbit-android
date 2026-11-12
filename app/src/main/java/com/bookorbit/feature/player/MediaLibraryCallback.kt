@@ -55,9 +55,11 @@ class MediaLibraryCallback @Inject constructor(
     private var queueRequestGeneration = 0L
     private data class SearchSnapshot(val query: String, val entries: List<AutoBrowseTree.BrowseEntry>)
     private val searchResults = ConcurrentHashMap<ControllerInfo, SearchSnapshot>()
+    private val subscriptions = ConcurrentHashMap<ControllerInfo, Set<String>>()
 
     override fun onDisconnected(session: MediaSession, controller: ControllerInfo) {
         searchResults.remove(controller)
+        subscriptions.remove(controller)
     }
 
     override fun onConnect(session: MediaSession, controller: ControllerInfo): MediaSession.ConnectionResult {
@@ -109,22 +111,65 @@ class MediaLibraryCallback @Inject constructor(
         pageSize: Int,
         params: LibraryParams?,
     ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = future {
-        val entries = when (parentId) {
-            AutoBrowseTree.ROOT_ID -> AutoBrowseTree.rootChildren(current(), labels())
-            AutoBrowseTree.NOW_PLAYING_CHAPTERS_ID ->
-                current()?.let { AutoBrowseTree.chapterEntries(it) } ?: emptyList()
-            AutoBrowseTree.DOWNLOADS_ID -> AutoBrowseTree.downloadedAudiobooks(catalog(), labels())
-            AutoBrowseTree.CONTINUE_ID -> autoCatalog.continueListening(labels())
-            else -> AutoBrowseTree.parseLibraryPage(parentId)?.let { page ->
-                val result = autoCatalog.page(page, labels())
-                result.entries + if ((page.toLong() + 1) * AutoCatalog.PAGE_SIZE < result.total) {
-                    listOf(AutoBrowseTree.BrowseEntry(AutoBrowseTree.libraryPageId(page + 1), labels().moreAudiobooks,
-                        null, null, false))
-                } else emptyList()
-            } ?: emptyList()
-        }
+        val entries = children(parentId)
+        artwork.grantTo(browser.packageName)
         val items = ImmutableList.copyOf(entries.map { mediaItem(it) })
         LibraryResult.ofItemList(items, params)
+    }
+
+    override fun onSubscribe(
+        session: MediaLibrarySession, browser: ControllerInfo, parentId: String, params: LibraryParams?,
+    ): ListenableFuture<LibraryResult<Void>> = future {
+        val count = children(parentId).size
+        subscriptions.compute(browser) { _, parents -> parents.orEmpty() + parentId }
+        withContext(Dispatchers.Main.immediate) { session.notifyChildrenChanged(browser, parentId, count, params) }
+        LibraryResult.ofVoid(params)
+    }
+
+    override fun onUnsubscribe(
+        session: MediaLibrarySession, browser: ControllerInfo, parentId: String,
+    ): ListenableFuture<LibraryResult<Void>> {
+        subscriptions.computeIfPresent(browser) { _, parents -> parents - parentId }
+        return Futures.immediateFuture(LibraryResult.ofVoid(null))
+    }
+
+    fun refresh(session: MediaLibrarySession, shelves: Set<String>) {
+        scope.launch {
+            val parents = subscriptions.values.flatMap { it }.toSet().filter {
+                (AutoBrowseTree.parseGroup(it)?.parent ?: it) in shelves
+            }
+            for (parent in parents) {
+                try {
+                    val count = children(parent).size
+                    withContext(Dispatchers.Main.immediate) { session.notifyChildrenChanged(parent, count, null) }
+                } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                catch (_: Exception) { /* Keep the existing shelf during a transient server outage. */ }
+            }
+        }
+    }
+
+    private suspend fun children(parentId: String): List<AutoBrowseTree.BrowseEntry> {
+        val group = AutoBrowseTree.parseGroup(parentId)
+        val parent = group?.parent ?: parentId
+        val entries = when (parent) {
+            AutoBrowseTree.ROOT_ID -> return AutoBrowseTree.rootChildren(current(), labels())
+            AutoBrowseTree.NOW_PLAYING_CHAPTERS_ID -> current()?.let(AutoBrowseTree::chapterEntries).orEmpty()
+            AutoBrowseTree.DOWNLOADS_ID -> AutoBrowseTree.downloadedAudiobooks(catalog(), labels())
+            AutoBrowseTree.CONTINUE_ID -> autoCatalog.continueListening(labels())
+            AutoBrowseTree.LIBRARY_ID -> {
+                val first = autoCatalog.page(0, labels())
+                return if (first.total <= AutoCatalog.PAGE_SIZE) first.entries else AutoBrowseTree.libraryFolders(first.total, labels())
+            }
+            else -> {
+                AutoBrowseTree.parseLibraryRange(parent)?.let { (start, count) ->
+                    val total = autoCatalog.page(0, labels()).total
+                    val remaining = ((total.toLong() + 39) / 40 - start).coerceAtLeast(0).toInt()
+                    return AutoBrowseTree.libraryFolders(total, labels(), start, minOf(count, remaining))
+                }
+                return AutoBrowseTree.parseLibraryPage(parent)?.let { autoCatalog.page(it, labels()).entries }.orEmpty()
+            }
+        }
+        return AutoBrowseTree.grouped(parent, entries, labels(), group?.start ?: 0, group?.end ?: entries.size)
     }
 
     override fun onGetItem(
@@ -229,6 +274,7 @@ class MediaLibraryCallback @Inject constructor(
         chaptersOf = { title -> context.getString(R.string.auto_chapters_of, title) },
         audiobooks = context.getString(R.string.auto_audiobooks),
         moreAudiobooks = context.getString(R.string.auto_more_audiobooks),
+        itemRange = { from, to -> context.getString(R.string.auto_item_range, from, to) },
     )
 
     private fun current() = AutoBrowseTree.currentBookInfo(playerManager.state.value, labels())

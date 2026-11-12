@@ -55,6 +55,8 @@ class AudioProgressRepository @Inject constructor(
     /** Saved positions, most recently played first (Android Auto "Continue listening" shelf). */
     suspend fun recent(): List<AudioProgressEntity> = dao.recent()
 
+    fun observeRecent() = dao.observeRecent()
+
     /**
      * Resume position: retries any pending local write first, then picks whichever of local/server
      * is actually newer by timestamp (true last-write-wins, matching the server's own merge logic),
