@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Serves the Android Auto browse tree and turns a tapped book into a playable queue. The tree is the
@@ -47,10 +48,17 @@ class MediaLibraryCallback @Inject constructor(
     private val castProxyServer: CastProxyServer,
     private val artwork: AutoArtwork,
     private val autoCatalog: AutoCatalog,
+    private val search: AutoSearch,
 ) : MediaLibrarySession.Callback {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var queueRequestGeneration = 0L
+    private data class SearchSnapshot(val query: String, val entries: List<AutoBrowseTree.BrowseEntry>)
+    private val searchResults = ConcurrentHashMap<ControllerInfo, SearchSnapshot>()
+
+    override fun onDisconnected(session: MediaSession, controller: ControllerInfo) {
+        searchResults.remove(controller)
+    }
 
     override fun onConnect(session: MediaSession, controller: ControllerInfo): MediaSession.ConnectionResult {
         val base = super<MediaLibrarySession.Callback>.onConnect(session, controller)
@@ -141,6 +149,27 @@ class MediaLibraryCallback @Inject constructor(
         }
     }
 
+    override fun onSearch(
+        session: MediaLibrarySession, browser: ControllerInfo, query: String, params: LibraryParams?,
+    ): ListenableFuture<LibraryResult<Void>> = future {
+        val results = search.find(query, labels(), current()?.bookId)
+        searchResults[browser] = SearchSnapshot(query, results)
+        withContext(Dispatchers.Main.immediate) {
+            session.notifySearchResultChanged(browser, query, results.size, params)
+        }
+        LibraryResult.ofVoid(params)
+    }
+
+    override fun onGetSearchResult(
+        session: MediaLibrarySession, browser: ControllerInfo, query: String,
+        page: Int, pageSize: Int, params: LibraryParams?,
+    ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> = future {
+        val results = searchResults[browser]?.takeIf { it.query == query }?.entries
+            ?: search.find(query, labels(), current()?.bookId)
+        val offset = (page.toLong().coerceAtLeast(0) * pageSize.coerceAtLeast(0)).coerceAtMost(results.size.toLong()).toInt()
+        LibraryResult.ofItemList(ImmutableList.copyOf(results.drop(offset).take(pageSize.coerceAtLeast(0)).map(::mediaItem)), params)
+    }
+
     /** Tapping a book in the car: expand its `book/<id>` media id into the full file queue + resume. */
     override fun onSetMediaItems(
         mediaSession: MediaSession,
@@ -149,6 +178,16 @@ class MediaLibraryCallback @Inject constructor(
         startIndex: Int,
         startPositionMs: Long,
     ): ListenableFuture<MediaItemsWithStartPosition> = future {
+        val query = mediaItems.getOrNull(startIndex)?.requestMetadata?.searchQuery
+            ?: mediaItems.firstOrNull()?.requestMetadata?.searchQuery
+        if (query != null) {
+            val resolved = if (query.isBlank()) playbackResolver.resume() else {
+                search.find(query, labels(), current()?.bookId).firstOrNull()
+                    ?.mediaId?.let(AutoBrowseTree::parseBookId)?.let { playbackResolver.resolve(it) }
+            }
+            return@future routeQueue(resolved?.let { adopt(mediaSession, it) }
+                ?: MediaItemsWithStartPosition(emptyList(), 0, 0))
+        }
         val chapterRef = mediaItems.firstNotNullOfOrNull { AutoBrowseTree.parseChapterId(it.mediaId) }
         if (chapterRef != null) {
             val (chapterBookId, index) = chapterRef
@@ -215,6 +254,7 @@ class MediaLibraryCallback @Inject constructor(
     /** Apply Auto's list/list content styling (see developer.android.com/training/cars/media). */
     private fun contentStyledParams(params: LibraryParams?): LibraryParams {
         val extras = Bundle(params?.extras ?: Bundle.EMPTY).apply {
+            putBoolean("android.media.browse.SEARCH_SUPPORTED", true)
             putInt(
                 MediaConstants.EXTRAS_KEY_CONTENT_STYLE_BROWSABLE,
                 MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_LIST_ITEM,
