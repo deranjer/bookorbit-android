@@ -8,6 +8,7 @@ import com.bookorbit.core.model.ReadingGoalWidget
 import com.bookorbit.core.model.ReadingStreakWidget
 import com.bookorbit.core.model.ScrollerType
 import com.bookorbit.feature.browse.BrowseRepository
+import com.bookorbit.core.network.ReadingWidgetsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +19,7 @@ import javax.inject.Inject
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val repo: BrowseRepository,
+    private val widgets: ReadingWidgetsRepository,
 ) : ViewModel() {
 
     data class UiState(
@@ -51,8 +53,7 @@ class DashboardViewModel @Inject constructor(
                     }
                     .getOrDefault(emptyList())
 
-            val streak = async { runCatching { repo.readingStreak() }.getOrNull() }
-            val goal = async { runCatching { repo.readingGoal() }.getOrNull() }
+            val readingWidgets = async { runCatching { widgets.load() }.getOrNull() }
             val continueReading = async { load(ScrollerType.CONTINUE_READING) }
             val continueListening = async { load(ScrollerType.CONTINUE_LISTENING) }
             val recentlyAdded = async { load(ScrollerType.RECENTLY_ADDED) }
@@ -65,8 +66,8 @@ class DashboardViewModel @Inject constructor(
                 recent,
                 loading = false,
                 error = failures == 3,
-                streak = streak.await(),
-                goal = goal.await(),
+                streak = readingWidgets.await()?.streak,
+                goal = readingWidgets.await()?.goal,
             )
         }
     }

@@ -308,6 +308,9 @@ interface ApiService {
         @Query("q") q: String? = null,
     ): BooksPage
 
+    @POST("smart-scopes/{id}/books/query")
+    suspend fun querySmartScopeBooks(@Path("id") id: Int, @Body query: BookQuery): BooksPage
+
     // --- Authors ---
     @GET("authors")
     suspend fun getAuthors(
@@ -350,6 +353,11 @@ interface ApiService {
     ): List<NamedResult>
 
     // --- Dashboard ---
+    @POST("dashboard/widgets/batch")
+    suspend fun getDashboardWidgets(
+        @Body body: com.bookorbit.core.model.DashboardWidgetRequest,
+    ): com.bookorbit.core.model.DashboardWidgetResponse
+
     /** Raw because the shape changed in 3.0 - decode with [com.bookorbit.core.model.ScrollerBooks]. */
     @GET("dashboard/scrollers/{type}")
     suspend fun getScroller(
