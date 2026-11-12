@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.9.0](https://github.com/deranjer/bookorbit-android/compare/v0.8.0...v0.9.0) (2026-11-12)
+
+
+### Features
+
+* **auto:** add voice playback and audiobook search ([#107](https://github.com/deranjer/bookorbit-android/issues/107)) ([37b1fe6](https://github.com/deranjer/bookorbit-android/commit/37b1fe6bd24e0740e1db80f87924266774af9865))
+* **auto:** browse and resume streamed audiobooks ([#106](https://github.com/deranjer/bookorbit-android/issues/106)) ([325fa55](https://github.com/deranjer/bookorbit-android/commit/325fa55e1deddba46ed60b71cd8475938bf6a02d))
+* **auto:** display downloaded and streamed audiobook cover art ([#105](https://github.com/deranjer/bookorbit-android/issues/105)) ([84023ee](https://github.com/deranjer/bookorbit-android/commit/84023ee24abd14e3cea1879b96a57428e5a2f8f5))
+* **auto:** keep browsing stable and refresh changing shelves ([#108](https://github.com/deranjer/bookorbit-android/issues/108)) ([1efdcda](https://github.com/deranjer/bookorbit-android/commit/1efdcdac83dd22828323b0575dfc72adb6aa4b05))
+
+
+### Bug Fixes
+
+* **auto:** handle errors and start cold playback reliably ([#109](https://github.com/deranjer/bookorbit-android/issues/109)) ([4e54a90](https://github.com/deranjer/bookorbit-android/commit/4e54a90eaa86d77c3a3ba07bc1816095b874b942))
+* **auto:** honor saved audiobook playback speed ([#104](https://github.com/deranjer/bookorbit-android/issues/104)) ([267c216](https://github.com/deranjer/bookorbit-android/commit/267c21661bd7105364992160e4cf82b7f90a4f31))
+* **auto:** resume unfinished audiobooks with bounded lookups ([#103](https://github.com/deranjer/bookorbit-android/issues/103)) ([1fe6841](https://github.com/deranjer/bookorbit-android/commit/1fe684142e3e3a5b31ef1f3f41e94928a7692134))
+* restore widgets and smart scopes on attestation-guarded servers ([#114](https://github.com/deranjer/bookorbit-android/issues/114)) ([d5d7d8a](https://github.com/deranjer/bookorbit-android/commit/d5d7d8ae8af3b171152ba6e2dfadc887f55a7849))
+
 ## [0.8.0](https://github.com/deranjer/bookorbit-android/compare/v0.7.1...v0.8.0) (2026-11-08)
 
 
