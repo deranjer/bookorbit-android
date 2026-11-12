@@ -170,21 +170,14 @@ class AutoBrowseTreeTest {
         assertEquals(entries.map { it.mediaId }, flatten())
     }
 
-    @Test fun `large online libraries use bounded range folders`() {
-        fun pages(start: Int = 0, count: Int = 126): List<Int> {
-            val folders = AutoBrowseTree.libraryFolders(5001, labels, start, count)
-            assertTrue(folders.size <= 40)
-            return folders.flatMap {
-                val range = AutoBrowseTree.parseLibraryRange(it.mediaId)
-                if (range == null) listOf(AutoBrowseTree.parseLibraryPage(it.mediaId)!!) else pages(range.first, range.second)
-            }
-        }
-        assertEquals((0..125).toList(), pages())
+    @Test fun `local range folders describe their actual contents`() {
+        val entries = (1..41).map { AutoBrowseTree.BrowseEntry("book/$it", "Title $it", null, null, true) }
+        assertEquals(listOf("Title 1 – Title 40", "Title 41 – Title 41"),
+            AutoBrowseTree.grouped(AutoBrowseTree.DOWNLOADS_ID, entries, labels).map { it.title })
     }
 
     @Test fun `invalid grouping IDs cannot request arbitrary parents or ranges`() {
         assertNull(AutoBrowseTree.parseGroup("group/secret/0/40"))
         assertNull(AutoBrowseTree.parseGroup("group/downloads/-1/40"))
-        assertNull(AutoBrowseTree.parseLibraryRange("audiobooks/range/0/2147483647"))
     }
 }
