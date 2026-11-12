@@ -46,6 +46,7 @@ class MediaLibraryCallback @Inject constructor(
     private val audioProgress: AudioProgressRepository,
     private val playerManager: PlayerManager,
     private val castProxyServer: CastProxyServer,
+    private val artwork: AutoArtwork,
 ) : MediaLibrarySession.Callback {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -53,6 +54,7 @@ class MediaLibraryCallback @Inject constructor(
 
     override fun onConnect(session: MediaSession, controller: ControllerInfo): MediaSession.ConnectionResult {
         val base = super<MediaLibrarySession.Callback>.onConnect(session, controller)
+        if (base.isAccepted) artwork.grantTo(controller.packageName)
         if (!base.isAccepted || controller.packageName != context.packageName) return base
         return MediaSession.ConnectionResult.accept(
             base.availableSessionCommands.buildUpon().add(BookQueueCommand.command).build(),
@@ -108,7 +110,7 @@ class MediaLibraryCallback @Inject constructor(
                 AutoBrowseTree.continueListening(catalog(), audioProgress.recent(), labels())
             else -> emptyList()
         }
-        val items = ImmutableList.copyOf(entries.map { AutoBrowseTree.toMediaItem(it) })
+        val items = ImmutableList.copyOf(entries.map { mediaItem(it) })
         LibraryResult.ofItemList(items, params)
     }
 
@@ -121,15 +123,15 @@ class MediaLibraryCallback @Inject constructor(
         val chapterRef = AutoBrowseTree.parseChapterId(mediaId)
         if (chapterRef != null) {
             val entry = current()?.let { AutoBrowseTree.chapterEntries(it) }?.find { it.mediaId == mediaId }
-            if (entry != null) LibraryResult.ofItem(AutoBrowseTree.toMediaItem(entry), null)
+            if (entry != null) LibraryResult.ofItem(mediaItem(entry), null)
             else LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
         } else if (bookId != null) {
             val entry = AutoBrowseTree.downloadedAudiobooks(catalog(), labels()).find { it.mediaId == mediaId }
-            if (entry != null) LibraryResult.ofItem(AutoBrowseTree.toMediaItem(entry), null)
+            if (entry != null) LibraryResult.ofItem(mediaItem(entry), null)
             else LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
         } else {
             val node = AutoBrowseTree.rootChildren(current(), labels()).find { it.mediaId == mediaId }
-            if (node != null) LibraryResult.ofItem(AutoBrowseTree.toMediaItem(node), null)
+            if (node != null) LibraryResult.ofItem(mediaItem(node), null)
             else LibraryResult.ofItem(AutoBrowseTree.rootMediaItem(labels()), null)
         }
     }
@@ -197,6 +199,11 @@ class MediaLibraryCallback @Inject constructor(
         }
 
     private suspend fun catalog() = downloads.downloads.first()
+
+    private fun mediaItem(entry: AutoBrowseTree.BrowseEntry): MediaItem {
+        val id = AutoBrowseTree.parseBookId(entry.mediaId) ?: AutoBrowseTree.parseChapterId(entry.mediaId)?.first
+        return AutoBrowseTree.toMediaItem(entry, id?.let { artwork.uri(it) })
+    }
 
     /** Apply Auto's list/list content styling (see developer.android.com/training/cars/media). */
     private fun contentStyledParams(params: LibraryParams?): LibraryParams {

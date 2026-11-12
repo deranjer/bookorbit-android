@@ -8,8 +8,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaConstants
 import com.bookorbit.core.db.AudioProgressEntity
 import com.bookorbit.core.db.DownloadEntity
-import com.bookorbit.core.storage.LocalRef
-import com.bookorbit.core.storage.toUri
 import com.bookorbit.feature.downloads.isCompleteDownloadStatus
 
 /**
@@ -125,7 +123,7 @@ object AutoBrowseTree {
     fun rootMediaItem(labels: Labels): MediaItem = browsableItem(ROOT_ID, labels.appName, null)
 
     @OptIn(UnstableApi::class)
-    fun toMediaItem(entry: BrowseEntry): MediaItem =
+    fun toMediaItem(entry: BrowseEntry, artworkUri: android.net.Uri? = null): MediaItem =
         if (entry.isPlayable) {
             val metadata = MediaMetadata.Builder()
                 .setTitle(entry.title)
@@ -152,7 +150,7 @@ object AutoBrowseTree {
                         )
                     }
                 }
-                .apply { entry.coverPath?.let { setArtworkUri(LocalRef.parse(it).toUri()) } }
+                .setArtworkUri(artworkUri)
                 .build()
             MediaItem.Builder().setMediaId(entry.mediaId).setMediaMetadata(metadata).build()
         } else {
