@@ -52,7 +52,7 @@ class CastBookPositionTest {
                     if (i == 40) item else MediaItem.Builder().setUri(wav.toURI().toString()).build()
                 }
                 exo.setMediaItems(sparse, 40, 2_000)
-                wrapper = BookAggregatingPlayer(exo, prefs) { source }
+                wrapper = BookAggregatingPlayer(exo, prefs, sourceQueue = { source })
                 wrapperCreated = true
                 exo.prepare()
                 assertTrue(wrapper.hasCurrentSourceQueue())
