@@ -28,7 +28,7 @@ class ReaderHostViewModelTest {
         every { readingFullscreen } returns flowOf(true)
     }
     private fun vm() = ReaderHostViewModel(
-        SavedStateHandle(mapOf("id" to 12)), settings, mockk(), mockk(), session, refresher, Json,
+        SavedStateHandle(mapOf("id" to 12, "fileId" to 34)), settings, mockk(), mockk(), session, refresher, Json,
     )
 
     @Test

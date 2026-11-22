@@ -27,6 +27,10 @@ class ReaderProgressRepositoryTest {
     @Before
     fun setUp() {
         dao = mockk(relaxed = true)
+        var stored: ReaderProgressEntity? = null
+        coEvery { dao.upsert(any()) } coAnswers { stored = firstArg() }
+        coEvery { dao.get(any()) } coAnswers { stored }
+        coEvery { dao.markSynced(any(), any()) } returns 1
         api = mockk()
         syncScheduler = mockk(relaxed = true)
         repo = ReaderProgressRepository(dao, api, syncScheduler)
@@ -39,7 +43,7 @@ class ReaderProgressRepositoryTest {
         repo.report(fileId = 1, cfi = "epubcfi(...)", percentage = 50.0)
 
         coVerify { dao.upsert(match { it.fileId == 1 && it.cfi == "epubcfi(...)" && it.percentage == 50.0 && it.dirty }) }
-        coVerify(exactly = 0) { dao.markSynced(any()) }
+        coVerify(exactly = 0) { dao.markSynced(any(), any()) }
         verify { syncScheduler.schedule() }
     }
 
@@ -49,7 +53,7 @@ class ReaderProgressRepositoryTest {
 
         repo.report(fileId = 1, cfi = null, percentage = 50.0)
 
-        coVerify { dao.markSynced(1) }
+        coVerify { dao.markSynced(1, any()) }
         verify(exactly = 0) { syncScheduler.schedule() }
     }
 
@@ -62,7 +66,7 @@ class ReaderProgressRepositoryTest {
         coEvery { api.saveFileProgress(any(), any()) } returns Unit
 
         assertFalse(repo.flushPending())
-        coVerify { dao.markSynced(1) }
+        coVerify { dao.markSynced(1, "") }
     }
 
     @Test
@@ -72,6 +76,6 @@ class ReaderProgressRepositoryTest {
         coEvery { api.saveFileProgress(any(), any()) } throws RuntimeException("offline")
 
         assertTrue(repo.flushPending())
-        coVerify(exactly = 0) { dao.markSynced(any()) }
+        coVerify(exactly = 0) { dao.markSynced(any(), any()) }
     }
 }

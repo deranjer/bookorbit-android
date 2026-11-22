@@ -1,6 +1,28 @@
-# BookOrbit — Android (native)
+# BookOrbit Client — independent Android fork
 
-## No longer maintained
+Development fork of [deranjer/bookorbit-android](https://github.com/deranjer/bookorbit-android),
+retaining its AGPL license and upstream attribution. This is **not the official app**.
+No Premium gate or automatic library-wide download is added.
+
+Work in progress: separate installation/OIDC identity, explicit offline file selection,
+durable retry plans, and exact audiobook manifest file-ID matching. Initial validation
+uses an isolated BookOrbit 3.9.0 with synthetic media; this is not yet a parity release.
+
+- [Build and local test server](tools/README.md)
+- [Scope, next stages and validation boundaries](docs/CLIENT_PLAN.md)
+
+Read-along, AI integration, dependency modernization and physical-device validation
+are subsequent work. Existing reading/audio features are inherited, not newly implemented.
+Production databases and reading history are not used for development.
+
+---
+
+## Historical upstream README
+
+The following notice and documentation describe the original project, its distribution
+channels and maintenance status, not this fork's release channels.
+
+### No longer maintained (upstream)
 
 This project will no longer be maintained. I am ending development because BookOrbit's server
 has begun restricting selected API routes to its official applications through app attestation,

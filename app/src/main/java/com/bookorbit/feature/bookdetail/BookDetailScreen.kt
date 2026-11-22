@@ -81,9 +81,9 @@ import com.bookorbit.ui.components.StarRating
 @Composable
 fun BookDetailScreen(
     onBack: () -> Unit,
-    onRead: (Int) -> Unit,
-    onReadPdf: (Int) -> Unit,
-    onReadComic: (Int) -> Unit,
+    onRead: (Int, Int) -> Unit,
+    onReadPdf: (Int, Int) -> Unit,
+    onReadComic: (Int, Int) -> Unit,
     onListen: (Int) -> Unit,
     onBookClick: (Int) -> Unit,
     onAuthorClick: (id: Int, name: String) -> Unit,
@@ -94,17 +94,25 @@ fun BookDetailScreen(
     val collections by vm.collections.collectAsStateWithLifecycle()
     var statusSheet by remember { mutableStateOf(false) }
     var collectionSheet by remember { mutableStateOf(false) }
+    var downloadSheet by rememberSaveable { mutableStateOf(false) }
+    var pendingDownloadIds by rememberSaveable { mutableStateOf(arrayListOf<Int>()) }
     val context = LocalContext.current
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
-    ) { vm.startDownload() }
-    val startDownload = {
+    ) {
+        if (pendingDownloadIds.isNotEmpty()) vm.startDownload(pendingDownloadIds.toSet())
+        pendingDownloadIds = arrayListOf()
+    }
+    val confirmDownload: (Set<Int>) -> Unit = { ids ->
+        pendingDownloadIds = ArrayList(ids)
+        downloadSheet = false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
-            vm.startDownload()
+            vm.startDownload(ids)
+            pendingDownloadIds = arrayListOf()
         }
     }
 
@@ -140,7 +148,7 @@ fun BookDetailScreen(
                     onBookClick = onBookClick,
                     onAuthorClick = onAuthorClick,
                     onSeriesClick = onSeriesClick,
-                    onStartDownload = startDownload,
+                    onStartDownload = { downloadSheet = true },
                     onOpenStatusSheet = { statusSheet = true },
                     onOpenCollectionSheet = { collectionSheet = true },
                 )
@@ -149,6 +157,9 @@ fun BookDetailScreen(
     }
 
     val book = ui.book
+    if (book != null && downloadSheet) {
+        DownloadSelectionDialog(book, confirmDownload, onDismiss = { downloadSheet = false })
+    }
     if (book != null && statusSheet) {
         ReadStatusSheet(
             current = book.readStatus?.status,
@@ -175,9 +186,9 @@ private fun BookDetailContent(
     book: BookDetail,
     vm: BookDetailViewModel,
     ui: BookDetailViewModel.UiState,
-    onRead: (Int) -> Unit,
-    onReadPdf: (Int) -> Unit,
-    onReadComic: (Int) -> Unit,
+    onRead: (Int, Int) -> Unit,
+    onReadPdf: (Int, Int) -> Unit,
+    onReadComic: (Int, Int) -> Unit,
     onListen: (Int) -> Unit,
     onBookClick: (Int) -> Unit,
     onAuthorClick: (id: Int, name: String) -> Unit,
@@ -195,6 +206,23 @@ private fun BookDetailContent(
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val download by vm.downloadState.collectAsStateWithLifecycle()
+    val offlineIds = vm.downloadedFileIds(download)
+    var chooseReadingFile by rememberSaveable(book.id) { mutableStateOf(false) }
+    val readableFiles = book.files.filter { BookFiles.readingTarget(book, it.id) != BookFiles.ReadingTarget.None }
+    val openFile: (Int) -> Unit = { fileId ->
+        when (BookFiles.readingTarget(book, fileId)) {
+            is BookFiles.ReadingTarget.Foliate -> onRead(book.id, fileId)
+            is BookFiles.ReadingTarget.Pdf -> onReadPdf(book.id, fileId)
+            is BookFiles.ReadingTarget.Comic -> onReadComic(book.id, fileId)
+            BookFiles.ReadingTarget.None -> Unit
+        }
+    }
+    if (chooseReadingFile) {
+        ReadingFileDialog(book, offlineIds, onSelect = {
+            chooseReadingFile = false
+            openFile(it)
+        }, onDismiss = { chooseReadingFile = false })
+    }
 
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         DetailHero(book, onAuthorClick = onAuthorClick, onSeriesClick = onSeriesClick)
@@ -205,11 +233,8 @@ private fun BookDetailContent(
                 if (canRead) {
                     Button(
                         onClick = {
-                            when (readingTarget) {
-                                is BookFiles.ReadingTarget.Pdf -> onReadPdf(book.id)
-                                is BookFiles.ReadingTarget.Comic -> onReadComic(book.id)
-                                else -> onRead(book.id)
-                            }
+                            if (readableFiles.size == 1) openFile(readableFiles.single().id)
+                            else chooseReadingFile = true
                         },
                         modifier = Modifier.weight(1f),
                     ) {
@@ -231,7 +256,7 @@ private fun BookDetailContent(
                     }
                 }
             }
-            DownloadControl(download, onStartDownload = onStartDownload, onRemove = vm::removeDownload)
+            DownloadControl(download, onStartDownload = onStartDownload, onRetry = vm::retryDownload, onRemove = vm::removeDownload)
         }
 
         FormatChips(book, ui.fileProgress)
@@ -258,7 +283,7 @@ private fun BookDetailContent(
                 onOpenCollectionSheet = onOpenCollectionSheet,
                 onOpenUri = { uriHandler.openUri(it) },
             )
-            1 -> FilesTab(book)
+            1 -> FilesTab(book, offlineIds, openFile)
             else -> HighlightsTab(ui.highlights)
         }
 
@@ -344,10 +369,11 @@ private fun DetailHero(
 private fun DownloadControl(
     download: com.bookorbit.core.db.DownloadEntity?,
     onStartDownload: () -> Unit,
+    onRetry: () -> Unit,
     onRemove: () -> Unit,
 ) {
     when (download?.status) {
-        "COMPLETE" -> Row(
+        "COMPLETE", "COMPLETE_FALLBACK" -> Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -371,7 +397,7 @@ private fun DownloadControl(
                 style = MaterialTheme.typography.bodySmall,
             )
             androidx.compose.material3.OutlinedButton(
-                onClick = onStartDownload,
+                onClick = onRetry,
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             ) {
                 Icon(Icons.Filled.Download, contentDescription = null)
@@ -544,7 +570,7 @@ private fun ShelfCards(
 }
 
 @Composable
-private fun FilesTab(book: BookDetail) {
+private fun FilesTab(book: BookDetail, offlineIds: Set<Int>, onReadFile: (Int) -> Unit) {
     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
         if (book.files.isEmpty()) {
             Text(stringResource(R.string.no_files), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -572,6 +598,14 @@ private fun FilesTab(book: BookDetail) {
                 }
                 f.filename?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                if (f.id in offlineIds) {
+                    Text(stringResource(R.string.downloaded), style = MaterialTheme.typography.bodySmall)
+                }
+                if (BookFiles.readingTarget(book, f.id) != BookFiles.ReadingTarget.None) {
+                    androidx.compose.material3.TextButton(onClick = { onReadFile(f.id) }) {
+                        Text(stringResource(R.string.read))
+                    }
                 }
             }
             HorizontalDivider()

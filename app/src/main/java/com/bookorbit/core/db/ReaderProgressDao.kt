@@ -16,6 +16,6 @@ interface ReaderProgressDao {
     @Query("SELECT * FROM reader_progress WHERE dirty = 1")
     suspend fun dirtyEntries(): List<ReaderProgressEntity>
 
-    @Query("UPDATE reader_progress SET dirty = 0 WHERE fileId = :fileId")
-    suspend fun markSynced(fileId: Int)
+    @Query("UPDATE reader_progress SET dirty = 0 WHERE fileId = :fileId AND writeId = :writeId")
+    suspend fun markSynced(fileId: Int, writeId: String): Int
 }

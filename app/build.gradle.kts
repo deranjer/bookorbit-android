@@ -44,7 +44,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.bookorbit"
+        applicationId = "io.github.monkecode.bookorbitclient"
         minSdk = 26
         targetSdk = 36
         // versionCode/versionName are bumped automatically by a companion step in
@@ -57,14 +57,14 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // OIDC redirect scheme used by the AppAuth intent-filter (see AndroidManifest).
-        // Must match the server's whitelisted mobile redirect URI (bookorbit://oauth2-callback,
-        // OIDC_MOBILE_REDIRECT_URIS default) and the value used by OidcManager.
-        manifestPlaceholders["appAuthRedirectScheme"] = "bookorbit"
+        // Server must allow bookorbitclient://oauth2-callback explicitly.
+        manifestPlaceholders["appAuthRedirectScheme"] = "bookorbitclient"
+        buildConfigField("String", "OIDC_REDIRECT_URI", "\"bookorbitclient://oauth2-callback\"")
     }
 
     // "full" (default) links Google's proprietary Cast SDK for Chromecast support; "fdroid"
     // excludes it entirely -- see app/src/{full,fdroid}/java/com/bookorbit/feature/cast/. Both
-    // flavors share the same applicationId; this isn't a fork, just a dependency toggle.
+    // flavors share our independent applicationId; this is just a dependency toggle.
     flavorDimensions += "distribution"
     productFlavors {
         create("full") {

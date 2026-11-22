@@ -23,6 +23,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -64,16 +65,17 @@ class DownloadsRepository @Inject constructor(
         runCatching { json.decodeFromString(ListSerializer(DownloadedFile.serializer()), entity.filesJson) }
             .getOrDefault(emptyList())
 
-    suspend fun startDownload(book: BookDetail) {
-        if (BookFiles.downloadableFiles(book).isEmpty()) return
-        dao.upsert(
+    suspend fun startDownload(book: BookDetail, selectedFileIds: Set<Int>) {
+        val files = BookFiles.selectedDownloads(book, selectedFileIds)
+        // Never reset a running/completed plan or hide files already on disk.
+        val inserted = dao.insertPlan(
             DownloadEntity(
                 bookId = book.id,
                 title = book.title,
                 authors = book.authors.joinToString(", ") { it.name },
                 narrators = book.audioMetadata?.narrators?.joinToString(", ") { it.name } ?: "",
-                isAudiobook = BookFiles.isAudiobook(book),
-                format = BookFiles.downloadableFiles(book).firstOrNull()?.format,
+                isAudiobook = files.any { it.format?.lowercase() in BookFiles.AUDIO_FORMATS },
+                format = files.first().format,
                 sizeBytes = 0,
                 downloadedAt = System.currentTimeMillis(),
                 coverLocalPath = null,
@@ -81,24 +83,33 @@ class DownloadsRepository @Inject constructor(
                 filesJson = "[]",
                 status = DownloadStatus.DOWNLOADING.name,
                 progress = 0f,
+                selectedFileIdsJson = json.encodeToString(files.map { it.id }),
             ),
         )
+        if (inserted == -1L) return
 
+        enqueue(book.id)
+    }
+
+    private suspend fun enqueue(bookId: Int) {
         val networkType = if (appSettings.wifiOnlyDownloads.first()) NetworkType.UNMETERED else NetworkType.CONNECTED
         val request = OneTimeWorkRequestBuilder<DownloadWorker>()
-            .setInputData(workDataOf(DownloadWorker.KEY_BOOK_ID to book.id))
+            .setInputData(workDataOf(DownloadWorker.KEY_BOOK_ID to bookId))
             .setConstraints(Constraints.Builder().setRequiredNetworkType(networkType).build())
             .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
-            .addTag(DownloadWorker.tag(book.id))
+            .addTag(DownloadWorker.tag(bookId))
             .build()
 
         WorkManager.getInstance(context)
-            .enqueueUniqueWork(DownloadWorker.tag(book.id), ExistingWorkPolicy.KEEP, request)
+            .enqueueUniqueWork(DownloadWorker.tag(bookId), ExistingWorkPolicy.KEEP, request)
     }
 
     /** Restarts a download after a terminal [DownloadStatus.FAILED], using the last-known book detail. */
     suspend fun retryDownload(bookId: Int) {
-        cachedBook(bookId)?.let { startDownload(it) }
+        val entity = dao.get(bookId) ?: return
+        if (entity.status != DownloadStatus.FAILED.name) return
+        dao.upsert(entity.copy(status = DownloadStatus.DOWNLOADING.name, lastError = null))
+        enqueue(bookId)
     }
 
     suspend fun delete(bookId: Int) {

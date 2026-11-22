@@ -94,9 +94,9 @@ private const val PANE_EMPTY = "pane-empty"
 fun MainShell(
     user: AuthUser,
     onSignOut: () -> Unit,
-    onOpenReader: (Int) -> Unit,
-    onOpenPdf: (Int) -> Unit,
-    onOpenComic: (Int) -> Unit,
+    onOpenReader: (Int, Int) -> Unit,
+    onOpenPdf: (Int, Int) -> Unit,
+    onOpenComic: (Int, Int) -> Unit,
     onListen: (Int) -> Unit,
     onOpenPlayer: () -> Unit,
     vm: MainShellViewModel = hiltViewModel(),

@@ -30,6 +30,7 @@ class ReaderHostViewModel @Inject constructor(
     private val json: Json,
 ) : ViewModel() {
     private val bookId = checkNotNull(savedStateHandle.get<Int>("id"))
+    private val selectedFileId = checkNotNull(savedStateHandle.get<Int>("fileId"))
     private val accountId = session.currentUser?.id
     val preferences = combine(settings.readerInterface, settings.readingFullscreen) { mode, fullscreen ->
         ReadingPreferences(mode, fullscreen)
@@ -38,10 +39,11 @@ class ReaderHostViewModel @Inject constructor(
     suspend fun prepare(kind: ReaderKind): ServerReaderPolicy {
         // Intentionally require a live server. Native downloads belong to App mode.
         val book = api.getBookDetail(bookId)
+        val target = BookFiles.readingTarget(book, selectedFileId)
         val file = checkNotNull(when (kind) {
-            ReaderKind.EBOOK -> BookFiles.readableFile(book)
-            ReaderKind.PDF -> BookFiles.pdfFile(book)
-            ReaderKind.COMIC -> BookFiles.comicFile(book)
+            ReaderKind.EBOOK -> (target as? BookFiles.ReadingTarget.Foliate)?.file
+            ReaderKind.PDF -> (target as? BookFiles.ReadingTarget.Pdf)?.file
+            ReaderKind.COMIC -> (target as? BookFiles.ReadingTarget.Comic)?.file
         })
         progress.syncBeforeWeb(file.id)
         return ServerReaderPolicy(checkNotNull(session.serverUrl), bookId, file.id)

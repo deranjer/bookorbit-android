@@ -38,6 +38,7 @@ class PdfReaderViewModel @Inject constructor(
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
+    private val selectedFileId = checkNotNull(savedStateHandle.get<Int>("fileId"))
 
     /** A single search match: which page it is on, and its bounds in page-point space. */
     data class SearchHit(val page: Int, val rect: RectF)
@@ -90,7 +91,7 @@ class PdfReaderViewModel @Inject constructor(
             _ui.update { it.copy(title = book.title) }
 
             try {
-                val resolved = source.resolvePdf(book)
+                val resolved = source.resolvePdf(book, selectedFileId)
                 fileId = resolved.fileId
                 val core = PdfRenderCore.open(context, resolved.ref)
                 val initial = progress.resolveInitial(resolved.fileId)

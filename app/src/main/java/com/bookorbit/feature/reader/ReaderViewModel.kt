@@ -35,6 +35,7 @@ class ReaderViewModel @Inject constructor(
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
+    private val selectedFileId = checkNotNull(savedStateHandle.get<Int>("fileId"))
 
     data class ResolvedOpen(
         val ref: LocalRef,
@@ -115,7 +116,7 @@ class ReaderViewModel @Inject constructor(
             _ui.update { it.copy(title = book.title) }
 
             try {
-                val resolved = source.resolve(book)
+                val resolved = source.resolve(book, selectedFileId)
                 val initial = progress.resolveInitial(resolved.fileId)
                 sessions.beginReading(resolved.fileId, initial.fraction?.let { it * 100 })
                 _ui.update {

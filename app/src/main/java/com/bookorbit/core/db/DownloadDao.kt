@@ -20,6 +20,10 @@ interface DownloadDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: DownloadEntity)
 
+    /** Reserve a plan atomically; concurrent taps must not replace an active selection. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertPlan(entity: DownloadEntity): Long
+
     @Query("UPDATE downloads SET progress = :progress WHERE bookId = :bookId")
     suspend fun updateProgress(bookId: Int, progress: Float)
 

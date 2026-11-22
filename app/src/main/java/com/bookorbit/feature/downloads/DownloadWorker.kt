@@ -100,7 +100,10 @@ class DownloadWorker @AssistedInject constructor(
         notificationTitle = book.title ?: notificationTitle
         goForeground(entity.progress.takeIf { it > 0f })
 
-        val files = BookFiles.downloadableFiles(book)
+        val files = runCatching { DownloadPlan.files(entity, book, json) }.getOrElse {
+            dao.updateFailure(bookId, DownloadStatus.FAILED.name, "Invalid offline file selection.")
+            return Result.failure()
+        }
         if (files.isEmpty()) {
             dao.updateFailure(bookId, DownloadStatus.FAILED.name, "This book has no files available to download.")
             return Result.failure()
@@ -136,7 +139,7 @@ class DownloadWorker @AssistedInject constructor(
             activeStage = "audiobook_manifest"
             val audioFiles = files.filter { it.format?.lowercase() in BookFiles.AUDIO_FORMATS }
             val sources = if (audioFiles.isEmpty()) Sources.Legacy
-                else audiobookAssets.resolve(bookId, audioFiles)
+                else audiobookAssets.resolve(bookId, BookFiles.audioFiles(book))
             files.forEachIndexed { index, ref ->
                 activeFileId = ref.id
                 val name = DownloadFileNaming.fileName(ref, index, book)

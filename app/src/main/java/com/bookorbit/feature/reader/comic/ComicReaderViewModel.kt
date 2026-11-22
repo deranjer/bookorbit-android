@@ -37,6 +37,7 @@ class ComicReaderViewModel @Inject constructor(
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
+    private val selectedFileId = checkNotNull(savedStateHandle.get<Int>("fileId"))
 
     data class UiState(
         val loading: Boolean = true,
@@ -65,7 +66,7 @@ class ComicReaderViewModel @Inject constructor(
         _ui.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             val book = runCatching { bookRepo.detail(bookId) }.getOrNull() ?: downloads.cachedBook(bookId)
-            val file = book?.let(BookFiles::comicFile)
+            val file = book?.let { (BookFiles.readingTarget(it, selectedFileId) as? BookFiles.ReadingTarget.Comic)?.file }
             if (book == null || file == null) {
                 _ui.update { it.copy(loading = false, error = UiText.of(R.string.comic_err_load)) }
                 return@launch

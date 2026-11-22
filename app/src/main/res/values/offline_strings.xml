@@ -1,0 +1,8 @@
+<resources>
+    <string name="reading_choose_file">Choose a file to read</string>
+    <string name="offline_choose_files">Download for offline use</string>
+    <string name="offline_choose_hint">Select text, audio, or both. Only selected files will be downloaded.</string>
+    <string name="offline_file_id">File #%1$d</string>
+    <string name="offline_audio_format">Audio · %1$s</string>
+    <string name="offline_text_format">Text / comic · %1$s</string>
+</resources>

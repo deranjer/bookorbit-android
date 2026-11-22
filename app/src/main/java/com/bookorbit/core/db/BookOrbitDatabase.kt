@@ -20,7 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PendingAnnotationOpEntity::class,
         AnnotationCacheEntity::class,
     ],
-    version = 8,
+    version = 10,
     exportSchema = false,
 )
 abstract class BookOrbitDatabase : RoomDatabase() {
@@ -32,6 +32,22 @@ abstract class BookOrbitDatabase : RoomDatabase() {
     abstract fun pendingReadingSessionDao(): PendingReadingSessionDao
     abstract fun pendingAnnotationOpDao(): PendingAnnotationOpDao
     abstract fun annotationCacheDao(): AnnotationCacheDao
+}
+
+/** Persist explicit download plans without modifying existing content or progress. */
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `reader_progress` ADD COLUMN `pageNumber` INTEGER")
+        db.execSQL("ALTER TABLE `reader_progress` ADD COLUMN `writeId` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `audio_progress` ADD COLUMN `writeId` TEXT NOT NULL DEFAULT ''")
+    }
+}
+
+/** Persist explicit download plans without modifying existing content or progress. */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `downloads` ADD COLUMN `selectedFileIdsJson` TEXT")
+    }
 }
 
 /**

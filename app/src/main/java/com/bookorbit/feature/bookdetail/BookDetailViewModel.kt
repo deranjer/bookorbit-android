@@ -140,14 +140,23 @@ class BookDetailViewModel @Inject constructor(
         }
     }
 
-    fun startDownload() {
+    fun startDownload(selectedFileIds: Set<Int>) {
         val book = _ui.value.book ?: return
-        viewModelScope.launch { downloads.startDownload(book) }
+        viewModelScope.launch { downloads.startDownload(book, selectedFileIds) }
     }
 
     fun removeDownload() {
         viewModelScope.launch { downloads.delete(bookId) }
     }
+
+    fun retryDownload() {
+        viewModelScope.launch { downloads.retryDownload(bookId) }
+    }
+
+    fun downloadedFileIds(entity: DownloadEntity?): Set<Int> =
+        if (entity?.status in setOf("COMPLETE", "COMPLETE_FALLBACK"))
+            downloads.decodeFiles(checkNotNull(entity)).map { it.id }.toSet()
+        else emptySet()
 
     private suspend fun reloadBook() {
         val book = loadedBook()

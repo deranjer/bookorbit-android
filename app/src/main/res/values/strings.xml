@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">BookOrbit</string>
+    <string name="app_name">BookOrbit Client</string>
     <string name="a">A</string>
     <string name="add">Add %1$s…</string>
     <string name="add_note">Add note</string>

@@ -53,6 +53,10 @@ class AudioProgressRepositoryTest {
         mockkStatic(Log::class)
         every { Log.w(any(), any<String>()) } returns 0
         dao = mockk(relaxed = true)
+        var stored: AudioProgressEntity? = null
+        coEvery { dao.upsert(any()) } coAnswers { stored = firstArg() }
+        coEvery { dao.get(any()) } coAnswers { stored }
+        coEvery { dao.markSynced(any(), any()) } returns 1
         api = mockk()
         assets = mockk()
         syncScheduler = mockk(relaxed = true)
@@ -79,7 +83,7 @@ class AudioProgressRepositoryTest {
         repo.report(bookId = 1, currentFileId = 10, positionSeconds = 30.0, percentage = 5.0)
 
         coVerify { dao.upsert(match { it.bookId == 1 && it.currentFileId == 10 && it.positionSeconds == 30.0 && it.dirty }) }
-        coVerify(exactly = 0) { dao.markSynced(any()) }
+        coVerify(exactly = 0) { dao.markSynced(any(), any()) }
         verify { syncScheduler.schedule() }
     }
 
@@ -89,7 +93,7 @@ class AudioProgressRepositoryTest {
 
         repo.report(bookId = 1, currentFileId = 10, positionSeconds = 30.0, percentage = 5.0)
 
-        coVerify { dao.markSynced(1) }
+        coVerify { dao.markSynced(1, any()) }
         verify(exactly = 0) { syncScheduler.schedule() }
     }
 
@@ -102,7 +106,7 @@ class AudioProgressRepositoryTest {
         coEvery { api.saveAudioProgress(any(), any()) } returns Unit
 
         assertFalse(repo.flushPending())
-        coVerify { dao.markSynced(1) }
+        coVerify { dao.markSynced(1, "") }
     }
 
     @Test
@@ -112,7 +116,7 @@ class AudioProgressRepositoryTest {
         coEvery { api.saveAudioProgress(any(), any()) } throws RuntimeException("offline")
 
         assertTrue(repo.flushPending())
-        coVerify(exactly = 0) { dao.markSynced(any()) }
+        coVerify(exactly = 0) { dao.markSynced(any(), any()) }
     }
 
     // --- 3.0+ servers (playback-state) ---
@@ -132,7 +136,7 @@ class AudioProgressRepositoryTest {
         assertEquals(0, bodies[0].baseRevision)
         assertEquals(manifestRevision, bodies[0].manifestRevision)
         assertEquals(7, bodies[1].baseRevision)
-        coVerify(exactly = 2) { dao.markSynced(1) }
+        coVerify(exactly = 2) { dao.markSynced(1, any()) }
         coVerify(exactly = 0) { api.saveAudioProgress(any(), any()) }
     }
 
@@ -146,7 +150,7 @@ class AudioProgressRepositoryTest {
         repo.report(bookId = 1, currentFileId = 10, positionSeconds = 30.0, percentage = 5.0)
 
         coVerify(exactly = 1) { api.putPlaybackState(1, any()) }
-        coVerify { dao.markSynced(1) }
+        coVerify { dao.markSynced(1, any()) }
     }
 
     @Test
@@ -161,7 +165,7 @@ class AudioProgressRepositoryTest {
         repo.report(bookId = 1, currentFileId = 10, positionSeconds = 30.0, percentage = 5.0)
 
         assertEquals(listOf(0, 4), bodies.map { it.baseRevision })
-        coVerify { dao.markSynced(1) }
+        coVerify { dao.markSynced(1, any()) }
     }
 
     @Test
@@ -177,7 +181,7 @@ class AudioProgressRepositoryTest {
 
         assertEquals("aud_new", bodies[1].assetId)
         assertEquals("b".repeat(64), bodies[1].manifestRevision)
-        coVerify { dao.markSynced(1) }
+        coVerify { dao.markSynced(1, any()) }
     }
 
     @Test
@@ -187,7 +191,7 @@ class AudioProgressRepositoryTest {
 
         repo.report(bookId = 1, currentFileId = 10, positionSeconds = 30.0, percentage = 5.0)
 
-        coVerify(exactly = 0) { dao.markSynced(any()) }
+        coVerify(exactly = 0) { dao.markSynced(any(), any()) }
         verify { syncScheduler.schedule() }
     }
 

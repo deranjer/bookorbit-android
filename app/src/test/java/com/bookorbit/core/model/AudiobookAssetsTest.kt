@@ -26,7 +26,7 @@ class AudiobookAssetsTest {
     }
 
     @Test
-    fun `duplicate sizes and unknown sizes fall back to sequence order`() {
+    fun `ambiguous tracks are never guessed from sequence order`() {
         val files = listOf(file(1, size = 100), file(2, size = 100), file(3), file(4, size = 500))
         val assets = listOf(
             asset("aud_c", 2),
@@ -35,9 +35,21 @@ class AudiobookAssetsTest {
             asset("aud_b", 1, size = 100),
         )
         assertEquals(
-            mapOf(4 to "aud_d", 1 to "aud_a", 2 to "aud_b", 3 to "aud_c"),
+            mapOf(4 to "aud_d"),
             AudiobookAssets.match(files, assets),
         )
+    }
+
+    @Test
+    fun `exact IDs beat identical sizes and reversed order`() {
+        val assets = listOf(asset("aud_b", 0, size = 100).copy(fileId = 2), asset("aud_a", 1, size = 100).copy(fileId = 1))
+        assertEquals(mapOf(2 to "aud_b", 1 to "aud_a"), AudiobookAssets.match(listOf(file(1, size = 100), file(2, size = 100)), assets))
+        assertEquals(mapOf(2 to "aud_b"), AudiobookAssets.match(listOf(file(2, size = 100)), assets))
+    }
+
+    @Test
+    fun `authoritative ID outside selection cannot match by size`() {
+        assertEquals(emptyMap<Int, String>(), AudiobookAssets.match(listOf(file(1, size = 100)), listOf(asset("aud_b", 0, size = 100).copy(fileId = 2))))
     }
 
     @Test
@@ -53,10 +65,10 @@ class AudiobookAssetsTest {
             """
             {"schema":"bookorbit.audiobook-manifest","schemaVersion":2,"revision":"r",
              "book":{"id":7,"title":"T","authors":[],"narrators":[],"hasCover":true},
-             "assets":[{"assetId":"aud_1","sequence":0,"format":"m4b","durationMs":null,"sizeBytes":42,"etag":"e"}],
+              "assets":[{"assetId":"aud_1","fileId":614,"sequence":0,"format":"m4b","durationMs":null,"sizeBytes":42,"etag":"e"}],
              "chapters":[],"totalDurationMs":0}
             """.trimIndent(),
         )
-        assertEquals(listOf(AudiobookManifestAsset("aud_1", 0, "m4b", null, 42)), manifest.assets)
+        assertEquals(listOf(AudiobookManifestAsset("aud_1", 0, "m4b", null, 42, fileId = 614)), manifest.assets)
     }
 }

@@ -1,0 +1,51 @@
+name: bookorbit-client-test
+
+services:
+  app:
+    image: ghcr.io/bookorbit/bookorbit:3.9.0@sha256:79cd9c66c990a82944514e3e82d5be5987f21eda96cb37a378ed1484043716fc
+    init: true
+    ports:
+      - "127.0.0.1:6264:3000"
+    env_file: ../../.local/test-server.env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: bookorbit_client
+      POSTGRES_DB: bookorbit_client
+      APP_URL: http://localhost:6264
+      CLIENT_URL: http://localhost:6264
+      APP_DATA_PATH: /data
+      LIBRARY_BROWSE_ROOT: /books
+      OIDC_MOBILE_REDIRECT_URIS: bookorbitclient://oauth2-callback
+      TZ: UTC
+    volumes:
+      - app-data:/data
+      - ../../.local/fixtures:/books:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+
+  postgres:
+    image: pgvector/pgvector:0.8.7-pg18-trixie@sha256:ab49524d18df7200b74ac9a475e1db6297fc1eb57da4c214c63d10ecc4b754fa
+    env_file: ../../.local/test-server.env
+    environment:
+      POSTGRES_USER: bookorbit_client
+      POSTGRES_DB: bookorbit_client
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bookorbit_client -d bookorbit_client"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  app-data:
+  postgres-data:
