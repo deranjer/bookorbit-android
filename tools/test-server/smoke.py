@@ -58,13 +58,16 @@ def main():
             assert status == 200, 'Book detail contract failed'
             detail_rows.append(detail)
         paired = next((book for book in detail_rows if book['title'] == 'First Orbit'), None)
-        if (len(items) == 2 and paired
+        if (len(items) >= 3 and paired
                 and len([file for file in paired['files'] if file['format'] == 'mp3']) == 2
                 and len([file for file in paired['files'] if file['format'] == 'epub']) == 2):
             break
         assert time.monotonic() < deadline, 'Fixture scan did not finish within 90 seconds'
         time.sleep(1)
     formats = {file['format'] for file in paired['files']}
+    overlay_book = next(book for book in detail_rows if book['title'] == 'Read Along Orbit')
+    overlay_file = next(file for file in overlay_book['files'] if file['format'] == 'epub')
+    assert overlay_file.get('mediaOverlay', {}).get('available'), 'Server did not recognize the SMIL fixture'
     assert {'epub', 'mp3'} <= formats, f'Paired fixture lost a format: {formats}'
     assert paired.get('description') and paired.get('authors'), 'Card description/author missing'
     epub = next(file for file in paired['files'] if file['format'] == 'epub')
@@ -94,6 +97,11 @@ def main():
     assert status == 200 and other_saved['percentage'] == 35
     status, first_saved = call('GET', f"/books/files/{epub['id']}/progress", headers=headers)
     assert status == 200 and first_saved['percentage'] == 10, 'Edition progress was conflated'
+    status, guide_status = call('GET', f"/books/{paired['id']}/story-guide?fileId={epub['id']}", headers=headers)
+    assert status == 200 and guide_status['fileId'] == epub['id'], 'Story Guide status contract failed'
+    assert 'allowed' in guide_status['build'] and 'canManage' in guide_status
+    status, denial = call('GET', f"/mobile/books/files/{epub['id']}/story-guide?format=1", headers=headers)
+    assert status == 403, 'Production-mode test server must retain attestation protection'
     for asset in manifest['assets']:
         file = next(file for file in paired['files'] if file['id'] == asset['fileId'])
         check_range(f"/audiobooks/{paired['id']}/assets/{asset['assetId']}/content", (fixture_root / file['filename']).read_bytes())
@@ -101,6 +109,7 @@ def main():
     contracts.mkdir(exist_ok=True)
     (contracts / 'book-detail.json').write_text(json.dumps(paired, indent=2))
     (contracts / 'audiobook-manifest.json').write_text(json.dumps(manifest, indent=2))
+    (contracts / 'story-guide-status.json').write_text(json.dumps(guide_status, indent=2))
     print('PASS: local login, library, descriptions, two EPUB editions with isolated progress, exact audio IDs and HTTP Range bytes.')
     print('Test credentials: .local/test-account.json (not printed). No production server was used.')
 

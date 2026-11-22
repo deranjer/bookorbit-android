@@ -36,6 +36,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
@@ -109,6 +114,8 @@ fun MainShell(
     val barRoutes = bar.map { it.route }.toSet()
     val unpinned = NavConfig.available(bar, canUseBookDrop).filter { it != NavItem.YOU }
     val startRoute = remember { bar.first().route }
+    var activeTab by rememberSaveable { mutableStateOf(startRoute) }
+    var libraryReset by rememberSaveable { mutableIntStateOf(0) }
     val tabNav = rememberNavController()
     // Tablets, unfolded foldables and landscape phones: a navigation rail beats a bottom bar.
     val widthDp = LocalConfiguration.current.screenWidthDp
@@ -120,6 +127,9 @@ fun MainShell(
 
     val backStackEntry by tabNav.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+    LaunchedEffect(currentRoute) {
+        if (currentRoute in barRoutes) activeTab = checkNotNull(currentRoute)
+    }
     val isBookDetail = currentRoute == SubRoute.BOOK_DETAIL
     val twoPane = TwoPane.isActive(widthDp, currentRoute)
     val onBookClick: (Int) -> Unit = { id -> tabNav.navigate(SubRoute.bookDetail(id)) }
@@ -139,6 +149,21 @@ fun MainShell(
     val onSeriesClick: (Int, String) -> Unit = { id, name -> tabNav.navigate(SubRoute.series(id, name)) }
 
     fun navigateTab(route: String) {
+        val selected = if (currentRoute in barRoutes) currentRoute else activeTab
+        if (route == selected) {
+            detailNav.popBackStack(PANE_EMPTY, inclusive = false)
+            if (route == NavItem.LIBRARY.route) libraryReset++
+            // Reselect means root, never restore the nested book/author stack just popped.
+            if (!tabNav.popBackStack(route, inclusive = false)) {
+                tabNav.navigate(route) {
+                    popUpTo(tabNav.graph.findStartDestination().id) { saveState = false }
+                    launchSingleTop = true
+                    restoreState = false
+                }
+            }
+            return
+        }
+        activeTab = route
         tabNav.navigate(route) {
             popUpTo(tabNav.graph.findStartDestination().id) { saveState = true }
             launchSingleTop = true
@@ -146,13 +171,13 @@ fun MainShell(
         }
     }
 
-    // The tab to highlight: the You sub-screens count as You; book detail highlights nothing.
+    // Nested screens retain their owning tab so reselecting it can return to its root.
     // A screen that isn't in the bar is opened from You: it counts as You and gets a back button.
     val openedFromYou = currentRoute != null && currentRoute !in barRoutes && unpinned.any { it.route == currentRoute }
     val selectedRoute = when {
         currentRoute in barRoutes -> currentRoute
         openedFromYou -> NavItem.YOU.route
-        else -> currentRoute
+        else -> activeTab
     }
 
     val title = when (currentRoute) {
@@ -263,7 +288,7 @@ fun MainShell(
                 }
             }
             composable(NavItem.LIBRARY.route) {
-                LibraryHubScreen(onBookClick = onListBookClick, onAuthorClick = onAuthorClick, onSeriesClick = onSeriesClick)
+                LibraryHubScreen(onBookClick = onListBookClick, onAuthorClick = onAuthorClick, onSeriesClick = onSeriesClick, resetEpoch = libraryReset)
             }
             composable(
                 route = SubRoute.AUTHOR,

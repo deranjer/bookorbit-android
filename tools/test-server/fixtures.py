@@ -63,6 +63,28 @@ def create():
     # Equal-sized tracks deliberately exercise exact file identity, not size heuristics.
     for name in ('01 First Orbit.mp3', '02 First Orbit.mp3'):
         (paired / name).write_bytes(encoded)
+    read_along = ROOT / 'Read Along Orbit'
+    read_along.mkdir(exist_ok=True)
+    overlay_book = read_along / 'Read Along Orbit.epub'
+    epub(overlay_book, 'Read Along Orbit')
+    with zipfile.ZipFile(overlay_book) as book:
+        payload = {name: book.read(name) for name in book.namelist()}
+    opf = payload['OEBPS/content.opf'].decode()
+    opf = opf.replace('<metadata ', '<metadata ').replace('</metadata>',
+        '<meta property="media:duration">00:00:02.000</meta><meta property="media:active-class">read-along-active</meta></metadata>')
+    opf = opf.replace('id="chapter" href=', 'id="chapter" media-overlay="overlay" href=')
+    opf = opf.replace('</manifest>', '<item id="overlay" href="overlay.smil" media-type="application/smil+xml"/>'
+        '<item id="audio" href="audio.mp3" media-type="audio/mpeg"/></manifest>')
+    payload['OEBPS/content.opf'] = opf.encode()
+    payload['OEBPS/audio.mp3'] = encoded
+    payload['OEBPS/overlay.smil'] = b'''<?xml version="1.0" encoding="UTF-8"?>
+<smil xmlns="http://www.w3.org/ns/SMIL" version="3.0"><body><seq>
+<par><text src="chapter.xhtml#one"/><audio src="audio.mp3" clipBegin="0s" clipEnd="1s"/></par>
+<par><text src="chapter.xhtml#two"/><audio src="audio.mp3" clipBegin="1s" clipEnd="2s"/></par>
+</seq></body></smil>'''
+    with zipfile.ZipFile(overlay_book, 'w') as book:
+        for name, data in payload.items():
+            book.writestr(name, data, compress_type=zipfile.ZIP_STORED)
     legacy = paired / 'First Orbit.wav'
     if legacy.exists():
         legacy.unlink()  # Remove only our obsolete generated fixture, never user media.
@@ -75,4 +97,4 @@ def create():
 
 if __name__ == '__main__':
     create()
-    print('Created two original EPUB editions, two MP3 tracks and CBZ fixtures in .local/fixtures/.')
+    print('Created text/audio editions, EPUB/SMIL read-along and CBZ fixtures in .local/fixtures/.')

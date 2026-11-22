@@ -11,6 +11,7 @@ import com.bookorbit.core.model.BookFiles
 import com.bookorbit.core.model.BookRecommendation
 import com.bookorbit.core.model.CollectionWithMembership
 import com.bookorbit.feature.downloads.DownloadsRepository
+import com.bookorbit.feature.storyguide.StoryGuideRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,6 +30,7 @@ class BookDetailViewModel @Inject constructor(
     private val repo: BookDetailRepository,
     private val downloads: DownloadsRepository,
     session: SessionManager,
+    val storyGuides: StoryGuideRepository,
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0

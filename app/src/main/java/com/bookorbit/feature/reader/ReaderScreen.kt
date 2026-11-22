@@ -38,6 +38,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -67,6 +72,16 @@ fun ReaderScreen(
     var highlightsVisible by remember { mutableStateOf(false) }
     var searchVisible by remember { mutableStateOf(false) }
     var noteDialog by remember { mutableStateOf<String?>(null) }
+    var readAlong by remember { mutableStateOf(ReaderEvent.ReadAlong(false, "unavailable")) }
+    val scope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, controller) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) controller.readAlong("pause")
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer); controller.readAlong("stop") }
+    }
 
     val context = LocalContext.current
 
@@ -96,6 +111,7 @@ fun ReaderScreen(
                 is ReaderEvent.Loaded -> vm.onLoaded(event.toc, event.title)
                 is ReaderEvent.Relocate -> vm.onRelocate(event.cfi, event.fraction, event.chapterTitle)
                 is ReaderEvent.Error -> vm.onError(event.message)
+                is ReaderEvent.ReadAlong -> readAlong = event
                 is ReaderEvent.Tap -> onTap.value(event.x)
                 is ReaderEvent.SearchResults -> vm.onSearchResults(event.label, event.hits)
                 is ReaderEvent.SearchProgress -> vm.onSearchProgress(event.progress)
@@ -224,6 +240,15 @@ fun ReaderScreen(
                 onDelete = annotation?.let { a -> { vm.deleteAnnotation(a.id) } },
                 modifier = Modifier.offset(x = x.dp, y = y.dp),
             )
+        }
+
+        if (readAlong.available && ui.loaded && !rendererFailed && showChrome) {
+            ReadAlongBar(readAlong, onCommand = { action, rate ->
+                scope.launch {
+                    if (action == "start" || action == "resume") vm.prepareReadAlong()
+                    controller.readAlong(action, rate)
+                }
+            }, modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(horizontal = 12.dp, vertical = 44.dp))
         }
 
         if ((!ui.loaded || !ready) && ui.error == null && !rendererFailed) {

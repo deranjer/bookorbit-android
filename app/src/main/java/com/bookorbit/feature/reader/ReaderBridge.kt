@@ -42,6 +42,7 @@ sealed interface ReaderEvent {
         val chapterTitle: String?,
     ) : ReaderEvent
     data class Error(val message: String) : ReaderEvent
+    data class ReadAlong(val available: Boolean, val state: String, val rate: Double = 1.0, val error: String? = null) : ReaderEvent
 
     /** A tap on the page body (not on a link or highlight). [x] is 0..1 across the viewport. */
     data class Tap(val x: Double) : ReaderEvent
@@ -91,6 +92,12 @@ object ReaderBridge {
         val obj = json.parseToJsonElement(data).jsonObject
         when (obj["type"]?.jsonPrimitive?.contentOrNull) {
             "ready" -> ReaderEvent.Ready
+            "readAlong" -> ReaderEvent.ReadAlong(
+                available = obj["available"]?.jsonPrimitive?.booleanOrNull ?: false,
+                state = obj["state"]?.jsonPrimitive?.contentOrNull ?: "unavailable",
+                rate = obj["rate"]?.jsonPrimitive?.doubleOrNull?.takeIf { it.isFinite() && it in 0.5..2.0 } ?: 1.0,
+                error = obj["error"]?.jsonPrimitive?.contentOrNull,
+            )
             "loaded" -> {
                 val toc = obj["toc"]?.let {
                     runCatching { json.decodeFromJsonElement(kotlinx.serialization.builtins.ListSerializer(TocItem.serializer()), it) }

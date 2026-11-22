@@ -88,6 +88,18 @@ class ReaderController {
     fun next() = command(buildJsonObject { put("type", "next") }.toString())
     fun prev() = command(buildJsonObject { put("type", "prev") }.toString())
 
+    fun readAlong(action: String, rate: Double? = null) {
+        webView?.post {
+            // Native controls are the explicit user gesture; do not enable autoplay at reader creation.
+            if (action == "start" || action == "resume") webView?.settings?.mediaPlaybackRequiresUserGesture = false
+            if (action == "stop") webView?.settings?.mediaPlaybackRequiresUserGesture = true
+            command(buildJsonObject {
+                put("type", "readAlong"); put("action", action)
+                if (rate != null) put("rate", rate)
+            }.toString())
+        }
+    }
+
     /** Replace the set of highlights drawn in the page. Only CFI-anchored, resolvable ones are drawn. */
     fun setAnnotations(items: List<BookAnnotation>) {
         val arr = kotlinx.serialization.json.buildJsonArray {

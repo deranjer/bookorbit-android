@@ -1,73 +1,41 @@
 package com.bookorbit.feature.bookdetail
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.bookorbit.R
 import com.bookorbit.core.model.BookDetail
-import com.bookorbit.core.model.BookFiles
+import com.bookorbit.core.model.BookEditions
 
-/** Choosing content does not fetch it; only the explicit confirmation enqueues a download. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun DownloadSelectionDialog(book: BookDetail, onConfirm: (Set<Int>) -> Unit, onDismiss: () -> Unit, existingFileIds: Set<Int> = emptySet()) {
-    val files = remember(book) { BookFiles.downloadCandidates(book) }
-    var selected by remember(book) { mutableStateOf(emptySet<Int>()) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.offline_choose_files)) },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                Text(stringResource(R.string.offline_choose_hint))
-                if (existingFileIds.isNotEmpty()) Text(stringResource(R.string.offline_existing_hint))
-                files.forEach { file ->
-                    val existing = file.id in existingFileIds
-                    val checked = existing || file.id in selected
-                    Row(
-                        Modifier.fillMaxWidth().toggleable(
-                            value = checked,
-                            role = Role.Checkbox,
-                            enabled = !existing,
-                            onValueChange = { selected = if (it) selected + file.id else selected - file.id },
-                        ).padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Checkbox(checked = checked, onCheckedChange = null, enabled = !existing)
-                        Column(Modifier.padding(start = 8.dp)) {
-                            Text(file.filename ?: stringResource(R.string.offline_file_id, file.id))
-                            if (existing) Text(stringResource(R.string.downloaded))
-                            Text(stringResource(
-                                if (file.format?.lowercase() in BookFiles.AUDIO_FORMATS) R.string.offline_audio_format
-                                else R.string.offline_text_format,
-                                file.format.orEmpty().uppercase(),
-                            ))
-                        }
-                    }
-                }
+    val editions = remember(book) { BookEditions.of(book) }
+    var selected by rememberSaveable(book.id) { mutableStateOf(arrayListOf<String>()) }
+    val additional = if (selected.isEmpty()) emptySet() else BookEditions.additionalFiles(editions, selected.toSet(), existingFileIds)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.edition_download_title), style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.edition_download_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(4.dp))
+            editions.forEach { edition ->
+                val existing = edition.isOffline(existingFileIds)
+                val checked = existing || edition.key in selected
+                EditionCard(edition, book, existingFileIds, selected = checked, enabled = !existing,
+                    onClick = { selected = ArrayList(if (edition.key in selected) selected - edition.key else selected + edition.key) },
+                    trailing = { Checkbox(checked = checked, onCheckedChange = null, enabled = !existing) })
             }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(selected) }, enabled = selected.isNotEmpty()) {
-                Text(stringResource(R.string.download))
+            Button(onClick = { onConfirm(additional) }, enabled = additional.isNotEmpty(),
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp).heightIn(min = 56.dp)) {
+                Text(stringResource(R.string.edition_download_selected))
             }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
-    )
+            Spacer(Modifier.height(24.dp))
+        }
+    }
 }

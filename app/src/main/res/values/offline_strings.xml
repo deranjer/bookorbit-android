@@ -1,6 +1,21 @@
 <resources>
+    <string name="read_along_title">Read along</string>
+    <string name="read_along_foreground">EPUB audio · while reading</string>
+    <string name="read_along_play">Play read-along</string>
+    <string name="read_along_pause">Pause read-along</string>
+    <string name="read_along_rate">%1$s×</string>
+    <string name="read_along_audio_error">Could not play the EPUB audio. You can still read the book. Retry playback.</string>
+    <string name="edition_audio">Audiobook</string>
+    <string name="edition_text">Text edition</string>
+    <string name="edition_tracks">%1$d tracks</string>
+    <string name="edition_partially_saved">%1$d of %2$d parts saved</string>
+    <string name="edition_download_title">Keep an edition offline</string>
+    <string name="edition_download_hint">Choose text, the complete audiobook, or both. All audio tracks are included automatically.</string>
+    <string name="edition_download_selected">Download selected editions</string>
+    <string name="edition_read_title">Choose an edition</string>
+    <string name="edition_tab">Editions</string>
     <string name="offline_action_failed">Could not update offline files. Please try again or check Downloads.</string>
-    <string name="offline_add_files">Add files</string>
+    <string name="offline_add_files">Add an edition</string>
     <string name="offline_existing_hint">Downloaded files are kept. Select only the files you want to add.</string>
     <string name="reading_choose_file">Choose a file to read</string>
     <string name="offline_choose_files">Download for offline use</string>

@@ -309,6 +309,12 @@ class PlayerManager @Inject constructor(
         if (c.isPlaying) c.pause() else c.play()
     }
 
+    /** An embedded EPUB overlay must not play on top of the separate audiobook queue. */
+    suspend fun pauseForReadAlong() = kotlinx.coroutines.withContext(Dispatchers.Main.immediate) {
+        loadGeneration.incrementAndGet()
+        controller?.pause()
+    }
+
     fun skipBack() = scope.launch {
         val now = bookPositionMs() ?: return@launch
         seekToAbsoluteNow(((now - settings.skipBackSeconds * 1000L).coerceAtLeast(0)) / 1000.0)

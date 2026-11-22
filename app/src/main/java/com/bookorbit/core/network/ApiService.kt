@@ -7,6 +7,9 @@ import com.bookorbit.core.model.AudioProgress
 import com.bookorbit.core.model.AuthUser
 import com.bookorbit.core.model.AuthorsPage
 import com.bookorbit.core.model.BookDetail
+import com.bookorbit.core.model.StoryGuideStatus
+import com.bookorbit.core.model.StoryGuideBuildRequest
+import com.bookorbit.core.model.StoryGuideFileRequest
 import com.bookorbit.core.model.BookDockBulkCounts
 import com.bookorbit.core.model.BookDockFile
 import com.bookorbit.core.model.BookDockFilesPage
@@ -65,6 +68,21 @@ import retrofit2.http.Streaming
  * Endpoints mirror the server's `/api/v1` REST surface one-to-one.
  */
 interface ApiService {
+    @GET("books/{bookId}/story-guide")
+    suspend fun getStoryGuideStatus(@Path("bookId") bookId: Int, @Query("fileId") fileId: Int): StoryGuideStatus
+
+    @GET("mobile/books/files/{fileId}/story-guide")
+    suspend fun getStoryGuideContent(@Path("fileId") fileId: Int, @Query("format") format: String = "1"): Response<ResponseBody>
+
+    @POST("books/{bookId}/story-guide")
+    suspend fun buildStoryGuide(@Path("bookId") bookId: Int, @Body request: StoryGuideBuildRequest): Response<StoryGuideStatus>
+
+    @POST("books/{bookId}/story-guide/retry")
+    suspend fun retryStoryGuide(@Path("bookId") bookId: Int, @Body request: StoryGuideFileRequest): StoryGuideStatus
+
+    @POST("books/{bookId}/story-guide/cancel")
+    suspend fun cancelStoryGuide(@Path("bookId") bookId: Int, @Body request: StoryGuideFileRequest): StoryGuideStatus
+
 
     // --- Auth ---
     @POST("auth/login")

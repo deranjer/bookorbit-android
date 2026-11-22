@@ -11,6 +11,7 @@ import com.bookorbit.core.storage.LocalRef
 import com.bookorbit.feature.bookdetail.BookDetailRepository
 import com.bookorbit.feature.downloads.DownloadsRepository
 import com.bookorbit.feature.sessions.ReadingSessionTracker
+import com.bookorbit.feature.player.PlayerManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,6 +33,7 @@ class ReaderViewModel @Inject constructor(
     private val sessions: ReadingSessionTracker,
     private val annotationRepo: ReaderAnnotationRepository,
     private val bookmarkRepo: ReaderBookmarkRepository,
+    private val player: PlayerManager,
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
@@ -88,6 +90,8 @@ class ReaderViewModel @Inject constructor(
 
     private val _ui = MutableStateFlow(UiState())
     val ui = _ui.asStateFlow()
+
+    suspend fun prepareReadAlong() { player.pauseForReadAlong() }
 
     private var lastSaved = 0L
     private var pending: Pair<String?, Double>? = null

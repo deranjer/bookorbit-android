@@ -61,6 +61,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -73,6 +75,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFiles
+import com.bookorbit.core.model.BookEditions
+import com.bookorbit.feature.storyguide.StoryGuideSheet
 import com.bookorbit.ui.LocalImageUrls
 import com.bookorbit.ui.components.RecommendationScroller
 import com.bookorbit.ui.components.StarRating
@@ -209,6 +213,7 @@ private fun BookDetailContent(
     val download by vm.downloadState.collectAsStateWithLifecycle()
     val offlineIds = vm.downloadedFileIds(download)
     var chooseReadingFile by rememberSaveable(book.id) { mutableStateOf(false) }
+    var guideVisible by rememberSaveable(book.id) { mutableStateOf(false) }
     val readableFiles = book.files.filter { BookFiles.readingTarget(book, it.id) != BookFiles.ReadingTarget.None }
     val openFile: (Int) -> Unit = { fileId ->
         when (BookFiles.readingTarget(book, fileId)) {
@@ -224,6 +229,7 @@ private fun BookDetailContent(
             openFile(it)
         }, onDismiss = { chooseReadingFile = false })
     }
+    if (guideVisible) StoryGuideSheet(book, vm.storyGuides, onDismiss = { guideVisible = false })
 
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         DetailHero(book, onAuthorClick = onAuthorClick, onSeriesClick = onSeriesClick)
@@ -263,13 +269,16 @@ private fun BookDetailContent(
                 Text(stringResource(R.string.offline_action_failed), color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall)
             }
+            androidx.compose.material3.TextButton(onClick = { guideVisible = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.guide_title))
+            }
         }
 
         FormatChips(book, ui.fileProgress)
 
         val tabs = listOf(
             stringResource(R.string.detail_tab_details),
-            stringResource(R.string.detail_tab_files),
+            stringResource(R.string.edition_tab),
             if (ui.highlights.isNotEmpty()) stringResource(R.string.detail_tab_highlights_n, ui.highlights.size) else stringResource(R.string.detail_tab_highlights),
         )
         TabRow(selectedTabIndex = tab, modifier = Modifier.padding(top = 8.dp)) {
@@ -289,7 +298,7 @@ private fun BookDetailContent(
                 onOpenCollectionSheet = onOpenCollectionSheet,
                 onOpenUri = { uriHandler.openUri(it) },
             )
-            1 -> FilesTab(book, offlineIds, openFile)
+            1 -> EditionsTab(book, offlineIds, openFile, onListen)
             else -> HighlightsTab(ui.highlights)
         }
 
@@ -308,8 +317,8 @@ private fun DetailHero(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
-            .padding(horizontal = 20.dp, vertical = 20.dp),
+            .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primaryContainer.copy(alpha = .65f), MaterialTheme.colorScheme.background)))
+            .padding(horizontal = 24.dp, vertical = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AsyncImage(
@@ -317,15 +326,16 @@ private fun DetailHero(
             contentDescription = book.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(width = 150.dp, height = 225.dp)
-                .clip(RoundedCornerShape(10.dp)),
+                .size(width = 170.dp, height = 255.dp)
+                .shadow(18.dp, RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(18.dp)),
         )
         Text(
             book.title ?: stringResource(R.string.card_unknown_title),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.displaySmall,
+            fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 16.dp),
+            modifier = Modifier.padding(top = 24.dp),
         )
         book.subtitle?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
@@ -449,14 +459,14 @@ private fun DetailsTab(
     onOpenUri: (String) -> Unit,
 ) {
     Column {
-        ShelfCards(book, vm, ui, onOpenStatusSheet, onOpenCollectionSheet)
-
         book.description?.let { description ->
             Section(stringResource(R.string.synopsis)) {
                 val annotated = remember(description) { htmlToAnnotatedString(description) }
                 Text(annotated, style = MaterialTheme.typography.bodyMedium)
             }
         }
+
+        ShelfCards(book, vm, ui, onOpenStatusSheet, onOpenCollectionSheet)
 
         DetailsSection(book)
 
@@ -578,45 +588,21 @@ private fun ShelfCards(
 }
 
 @Composable
-private fun FilesTab(book: BookDetail, offlineIds: Set<Int>, onReadFile: (Int) -> Unit) {
-    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-        if (book.files.isEmpty()) {
+private fun EditionsTab(book: BookDetail, offlineIds: Set<Int>, onReadFile: (Int) -> Unit, onListen: (Int) -> Unit) {
+    val editions = BookEditions.of(book)
+    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (editions.isEmpty()) {
             Text(stringResource(R.string.no_files), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        book.files.forEach { f ->
-            Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        (f.format ?: "file").uppercase(),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    if (f.role == "primary") {
-                        Text(" · " + stringResource(R.string.primary), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Box(Modifier.weight(1f))
-                    val detail = listOfNotNull(
-                        f.sizeBytes?.let { formatBytes(it) },
-                        f.durationSeconds?.let { formatDuration(it) },
-                    ).joinToString(" · ")
-                    if (detail.isNotEmpty()) {
-                        Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                f.filename?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                if (f.id in offlineIds) {
-                    Text(stringResource(R.string.downloaded), style = MaterialTheme.typography.bodySmall)
-                }
-                if (BookFiles.readingTarget(book, f.id) != BookFiles.ReadingTarget.None) {
-                    androidx.compose.material3.TextButton(onClick = { onReadFile(f.id) }) {
-                        Text(stringResource(R.string.read))
-                    }
-                }
-            }
-            HorizontalDivider()
+        editions.forEach { edition ->
+            val audio = edition.kind == BookEditions.Kind.AUDIO
+            val readable = audio || BookFiles.readingTarget(book, edition.files.single().id) != BookFiles.ReadingTarget.None
+            EditionCard(edition, book, offlineIds, enabled = readable, onClick = {
+                if (audio) onListen(book.id) else onReadFile(edition.files.single().id)
+            }, trailing = {
+                Icon(if (audio) Icons.Default.Headset else Icons.Default.Book,
+                    contentDescription = stringResource(if (audio) R.string.listen else R.string.read), tint = MaterialTheme.colorScheme.primary)
+            })
         }
     }
 }
@@ -669,13 +655,13 @@ private fun HighlightsTab(highlights: List<BookAnnotation>) {
     }
 }
 
-private fun formatBytes(bytes: Long): String = when {
+internal fun formatBytes(bytes: Long): String = when {
     bytes >= 1_000_000_000 -> "%.1f GB".format(bytes / 1_000_000_000.0)
     bytes >= 1_000_000 -> "%.1f MB".format(bytes / 1_000_000.0)
     else -> "%d KB".format(bytes / 1_000)
 }
 
-private fun formatDuration(seconds: Double): String {
+internal fun formatDuration(seconds: Double): String {
     val total = seconds.toLong()
     val h = total / 3600
     val m = (total % 3600) / 60
