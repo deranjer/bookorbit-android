@@ -39,9 +39,13 @@ internal class SingleAttemptJsonBody(val bytes: ByteArray, private val type: Med
     override fun writeTo(sink: BufferedSink) { sink.write(bytes) }
 }
 
-internal fun singleAttemptAiClient(base: OkHttpClient): OkHttpClient = base.newBuilder()
+internal fun singleAttemptAiClient(base: OkHttpClient, attestation: AndroidAttestation? = null): OkHttpClient = base.newBuilder()
+    .authenticator(okhttp3.Authenticator.NONE)
     .retryOnConnectionFailure(false)
     .followRedirects(false)
     .followSslRedirects(false)
     .addInterceptor(SingleAttemptAiInterceptor())
+    // Sign at the wire boundary, after URL/auth/body preparation. A retried bodyless GET
+    // gets a fresh nonce too; paid one-shot POSTs still cannot be retried.
+    .apply { if (attestation != null) addNetworkInterceptor(AndroidAttestInterceptor(attestation)) }
     .build()

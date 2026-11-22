@@ -13,7 +13,7 @@
     <string name="help_confirm_title">Send this excerpt to AI?</string>
     <string name="help_confirm_body">Your server will send the displayed excerpt to its configured AI provider. Text may leave your server and charges may apply. Closing this panel or leaving the app cancels the request; it is never retried automatically.</string>
     <string name="help_send">Send excerpt</string>
-    <string name="help_restricted">This server requires attestation from an official app. Reading help is unavailable to this independent client. No excerpt was sent to an AI provider.</string>
+    <string name="help_restricted">The server did not accept device verification. Stock servers trust only official apps. A compatible server and device-key registration in Settings are required. Failed requests are not automatically repeated.</string>
     <string name="help_disabled">Reading help is disabled or its Fast model is not configured on the server.</string>
     <string name="help_unsupported">This server does not advertise reading help support.</string>
     <string name="help_budget">The server’s monthly AI budget is exhausted.</string>

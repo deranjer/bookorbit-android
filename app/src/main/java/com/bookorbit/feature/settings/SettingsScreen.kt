@@ -97,9 +97,12 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
     val downloadLocationAccessible by vm.downloadLocationAccessible.collectAsStateWithLifecycle()
     val appInfo by vm.appInfo.collectAsStateWithLifecycle()
+    val attestEnrolled by vm.attestEnrolled.collectAsStateWithLifecycle()
+    val attestBusy by vm.attestBusy.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmClearDownloads by remember { mutableStateOf(false) }
+    var confirmAttestation by remember { mutableStateOf(false) }
     val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) vm.setDownloadLocation(uri)
     }
@@ -110,6 +113,16 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             vm.consumeMessage()
         }
     }
+
+    if (confirmAttestation) AlertDialog(
+        onDismissRequest = { confirmAttestation = false },
+        title = { Text(stringResource(R.string.attest_title)) },
+        text = { Text(stringResource(R.string.attest_consent)) },
+        confirmButton = { TextButton(onClick = { confirmAttestation = false; vm.enrollAttestation() }) {
+            Text(stringResource(R.string.attest_register))
+        } },
+        dismissButton = { TextButton(onClick = { confirmAttestation = false }) { Text(stringResource(android.R.string.cancel)) } },
+    )
 
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         LazyColumn(modifier = Modifier.fillMaxWidth().padding(padding)) {
@@ -365,6 +378,22 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                 }
             }
 
+            item { HorizontalDivider() }
+            item { SectionHeader(stringResource(R.string.attest_title)) }
+            item {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    Text(stringResource(if (attestEnrolled) R.string.attest_status_registered else R.string.attest_status_off),
+                        style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.attest_description), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    TextButton(onClick = { confirmAttestation = true }, enabled = !attestBusy) {
+                        Text(stringResource(if (attestBusy) R.string.attest_busy else R.string.attest_register))
+                    }
+                    if (attestEnrolled) TextButton(onClick = vm::disableAttestation, enabled = !attestBusy) {
+                        Text(stringResource(R.string.attest_disable))
+                    }
+                }
+            }
             item { HorizontalDivider() }
             item { SectionHeader(stringResource(R.string.about)) }
             item {

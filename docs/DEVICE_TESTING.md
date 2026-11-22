@@ -129,3 +129,24 @@ Both APK/lint variants pass; 428 JVM tests per flavor, 21 reader Node checks,
 5 SQLite checks, 2 localization checks and 3 server-policy parser checks pass.
 Native cached-file mode remains the default. PDF is still a complete-file reader.
 Hardware attestation and real provider/output/device acceptance remain unverified.
+
+## 0.9.7 enrollment UI and protocol checks
+
+- In-place emulator upgrade retains login, Russian locale and reader progress
+  (`60`). Settings shows version 0.9.7 and an initially unregistered key (`61`).
+- Opening registration displays a confirmation explaining certificate disclosure,
+  device/security prerequisites, no provider call and no server-policy change
+  (`62`). Confirming against the isolated HTTP-only server fails closed, leaves
+  the key unregistered and shows the localized explanation (`63`).
+- This is an HTTPS-prerequisite/UI check, **not** successful hardware attestation
+  or proof that emulator hardware claims are trusted. Production trust was not
+  weakened to make the emulator pass.
+- Separate JVM tests cover synthetic enrollment, scope/receipt failures, cleanup,
+  SEC1 key IDs, canonical bytes and actual local HTTPS signed requests. The server's
+  upstream verifier also accepts a JVM-produced public synthetic signature vector
+  and rejects mutated bytes. No hardware/private production material is in it.
+
+Both APKs/lints and 447 JVM tests per flavor pass. A disposable companion-server
+checkout builds and passes 102 attestation/contract tests with targeted ESLint/
+Prettier checks. The running isolated server and production server remain unchanged;
+no AI provider was called. Physical-device/hardware acceptance remains necessary.

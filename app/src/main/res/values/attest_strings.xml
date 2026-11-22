@@ -1,0 +1,13 @@
+<resources>
+    <string name="attest_title">Device verification for AI</string>
+    <string name="attest_status_off">Not registered</string>
+    <string name="attest_status_registered">Key registered for this server and account</string>
+    <string name="attest_description">Optional hardware-backed request signing. Requires HTTPS, a supported device and a server that explicitly trusts this independent app’s package and signing certificate. Does not unlock AI by itself. After a server restart, register again manually; failed AI requests are never automatically repeated.</string>
+    <string name="attest_consent">Generate a non-exportable Android Keystore key and send its attestation certificate chain to your current server? Certificates disclose application and device security information. No books, photos or AI prompts are sent and no provider is called. Software keys and development registrations are not accepted. Existing server policy is not changed.</string>
+    <string name="attest_register">Register device key</string>
+    <string name="attest_busy">Registering…</string>
+    <string name="attest_disable">Disable local signing</string>
+    <string name="attest_registered">Device key registered. AI permissions and provider limits still apply.</string>
+    <string name="attest_disabled">Local key removed. No server policy was changed.</string>
+    <string name="attest_failed">Registration failed. Check HTTPS, device hardware support, server app/certificate policy and device clock. AI requests were not repeated.</string>
+</resources>

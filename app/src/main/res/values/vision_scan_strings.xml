@@ -15,7 +15,7 @@
     <string name="vision_open_match">Open library match: %1$s</string>
     <string name="vision_confirm_title">Send this photo to AI?</string>
     <string name="vision_confirm_body">Your server will send the prepared photo to its configured AI provider. Photos may leave your server and provider charges may apply. Closing this panel or leaving the app cancels the request. It is never retried automatically.</string>
-    <string name="vision_restricted">This server requires attestation from an official app. Photo recognition is unavailable to this independent client. No photo was sent.</string>
+    <string name="vision_restricted">The server did not accept device verification. Stock servers trust only official apps. A compatible server and device-key registration in Settings are required. No automatic retry or provider call was made by this access check.</string>
     <string name="vision_disabled">Photo recognition is disabled or the Vision model is not configured on the server.</string>
     <string name="vision_unsupported">This server does not advertise AI photo recognition.</string>
     <string name="vision_timeout">The AI provider did not recognize the photo in time.</string>

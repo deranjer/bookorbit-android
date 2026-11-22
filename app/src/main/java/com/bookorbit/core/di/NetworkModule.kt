@@ -132,9 +132,9 @@ object NetworkModule {
     @Provides
     @Singleton
     @com.bookorbit.core.network.MobileAiApi
-    fun provideMobileAiApi(@MainClient client: OkHttpClient, json: Json): ApiService = Retrofit.Builder()
+    fun provideMobileAiApi(@MainClient client: OkHttpClient, json: Json, attestation: com.bookorbit.core.network.AndroidAttestation): ApiService = Retrofit.Builder()
         .baseUrl("http://localhost/")
-        .client(com.bookorbit.core.network.singleAttemptAiClient(client))
+        .client(com.bookorbit.core.network.singleAttemptAiClient(client, attestation))
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build().create(ApiService::class.java)
 }

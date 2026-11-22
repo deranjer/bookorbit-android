@@ -11,8 +11,8 @@ Do not import production databases, secrets or books into development fixtures.
 
 ### Исходное состояние и замечания
 
-- Текущий собранный и автоматически проверенный срез — **0.9.6**, ветка
-  `feat/independent-android-client`: 428 JVM-тестов на вариант, 21 JS-проверка,
+- Текущий собранный и автоматически проверенный срез — **0.9.7**, ветка
+  `feat/independent-android-client`: 447 JVM-тестов на вариант, 21 JS-проверка,
   5 SQL-проверок и 2 проверки локализации; lint без ошибок. Это не полная проверка
   на физическом устройстве.
   Ранее пользователю передана 0.9.1 (`617f904`); её APK сохранён отдельно.
@@ -103,7 +103,7 @@ Do not import production databases, secrets or books into development fixtures.
 
 ### P1. Read-along
 
-- [ ] Создать синтетический EPUB 3 с SMIL, встроенным аудио и несколькими текстовыми
+- [x] Создать синтетический EPUB 3 с SMIL, встроенным аудио и несколькими текстовыми
       фрагментами/главами. Отдельный EPUB + произвольные MP3 без разметки не считать
       автоматически синхронизированным read-along.
 - [x] Проверить унаследованный движок: в Foliate уже есть `MediaOverlay`,
@@ -139,7 +139,7 @@ Do not import production databases, secrets or books into development fixtures.
       приложения с отсутствием настроенного провайдера или пользовательских прав.
 - [ ] Добавить явную индикацию поддерживаемых функций/причины недоступности.
       Не показывать работающими кнопки, которые заведомо получают отказ сервера.
-- [ ] Если нужна серверная совместимость, подготовить явно согласуемое opt-in
+- [x] Если нужна серверная совместимость, подготовить явно согласуемое opt-in
       решение для самостоятельного клиента, сохранив аутентификацию и авторизацию.
       Не выдавать себя за официальное приложение и не отключать молча защиту.
       Производственный сервер не патчить без отдельного разрешения.
@@ -429,3 +429,35 @@ priority without network, unchanged complete-file cache, and a blue SVG with no
 publisher white backgrounds/red root borders (`52`–`59`). No physical-device,
 audible-output or paid provider claim is made. Next: native key enrollment/signing,
 companion-server validation, native background read-along and remaining plan items.
+
+## Explicit Android attestation client (0.9.7)
+
+- Added optional confirmed device-key registration in Settings. Requires HTTPS and
+  hardware-backed Android Keystore P-256; software keys or development receipts
+  never activate signing. Attestation certificate disclosure is explained before
+  upload. No provider inputs are sent during enrollment.
+- Implemented exact challenge encoding, SEC1 public-point key ID, leaf-first DER
+  certificate enrollment and network-boundary ECDSA assertions with exact body
+  hash, encoded path/query, millisecond clock and fresh nonce.
+- Registration is scoped to the exact server/account. Failed replacement preserves
+  the previous key; unsuccessful new keys are cleaned up. Local disable deletes
+  local registration/key without changing the server. Metadata is excluded from
+  backup/transfer because private keys are device-bound.
+- AI POSTs remain single-attempt, with authenticators, redirects and connection
+  retries disabled. `APP_ATTEST_KEY_UNKNOWN` never reenrolls or replays a paid POST;
+  server restarts require an explicit new registration. Enrollment does not alter
+  the stock official-app-only policy or enable a software/emulator fallback.
+- The companion patch was applied only to a disposable upstream v3.9.0 checkout.
+  Its production build passes; **102 attestation/contract tests** pass, including
+  verification of a Kotlin-produced synthetic public signature vector by the
+  upstream verifier. Targeted ESLint and Prettier checks pass. This is not a full
+  deployed-server/hardware/provider end-to-end test.
+
+Validation: both APKs/lints pass, **447 JVM tests per flavor**, 21 reader Node,
+5 SQLite, 2 localization and 3 policy-parser checks pass. The Russian emulator UI
+shows explicit certificate consent and refuses registration against the HTTP-only
+isolated test server (`60`–`63`), retaining its login/settings. Successful real
+hardware enrollment, unlocked-device behavior and paid AI output are unverified.
+No production installation was patched or configured. Native background read-along,
+external-audio alignment, cross-device narration coordinates and remaining design/
+physical-device acceptance work remain open; this does not complete the plan.

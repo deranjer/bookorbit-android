@@ -50,9 +50,30 @@ class SettingsViewModel @Inject constructor(
     private val appInfoRepository: AppInfoRepository,
     private val session: SessionManager,
     private val userCaSettings: UserCaSettings,
+    private val attestation: com.bookorbit.core.network.AndroidAttestation,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
     val appInfo: StateFlow<AppInfo?> = appInfoRepository.appInfo
+
+    private val _attestEnrolled = MutableStateFlow(attestation.isEnrolled())
+    val attestEnrolled = _attestEnrolled.asStateFlow()
+    private val _attestBusy = MutableStateFlow(false)
+    val attestBusy = _attestBusy.asStateFlow()
+
+    fun enrollAttestation() = changeAttestation(true)
+    fun disableAttestation() = changeAttestation(false)
+    private fun changeAttestation(enroll: Boolean) {
+        if (_attestBusy.value) return
+        _attestBusy.value = true
+        viewModelScope.launch {
+            try {
+                if (enroll) attestation.enroll() else attestation.disable()
+                _message.value = UiText.of(if (enroll) R.string.attest_registered else R.string.attest_disabled)
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (_: Exception) { _message.value = UiText.of(R.string.attest_failed) }
+            finally { _attestBusy.value = false; _attestEnrolled.value = attestation.isEnrolled() }
+        }
+    }
 
     val readerInterface = appSettings.readerInterface
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReaderInterface.APP)

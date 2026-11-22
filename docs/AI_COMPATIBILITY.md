@@ -39,9 +39,9 @@ key registration, nonce handling or signed requests.
   approved compatibility design. No production server or security policy has
   been changed. No unsigned-production bypass has been introduced.
 - A companion server change must be opt-in, retain JWT/library authorization and
-  protect provider budgets. For native attestation, implement client registration
-  and per-request signing, not just an allowlist edit. Production deployment needs
-  separate approval.
+  protect provider budgets. Native enrollment/signing is implemented in 0.9.7 below;
+  hardware acceptance and production deployment still need separate validation and
+  approval. An allowlist edit alone is insufficient.
 - The initial 0.9.3 panel did not include reading help or photo recognition.
   The 0.9.5 implementation below adds them. Relationship/anchor rendering and
   server read-aloud job controls remain separate work.
@@ -107,5 +107,41 @@ This also applies to Story Guide build/update/retry/cancel, not only SSE/photo c
 
 An undeployed opt-in package/certificate policy is prepared in
 `tools/server-compat/`; it does not enable unsigned production traffic. Native
-Android challenge/key enrollment/request signing and full hardware validation are
-still required before this independent client can use a patched production server.
+Android hardware validation is still required before claiming that this independent
+client can use a patched production server. Enrollment/signing implementation follows.
+
+## Explicit Android key enrollment and signing (0.9.7)
+
+Settings includes an optional **Device verification for AI** section. Registration
+requires confirmation that the current HTTPS server receives the attestation chain,
+including application/device security information. It does not submit books, photos
+or provider prompts. No automatic registration or server policy changes occur.
+
+The client obtains a challenge, generates a non-exportable Android Keystore EC P-256
+signing key using the challenge's UTF-8 string bytes, rejects software-only keys or
+missing certificate chains, and registers leaf-first base64 DER certificates. The
+key ID hashes the SEC1 uncompressed public point, not SPKI. Only a matching key ID
+with a production receipt activates signing for that exact server/account. Failed
+replacement enrollment keeps the previous active key and removes the new key.
+Local signing can be disabled without contacting or altering the server. Metadata
+is excluded from backup/device transfer; private keys never leave Android Keystore.
+
+The dedicated AI HTTP client materializes bounded immutable JSON bytes once and
+signs at the network boundary, after URL rewriting and bearer authorization. ECDSA
+SHA-256 covers the protocol version, uppercase method, encoded path/query from the
+first `/api/v1/`, millisecond timestamp, lowercase exact-body SHA-256, and a fresh
+URL-safe nonce. Empty GET bodies hash zero bytes. The four attestation headers do
+not contain provider credentials or private keys. Other HTTP clients are not signed.
+
+Redirects, connection retries and authenticators are disabled on this AI client;
+billable POST bodies remain one-shot. A server restart can lose its in-memory key
+registration: `APP_ATTEST_KEY_UNKNOWN` does not trigger enrollment or replay. The
+user must register again explicitly and decide whether to retry the original action.
+An unlocked, unsupported or untrusted device can legitimately remain unable to use
+these routes. No software/emulator trust fallback is added.
+
+Validation distinguishes protocol/transport checks from hardware acceptance. JVM
+tests use synthetic EC keys and local HTTPS, including exact UTF-8 wire signatures,
+503/disconnect/redirect/401 no-replay and unknown-key behavior. Companion server
+checks run on an isolated upstream v3.9.0 checkout, not the production installation.
+They do not prove actual Keystore attestation acceptance or provider generation.
