@@ -4,6 +4,7 @@ import okhttp3.Authenticator
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.Route
+import com.bookorbit.core.auth.SessionOwner
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,8 +21,9 @@ class TokenAuthenticator @Inject constructor(
         // Give up after one retry to avoid loops if refresh keeps yielding a token the server rejects.
         if (responseCount(response) >= 2) return null
 
-        val staleToken = response.request.header("Authorization")?.removePrefix("Bearer ")
-        val newToken = refresher.refreshIfNeeded(staleToken) ?: return null
+        val owner = response.request.tag(SessionOwner::class.java) ?: return null
+        val staleToken = response.request.header("Authorization")?.takeIf { it.startsWith("Bearer ") }?.removePrefix("Bearer ") ?: return null
+        val newToken = refresher.refreshIfNeeded(staleToken, owner) ?: return null
 
         return response.request.newBuilder()
             .header("Authorization", "Bearer $newToken")

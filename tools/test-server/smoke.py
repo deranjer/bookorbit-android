@@ -4,6 +4,7 @@ from pathlib import Path
 import secrets
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import zipfile
 
@@ -113,6 +114,14 @@ def main():
             assert response.status == 206 and len(data) == 32
             assert response.headers['Content-Range'].startswith('bytes 0-31/')
             assert data == expected[:32], 'Server returned bytes from the wrong file'
+    status, overlay_playlist = call('GET', f"/epub/{chapter_book['id']}/media-overlay?fileId={chapter_file['id']}", headers=headers)
+    assert status == 200 and overlay_playlist['bookId'] == chapter_book['id'] and overlay_playlist['fileId'] == chapter_file['id']
+    assert len(overlay_playlist['items']) == 4 and {item['sectionIndex'] for item in overlay_playlist['items']} == {0, 2}
+    assert {item['textFragment'] for item in overlay_playlist['items']} == {'one', 'two'}
+    with zipfile.ZipFile(ROOT / '.local/fixtures/Read Along Chapters/Read Along Chapters.epub') as original:
+        for resource in overlay_playlist['resources']:
+            asset_path = urllib.parse.quote(resource['href'], safe='/')
+            check_range(f"/epub/{chapter_book['id']}/media-overlay/file/{asset_path}?fileId={chapter_file['id']}", original.read(resource['href']))
     fixture_root = ROOT / '.local/fixtures/First Orbit'
     for text_file in (file for file in paired['files'] if file['format'] == 'epub'):
         check_range(f"/books/files/{text_file['id']}/serve", (fixture_root / text_file['filename']).read_bytes())
@@ -142,6 +151,7 @@ def main():
     (contracts / 'book-detail.json').write_text(json.dumps(paired, indent=2))
     (contracts / 'audiobook-manifest.json').write_text(json.dumps(manifest, indent=2))
     (contracts / 'story-guide-status.json').write_text(json.dumps(guide_status, indent=2))
+    (contracts / 'epub-overlay-playlist.json').write_text(json.dumps(overlay_playlist, indent=2))
     print('PASS: local login, library, descriptions, two EPUB editions with isolated progress, exact audio IDs and HTTP Range bytes.')
     print('Test credentials: .local/test-account.json (not printed). No production server was used.')
 

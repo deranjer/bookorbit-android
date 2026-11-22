@@ -41,6 +41,9 @@ class SignedAiTransportTest {
                 every { it.serverUrl } returns server.url("/proxy").toString()
                 every { it.accessToken } returns "synthetic-token"
                 every { it.currentUser } returns mockk<AuthUser>().also { user -> every { user.id } returns 7 }
+                val owner = com.bookorbit.core.auth.SessionOwner(server.url("/proxy").toString(), 7, 1)
+                every { it.owner() } returns owner
+                every { it.owns(any()) } answers { firstArg<com.bookorbit.core.auth.SessionOwner>() == owner }
             }
             val stored = mutableMapOf<String, String>()
             val base = OkHttpClient.Builder().sslSocketFactory(clientTls.sslSocketFactory(), clientTls.trustManager).build()

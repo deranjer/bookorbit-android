@@ -7,6 +7,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.bookorbit.core.auth.SessionManager
+import com.bookorbit.core.auth.SessionOwner
 import com.bookorbit.core.db.PendingReadingSessionDao
 import com.bookorbit.core.db.PendingReadingSessionEntity
 import com.bookorbit.core.model.SaveReadingSession
@@ -34,14 +35,18 @@ import javax.inject.Singleton
  * A queued session belongs to the account that was signed in and waits while that account is signed out.
  */
 @Singleton
-class ReadingSessionTracker @Inject constructor(
+class ReadingSessionTracker internal constructor(
     private val dao: PendingReadingSessionDao,
     private val api: ApiService,
     private val syncScheduler: SyncScheduler,
     private val session: SessionManager,
+    private val scope: CoroutineScope,
+    private val clock: () -> Long,
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    @Inject constructor(dao: PendingReadingSessionDao, api: ApiService, syncScheduler: SyncScheduler, session: SessionManager) :
+        this(dao, api, syncScheduler, session, CoroutineScope(SupervisorJob() + Dispatchers.IO), System::currentTimeMillis)
     private val recorder = ReadingSessionRecorder(maxGapMs = MAX_GAP_MS)
+    private var activeOwner: SessionOwner? = null
     private var lastCheckpointMs = 0L
 
     init {
@@ -58,9 +63,11 @@ class ReadingSessionTracker @Inject constructor(
 
     @Synchronized
     fun beginReading(fileId: Int, percent: Double?) {
+        val owner = liveOwner() ?: run { endLocked(); return }
         val key = "read:$fileId"
-        if (recorder.key == key) return
+        if (recorder.key == key && activeOwner == owner) return
         endLocked()
+        activeOwner = owner
         recorder.begin(key, fileId, SessionType.READ, percent, now())
         lastCheckpointMs = now()
     }
@@ -68,6 +75,7 @@ class ReadingSessionTracker @Inject constructor(
     @Synchronized
     fun onReadingProgress(percent: Double) {
         if (recorder.key?.startsWith("read:") != true) return
+        if (activeOwner != liveOwner()) { endLocked(); return }
         recorder.progress(percent, now())
         checkpointIfDue()
     }
@@ -77,11 +85,13 @@ class ReadingSessionTracker @Inject constructor(
     /** Called while playing (every few seconds). Opens a session on first call for a book. */
     @Synchronized
     fun onListening(bookId: Int, firstFileId: Int, percent: Double) {
+        val owner = liveOwner() ?: run { endLocked(); return }
         val key = "listen:$bookId"
         val now = now()
         if (recorder.key == key && recorder.inactiveForMs(now) > LISTEN_IDLE_CLOSE_MS) endLocked()
-        if (recorder.key != key) {
+        if (recorder.key != key || activeOwner != owner) {
             endLocked()
+            activeOwner = owner
             recorder.begin(key, firstFileId, SessionType.LISTEN, percent, now)
             lastCheckpointMs = now
         }
@@ -93,6 +103,7 @@ class ReadingSessionTracker @Inject constructor(
     @Synchronized
     fun setListeningActive(active: Boolean) {
         if (recorder.key?.startsWith("listen:") != true) return
+        if (activeOwner != liveOwner()) { endLocked(); return }
         val now = now()
         if (active && recorder.inactiveForMs(now) > LISTEN_IDLE_CLOSE_MS) {
             // Paused a long while: close it; the next onListening call opens a fresh session.
@@ -114,12 +125,15 @@ class ReadingSessionTracker @Inject constructor(
      * worker retries); those of an account that isn't signed in wait for its next sign-in.
      */
     suspend fun flushPending(): Boolean {
-        val user = session.currentUser?.id ?: return false
+        val owner = liveOwner() ?: return false
+        val user = owner.userId
         for (entity in mine(user)) {
-            send(entity)
+            send(entity, owner.serverUrl)
         }
-        return mine(user).isNotEmpty()
+        return session.owns(owner) && mine(user).isNotEmpty()
     }
+
+    private fun liveOwner(): SessionOwner? = session.owner()?.takeUnless { session.dataScopeChanged() }
 
     /** Rows queued before owners were recorded have none and go out with whoever is signed in. */
     private suspend fun mine(user: Int) = dao.all().filter { it.userId == null || it.userId == user }
@@ -128,13 +142,16 @@ class ReadingSessionTracker @Inject constructor(
     private fun onForeground(foreground: Boolean) {
         // Only reading follows the app's visibility; audio keeps playing in the background.
         if (recorder.key?.startsWith("read:") != true) return
+        if (activeOwner != liveOwner()) { endLocked(); return }
         recorder.setActive(foreground, now())
         if (!foreground) checkpointLocked()
     }
 
     private fun endLocked() {
         val snap = recorder.end(now()) ?: return
-        persistAndSend(snap)
+        val owner = activeOwner
+        activeOwner = null
+        if (owner != null) persistAndSend(snap, owner)
     }
 
     private fun checkpointIfDue() {
@@ -144,10 +161,10 @@ class ReadingSessionTracker @Inject constructor(
     private fun checkpointLocked() {
         lastCheckpointMs = now()
         val snap = recorder.snapshot(now()) ?: return
-        persistAndSend(snap)
+        activeOwner?.let { persistAndSend(snap, it) }
     }
 
-    private fun persistAndSend(snap: SessionSnapshot) {
+    private fun persistAndSend(snap: SessionSnapshot, owner: SessionOwner) {
         if (snap.durationSeconds < MIN_SESSION_SECONDS) return
         val entity = PendingReadingSessionEntity(
             sessionId = snap.sessionId,
@@ -158,15 +175,17 @@ class ReadingSessionTracker @Inject constructor(
             durationSeconds = snap.durationSeconds,
             progressDelta = snap.progressDelta,
             endProgress = snap.endProgress,
-            userId = session.currentUser?.id,
+            userId = owner.userId,
         )
         scope.launch {
             dao.upsert(entity)
-            send(entity)
+            send(entity, owner.serverUrl)
         }
     }
 
-    private suspend fun send(e: PendingReadingSessionEntity) {
+    private suspend fun send(e: PendingReadingSessionEntity, expectedServer: String) {
+        val owner = liveOwner() ?: return
+        if (owner.serverUrl != expectedServer || e.userId != null && e.userId != owner.userId) return
         val body = SaveReadingSession(
             sessionId = e.sessionId,
             startedAt = Instant.ofEpochMilli(e.startedAt).toString(),
@@ -178,7 +197,7 @@ class ReadingSessionTracker @Inject constructor(
             source = SOURCE,
         )
         try {
-            api.saveReadingSession(e.fileId, body)
+            api.saveReadingSession(e.fileId, body, owner)
             Log.d(TAG, "sent ${e.sessionType} session ${e.sessionId} file=${e.fileId} ${e.durationSeconds}s end=${e.endProgress}")
             dao.deleteIfUnchanged(e.sessionId, e.endedAt)
         } catch (t: HttpException) {
@@ -194,7 +213,7 @@ class ReadingSessionTracker @Inject constructor(
         }
     }
 
-    private fun now() = System.currentTimeMillis()
+    private fun now() = clock()
 
     companion object {
         private const val TAG = "ReadingSessions"

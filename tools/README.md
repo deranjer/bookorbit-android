@@ -91,3 +91,20 @@ text. The harness targets only this named Docker emulator, not a connected phone
 Fixtures include two text editions, equal-sized audio, a 75-track audiobook and
 a 20-second silent EPUB/SMIL. Smoke waits for scanning before checking metadata.
 This headless emulator has no audio output; see `docs/DEVICE_TESTING.md` for limits.
+
+### Explicit instrumentation runs
+
+Build the fdroid debug app and test APK first, then run only an explicit test class
+on the named Docker emulator (never an attached phone):
+
+```sh
+bash tools/android/gradle.sh :app:assembleFdroidDebug :app:assembleFdroidDebugAndroidTest
+python tools/android/run-instrumentation.py --class com.bookorbit.feature.storyguide.StoryGuideSheetTest --repeat 3 --install
+python tools/android/test_instrumentation_runner.py
+```
+
+Installation uses `-r`, without clearing app data. Each run records output/results
+under `.local/instrumentation/`. The wrapper checks JUnit's actual result, because
+`adb shell am instrument` can exit zero even when assertions fail. Story Guide's
+instrumented scenario uses only a synthetic MockWebServer guide, not a provider,
+production server or a bypass of the fixture server's attestation policy.

@@ -11,8 +11,8 @@ Do not import production databases, secrets or books into development fixtures.
 
 ### Исходное состояние и замечания
 
-- Текущий собранный и автоматически проверенный срез — **0.9.9**, ветка
-  `feat/independent-android-client`: 461 JVM-тест на вариант, 21 JS-проверка,
+- Текущий собранный и автоматически проверенный срез — **0.9.10**, ветка
+  `feat/independent-android-client`: 475 JVM-тестов на вариант, 21 JS-проверка,
   5 SQL-проверок и 2 проверки локализации; lint без ошибок. Это не полная проверка
   на физическом устройстве.
   Ранее пользователю передана 0.9.1 (`617f904`); её APK сохранён отдельно.
@@ -511,4 +511,37 @@ Before native background narration takes ownership of session reporting, audit a
 test account-switch races in `ReadingSessionTracker` and token refresh: queued rows
 already have user IDs, but the owner of an open snapshot must be captured when it
 starts, not inferred later from whichever account happens to be current. This is
-an explicit validation task, not a claim of a reproduced production incident.
+covered by the synthetic regressions below, not a claim of a production incident.
+
+## Refresh and open-session ownership races (0.9.10)
+
+- Three new refresh regressions initially failed: a delayed old-account response
+  could overwrite a new account's token or sign it out, including after a server
+  switch. Added generation-bound session leases and synchronized conditional token
+  commits/sign-out. Logout/relogin invalidates old leases even for the same user.
+- Refresh snapshots request cookies and applies rotated response cookies only
+  together with a still-owned token commit. Redirects/retries/authenticators are
+  disabled and the rotation body is one-shot. Transient HTTP failures preserve
+  offline login; a real 401/403 clears only the still-current session.
+- Authorized requests carry an in-process owner tag. A late 401 cannot retry an old
+  request with a different account's token; obsolete responses are rejected. An
+  explicitly owner-tagged queued request fails before sending after logout.
+- Three open-session regressions also initially failed: closing after logout or an
+  account switch could relabel the snapshot, and identical file IDs could keep one
+  session across accounts. Reading/listening trackers now capture the owner at
+  session start, preserve it when queuing, and separate owner generations.
+- Session delivery checks row ownership/server data scope and supplies an explicit
+  Retrofit owner tag. The tag is not JSON; the server session DTO and stable UUID
+  checkpoint/upsert semantics are unchanged. Old already-unowned rows retain their
+  documented legacy handling; new owned activity never creates an unowned row.
+- Extended isolated HTTP smoke with exact EPUB overlay playlist identities and
+  ranged audio bytes across the silent interlude. This validates a contract for the
+  upcoming native engine, not background narration itself.
+
+Both APKs/lints and **475 JVM tests per flavor** pass, including the initially
+failing ownership cases. Story Guide's synthetic Compose scenario passes again on
+the emulator. An in-place upgrade retains login and opens the online EPUB/SVG (`65`);
+closing it successfully sends a 34-second reading session to the isolated stock
+server, checking the owner tag does not alter its wire DTO. No production account,
+book history or provider was used. Player/background ownership handoff and remaining
+native read-along work still need their own integration checks.

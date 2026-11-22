@@ -61,6 +61,7 @@ import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 import retrofit2.http.Streaming
+import retrofit2.http.Tag
 
 /**
  * Retrofit surface for the BookOrbit server. Paths are relative and DO NOT carry the `/api/v1`
@@ -220,6 +221,7 @@ interface ApiService {
     suspend fun saveReadingSession(
         @Path("fileId") fileId: Int,
         @Body body: com.bookorbit.core.model.SaveReadingSession,
+        @Tag owner: com.bookorbit.core.auth.SessionOwner,
     )
 
     @POST("books/files/{fileId}/progress")

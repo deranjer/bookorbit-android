@@ -178,3 +178,20 @@ used to make the scenario pass.
 Both debug APKs/lints and 461 JVM tests per flavor pass, alongside existing Node,
 SQLite/localization/policy checks. This is automated synthetic emulator UI evidence,
 not full visual, physical-device, real guide generation or hardware acceptance.
+
+## 0.9.10 ownership safeguards
+
+Six new synthetic regressions first failed against the old code: three delayed
+refresh ownership cases and three open-reading-session ownership cases. After the
+fixes, the full suite passes 475 JVM tests per flavor, alongside both APKs/lints.
+Additional cases cover stale refresh-cookie rotation, old 401 replay prevention,
+logout/relogin generations, queued-request refusal before sending, valid refresh
+reuse and transient failures preserving offline login without replaying rotation.
+
+The final APK passes the synthetic Story Guide instrumentation again (evidence:
+`.local/instrumentation/20261122T232708104800Z/`). An in-place emulator upgrade keeps
+its fixture login and opens online Read Along Chapters with the blue SVG (`65`).
+Closing the reader reports a **34-second** session for exact file 84 successfully
+to the isolated stock server. The owner lease is a local Retrofit tag, not an extra
+server DTO field. This is not a test of production history or audible/background
+narration. Physical-device/provider/hardware acceptance remains unverified.
