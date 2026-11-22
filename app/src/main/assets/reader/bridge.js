@@ -503,7 +503,7 @@ async function openBook(meta, parts) {
       }
     }
     if (!navigated) await view.goTo(0).catch(() => {});
-    readAlong.attach(view);
+    readAlong.attach(view, meta.readAlongPosition);
   } catch (e) {
     postError(e?.message ?? 'Failed to open book');
   }

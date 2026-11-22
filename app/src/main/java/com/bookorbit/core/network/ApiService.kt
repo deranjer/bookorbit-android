@@ -68,6 +68,20 @@ import retrofit2.http.Streaming
  * Endpoints mirror the server's `/api/v1` REST surface one-to-one.
  */
 interface ApiService {
+    @POST("mobile/vision-scan")
+    suspend fun probeVisionScan(@Body request: kotlinx.serialization.json.JsonObject): Response<ResponseBody>
+
+    @POST("mobile/vision-scan")
+    suspend fun visionScan(@Body request: com.bookorbit.core.model.VisionScanRequest): Response<com.bookorbit.core.model.VisionScanResponse>
+
+    /** Deliberately invalid DTO: validates access without submitting passages or invoking AI. */
+    @POST("mobile/reading-help")
+    suspend fun probeReadingHelp(@Body request: kotlinx.serialization.json.JsonObject): Response<ResponseBody>
+
+    @Streaming
+    @POST("mobile/reading-help")
+    fun readingHelp(@Body request: com.bookorbit.core.model.ReadingHelpRequest): retrofit2.Call<ResponseBody>
+
     @GET("books/{bookId}/story-guide")
     suspend fun getStoryGuideStatus(@Path("bookId") bookId: Int, @Query("fileId") fileId: Int): StoryGuideStatus
 

@@ -85,6 +85,25 @@ def create():
     with zipfile.ZipFile(overlay_book, 'w') as book:
         for name, data in payload.items():
             book.writestr(name, data, compress_type=zipfile.ZIP_STORED)
+    chapters = ROOT / 'Read Along Chapters'
+    chapters.mkdir(exist_ok=True)
+    chapter_payload = dict(payload)
+    opf = opf.replace('Read Along Orbit', 'Read Along Chapters').replace('00:00:20.000', '00:00:40.000')
+    opf = opf.replace('</manifest>',
+        '<item id="interlude" href="interlude.xhtml" media-type="application/xhtml+xml"/>'
+        '<item id="second" href="second.xhtml" media-type="application/xhtml+xml" media-overlay="second-overlay"/>'
+        '<item id="second-overlay" href="second.smil" media-type="application/smil+xml"/>'
+        '<item id="second-audio" href="second.mp3" media-type="audio/mpeg"/></manifest>')
+    opf = opf.replace('<itemref idref="chapter"/>', '<itemref idref="chapter"/><itemref idref="interlude"/><itemref idref="second"/>')
+    chapter_payload['OEBPS/content.opf'] = opf.encode()
+    chapter_payload['OEBPS/interlude.xhtml'] = b'<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Silent interlude</title></head><body><h1>Silent interlude</h1><p>This section deliberately has no narration.</p></body></html>'
+    chapter_payload['OEBPS/second.xhtml'] = b'<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Second chapter</title></head><body><h1>Second chapter</h1><p id="one">A new chapter uses another audio asset.</p><p id="two">The saved clock belongs to this exact resource, not a percentage.</p></body></html>'
+    chapter_payload['OEBPS/second.mp3'] = encoded
+    chapter_payload['OEBPS/second.smil'] = payload['OEBPS/overlay.smil'].replace(b'chapter.xhtml', b'second.xhtml').replace(b'audio.mp3', b'second.mp3')
+    chapter_payload['OEBPS/nav.xhtml'] = payload['OEBPS/nav.xhtml'].replace(b'</ol>', b'<li><a href="interlude.xhtml">Silent interlude</a></li><li><a href="second.xhtml">Second chapter</a></li></ol>')
+    with zipfile.ZipFile(chapters / 'Read Along Chapters.epub', 'w') as book:
+        for name, data in chapter_payload.items():
+            book.writestr(name, data, compress_type=zipfile.ZIP_STORED)
     many_tracks = ROOT / '75 Track Orbit'
     many_tracks.mkdir(exist_ok=True)
     epub(many_tracks / '75 Track Orbit.epub', '75 Track Orbit')
@@ -100,7 +119,7 @@ def create():
         book.writestr('ComicInfo.xml', '<ComicInfo><Title>Orbit Comic</Title><Writer>Client Test Author</Writer><Summary>Synthetic comic fixture.</Summary></ComicInfo>')
     # The scanner skips unchanged directory mtimes; overwriting an existing file
     # alone does not update its parent directory on Linux.
-    for directory in (paired, read_along, many_tracks, comic):
+    for directory in (paired, read_along, chapters, many_tracks, comic):
         os.utime(directory, None)
 
 

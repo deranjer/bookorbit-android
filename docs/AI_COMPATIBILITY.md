@@ -42,8 +42,9 @@ key registration, nonce handling or signed requests.
   protect provider budgets. For native attestation, implement client registration
   and per-request signing, not just an allowlist edit. Production deployment needs
   separate approval.
-- Reading-help SSE UI, photo selection/upload, relationship/anchor rendering and
-  server read-aloud job controls are not shipped by this initial panel.
+- The initial 0.9.3 panel did not include reading help or photo recognition.
+  The 0.9.5 implementation below adds them. Relationship/anchor rendering and
+  server read-aloud job controls remain separate work.
 - Apple Intelligence is not an Android capability. Do not claim iOS free-form Q&A
   parity without a separately implemented provider/backend.
 
@@ -61,3 +62,50 @@ Sources: upstream `server/src/modules/story-guides/*controller.ts`,
 `server/src/modules/vision-scan/vision-scan.controller.ts`,
 `server/src/modules/read-aloud/read-aloud.controller.ts`, and
 `packages/types/src/story-guide*.ts` at tag `v3.9.0`.
+
+## Reading help and photo recognition (0.9.5)
+
+The reader selection toolbar opens an explicit excerpt preview. A user may request
+a recap of that excerpt or enter a name/term from it; the app does not scrape and
+upload unseen chapters. Requests retain the exact reader `fileId`, use the current
+UI language, and optionally request the server's Careful model. Each request needs
+provider/cost confirmation. Closing the sheet, leaving the app or pressing Cancel
+cancels the live HTTP call. No automatic retry is performed.
+
+The SSE parser handles UTF-8/CRLF, comments and multiline `data`, ignores unknown
+event types, and requires an explicit `done` or `error` event. Partial text on a
+failed/dropped/cancelled stream is not reported as a completed answer. Wire size,
+event count and answer length are bounded to protect the device, not to impose a
+paid-tier or download quota. Error codes distinguish provider/configuration,
+budget, reader allowance/rate limit, auth and official-app attestation failures.
+
+Search includes a photo-recognition sheet with cover/shelf selection. Android's
+photo picker grants access only to the selected image; no broad media or camera
+permission is needed. A bounded on-device decoder resizes to at most 1600 pixels,
+respects EXIF orientation and produces a fresh JPEG without EXIF/GPS metadata.
+The prepared photo is previewed and uploaded only after explicit provider/cost
+confirmation. Returned library matches open their authoritative book IDs; this
+does not edit metadata, add books or change reading positions.
+
+Before either function can offer a billable request, it checks `/app-info` and
+probes its mobile route with **an empty, invalid DTO**, containing no excerpt or
+photo. The pinned server's guard runs before validation: production returns 403;
+a compatible route reaches DTO validation and returns 400, before the provider
+service. Full valid requests recheck access. This is a compatibility check, not
+attestation or a bypass. An unexpected response never enables generation.
+
+Source contracts additionally audited: `packages/types/src/{app-info,reading-help,
+vision-scan,visual-match}.ts` and the corresponding DTO/controller files at
+`v3.9.0`. Unit HTTP tests use MockWebServer synthetic answers and verify real
+request cancellation; **no model generated an answer or recognized a real photo**
+during these tests. Production-mode local smoke retains both 403 protections.
+
+AI POST transport additionally uses one-shot request bodies with connection retries
+and redirects disabled. MockWebServer verifies a 503 `Retry-After: 0`, a disconnect
+after receiving a request and a cross-origin redirect do not replay a paid request.
+This also applies to Story Guide build/update/retry/cancel, not only SSE/photo calls.
+
+An undeployed opt-in package/certificate policy is prepared in
+`tools/server-compat/`; it does not enable unsigned production traffic. Native
+Android challenge/key enrollment/request signing and full hardware validation are
+still required before this independent client can use a patched production server.

@@ -6,6 +6,7 @@
 bash tools/android/gradle.sh :app:testFdroidDebugUnitTest :app:assembleFdroidDebug
 python tools/android/test_storage_sql.py
 node --test tools/android/test_reader_appearance.mjs tools/android/test_read_along.mjs
+python tools/android/test_localization.py
 ```
 
 The pinned image runs as your UID and caches dependencies in

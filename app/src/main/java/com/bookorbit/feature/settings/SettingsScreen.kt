@@ -373,7 +373,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                     val readmeOpenFailed = stringResource(R.string.settings_readme_open_failed)
                     TextButton(onClick = {
                         try {
-                            uriHandler.openUri("https://github.com/deranjer/bookorbit-android/blob/main/README.md#no-longer-maintained")
+                            uriHandler.openUri("https://github.com/monkeCode/bookorbit-android/tree/feat/independent-android-client/docs")
                         } catch (_: IllegalArgumentException) {
                             scope.launch {
                                 snackbarHostState.showSnackbar(readmeOpenFailed)

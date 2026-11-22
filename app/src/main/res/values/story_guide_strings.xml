@@ -3,9 +3,9 @@
     <string name="guide_description">Characters, places and recaps from your server. Choose a completed chapter before revealing any details.</string>
     <string name="guide_restricted">This server restricts Story Guide content to attested official apps. This independent client cannot read it yet. Generation is disabled here to avoid paying for a result you cannot open. No server security was changed.</string>
     <string name="guide_unsupported">This server or edition does not support Story Guides.</string>
-    <string name="guide_auth">Sign in again to access Story Guides.</string>
+    <string name="guide_auth">Sign in again to access AI features.</string>
     <string name="guide_format">The server has no compatible Story Guide format for this client.</string>
-    <string name="guide_network">Could not load the Story Guide. Check your connection and retry.</string>
+    <string name="guide_network">Could not load data from the server. Check your connection and retry.</string>
     <string name="guide_off">Story Guide generation is disabled or not configured on your server.</string>
     <string name="guide_language">This server currently generates Story Guides for English text books only.</string>
     <string name="guide_text_only">Story Guides require a supported text edition, not an audiobook, PDF or comic.</string>

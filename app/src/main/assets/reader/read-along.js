@@ -6,14 +6,20 @@ export class ReadAlongController {
   #state = 'unavailable';
   #listeners = [];
   #rate = 1;
+  #checkpoint = null;
+  #lastPositionAt = 0;
   constructor(emit) { this.#emit = emit; }
   #publish(error = null) {
-    this.#emit({ type: 'readAlong', available: !!this.#overlay, state: this.#state, rate: this.#rate, error });
+    this.#emit({ type: 'readAlong', available: !!this.#overlay, state: this.#state, rate: this.#rate,
+      position: this.#checkpoint ? { ...this.#checkpoint, rate: this.#rate,
+        completed: this.#state === 'ended' || this.#checkpoint.completed === true } : null, error });
   }
-  attach(view) {
+  attach(view, checkpoint = null) {
     this.detach();
     this.#view = view;
     this.#overlay = view?.mediaOverlay ?? null;
+    this.#checkpoint = checkpoint;
+    this.#rate = checkpoint?.rate >= 0.5 && checkpoint.rate <= 2 ? checkpoint.rate : 1;
     this.#state = this.#overlay ? 'ready' : 'unavailable';
     if (this.#overlay) {
       const listen = (name, fn) => {
@@ -21,6 +27,13 @@ export class ReadAlongController {
         this.#listeners.push([name, fn]);
       };
       listen('state', event => { this.#state = event.detail; this.#publish(); });
+      listen('position', event => {
+        this.#checkpoint = event.detail;
+        const now = Date.now();
+        if (this.#state !== 'playing' || now - this.#lastPositionAt >= 1000) {
+          this.#lastPositionAt = now; this.#publish();
+        }
+      });
       listen('error', () => { this.#overlay.pause(); this.#state = 'error'; this.#publish('audio'); });
     }
     this.#publish();
@@ -32,16 +45,24 @@ export class ReadAlongController {
     this.#overlay = null;
     this.#view = null;
     this.#state = 'unavailable';
+    this.#checkpoint = null;
   }
   async command(action, rate) {
     if (!this.#overlay) return;
     try {
       switch (action) {
+        case 'restart':
+          this.#checkpoint = null;
+          this.#state = 'ready';
+          return this.command('start');
         case 'start':
+          { const checkpoint = this.#state === 'ended' ? null : this.#checkpoint;
           this.#overlay.stop();
           this.#state = 'loading'; this.#publish();
           this.#overlay.setRate(this.#rate);
-          await this.#view.startMediaOverlay();
+          if (checkpoint && !checkpoint.completed) await this.#overlay.restore(checkpoint);
+          else await this.#view.startMediaOverlay();
+          }
           break;
         case 'pause': if (this.#state === 'playing' || this.#state === 'loading') this.#overlay.pause(); break;
         case 'resume': this.#overlay.resume(); break;

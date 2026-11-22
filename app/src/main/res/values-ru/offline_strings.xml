@@ -1,0 +1,29 @@
+<resources>
+    <string name="read_along_previous_fragment">Предыдущий озвученный фрагмент</string>
+    <string name="read_along_next_fragment">Следующий озвученный фрагмент</string>
+    <string name="read_along_from_chapter">Начать озвучку с текущей главы</string>
+    <string name="read_along_title">Читать и слушать</string>
+    <string name="read_along_foreground">Аудио EPUB · на экране чтения</string>
+    <string name="read_along_play">Включить озвучку EPUB</string>
+    <string name="read_along_pause">Приостановить озвучку EPUB</string>
+    <string name="read_along_rate">%1$s×</string>
+    <string name="read_along_audio_error">Не удалось воспроизвести аудио EPUB. Читать книгу можно по-прежнему. Повторите запуск озвучки.</string>
+    <string name="edition_audio">Аудиокнига</string>
+    <string name="edition_text">Текстовое издание</string>
+    <string name="edition_tracks">Треков: %1$d</string>
+    <string name="edition_partially_saved">Сохранено частей: %1$d из %2$d</string>
+    <string name="edition_download_title">Сохранить издание офлайн</string>
+    <string name="edition_download_hint">Выберите текст, всю аудиокнигу или оба издания. Все аудиотреки включаются автоматически.</string>
+    <string name="edition_download_selected">Скачать выбранные издания</string>
+    <string name="edition_read_title">Выберите издание</string>
+    <string name="edition_tab">Издания</string>
+    <string name="offline_action_failed">Не удалось обновить офлайн-файлы. Повторите попытку или проверьте раздел загрузок.</string>
+    <string name="offline_add_files">Добавить издание</string>
+    <string name="offline_existing_hint">Скачанные файлы сохранятся. Выберите только то, что хотите добавить.</string>
+    <string name="reading_choose_file">Выберите файл для чтения</string>
+    <string name="offline_choose_files">Скачать для офлайн-доступа</string>
+    <string name="offline_choose_hint">Выберите текст, аудио или оба варианта. Скачаются только выбранные файлы.</string>
+    <string name="offline_file_id">Файл №%1$d</string>
+    <string name="offline_audio_format">Аудио · %1$s</string>
+    <string name="offline_text_format">Текст / комикс · %1$s</string>
+</resources>

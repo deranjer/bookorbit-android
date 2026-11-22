@@ -42,7 +42,8 @@ sealed interface ReaderEvent {
         val chapterTitle: String?,
     ) : ReaderEvent
     data class Error(val message: String) : ReaderEvent
-    data class ReadAlong(val available: Boolean, val state: String, val rate: Double = 1.0, val error: String? = null) : ReaderEvent
+    data class ReadAlong(val available: Boolean, val state: String, val rate: Double = 1.0, val error: String? = null,
+        val position: ReadAlongPosition? = null) : ReaderEvent
 
     /** A tap on the page body (not on a link or highlight). [x] is 0..1 across the viewport. */
     data class Tap(val x: Double) : ReaderEvent
@@ -97,6 +98,9 @@ object ReaderBridge {
                 state = obj["state"]?.jsonPrimitive?.contentOrNull ?: "unavailable",
                 rate = obj["rate"]?.jsonPrimitive?.doubleOrNull?.takeIf { it.isFinite() && it in 0.5..2.0 } ?: 1.0,
                 error = obj["error"]?.jsonPrimitive?.contentOrNull,
+                position = obj["position"]?.let { runCatching {
+                    json.decodeFromJsonElement(ReadAlongPosition.serializer(), it).takeIf { value -> value.valid() }
+                }.getOrNull() },
             )
             "loaded" -> {
                 val toc = obj["toc"]?.let {

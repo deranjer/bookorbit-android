@@ -411,6 +411,18 @@ class MediaOverlay extends EventTarget {
   #rate = 1
   #state
   #generation = 0
+  #positionReady = false
+  getPosition() {
+    const item = this.#activeItem
+    if (!this.#positionReady || !this.#audio || !item) return null
+    const audioSeconds = this.#audio.currentTime
+    if (!Number.isFinite(audioSeconds) || audioSeconds < 0) return null
+    return { sectionIndex: this.#sectionIndex, fragment: item.text, audioSrc: this.#activeAudio.src, audioSeconds }
+  }
+  #position() {
+    const position = this.getPosition()
+    if (position) this.dispatchEvent(new CustomEvent('position', { detail: position }))
+  }
   #setState(state) {
     this.#state = state
     this.dispatchEvent(new CustomEvent('state', { detail: state }))
@@ -421,13 +433,11 @@ class MediaOverlay extends EventTarget {
     this.loadXML = loadXML
   }
   async #loadSMIL(item) {
-    if (this.#lastMediaOverlayItem === item) return
+    if (this.#lastMediaOverlayItem === item) return this.#entries
     const doc = await this.loadXML(item.href)
     const resolve = (href) => (href ? resolveURL(href, item.href) : null)
     const { $, $$$ } = childGetter(doc, NS.SMIL)
-    this.#audioIndex = -1
-    this.#itemIndex = -1
-    this.#entries = $$$(doc, 'par').reduce((arr, $par) => {
+    return $$$(doc, 'par').reduce((arr, $par) => {
       const text = resolve($($par, 'text')?.getAttribute('src'))
       const $audio = $($par, 'audio')
       if (!text || !$audio) return arr
@@ -439,7 +449,6 @@ class MediaOverlay extends EventTarget {
       else arr.push({ src, items: [{ text, begin, end }] })
       return arr
     }, [])
-    this.#lastMediaOverlayItem = item
   }
   get #activeAudio() {
     return this.#entries?.[this.#audioIndex]
@@ -457,7 +466,7 @@ class MediaOverlay extends EventTarget {
   #unhighlight() {
     this.dispatchEvent(new CustomEvent('unhighlight', { detail: this.#activeItem }))
   }
-  async #play(audioIndex, itemIndex) {
+  async #play(audioIndex, itemIndex, resumeSeconds) {
     this.#stop()
     const generation = this.#generation
     this.#audioIndex = audioIndex
@@ -487,6 +496,7 @@ class MediaOverlay extends EventTarget {
       const oldIndex = this.#itemIndex
       while (items[this.#itemIndex + 1]?.begin <= t) this.#itemIndex++
       if (this.#itemIndex !== oldIndex) this.#highlight()
+      this.#position()
     })
     audio.addEventListener('error', () => { if (this.#audio === audio) this.#error(new Error(`Failed to load ${src}`)) })
     audio.addEventListener('playing', () => { if (this.#audio === audio) { this.#setState('playing'); this.#highlight() } })
@@ -497,40 +507,48 @@ class MediaOverlay extends EventTarget {
       this.#audio = null
       this.#play(audioIndex + 1, 0).catch((e) => this.#error(e))
     })
-    if (this.#state === 'paused') {
-      this.#highlight()
-      audio.currentTime = this.#activeItem.begin ?? 0
-    } else
       audio.addEventListener(
         'canplaythrough',
         () => {
           if (this.#audio !== audio) return
           // for some reason need to seek in `canplaythrough`
           // or it won't play when skipping in WebKit
-          audio.currentTime = this.#activeItem.begin ?? 0
+          const item = this.#activeItem
+          const begin = item.begin ?? 0
+          const end = Number.isFinite(item.end) ? item.end : audio.duration
+          const target = Number.isFinite(resumeSeconds) && resumeSeconds >= begin && (!Number.isFinite(end) || resumeSeconds < end)
+            ? resumeSeconds : begin
+          audio.currentTime = target
+          this.#positionReady = true
+          this.#position()
+          if (this.#state === 'paused') { this.#highlight(); return }
           this.#state = 'playing'
           audio.play().catch((e) => this.#error(e))
         },
         { once: true },
       )
   }
-  async start(sectionIndex, filter = () => true) {
+  async start(sectionIndex, filter = () => true, fromEnd = false) {
     this.#audio?.pause()
+    while (this.book.sections[sectionIndex] && !this.book.sections[sectionIndex].mediaOverlay) sectionIndex++
     const section = this.book.sections[sectionIndex]
     const href = section?.id
     if (!href) { this.stop(); this.#setState('ended'); return }
 
     const { mediaOverlay } = section
-    if (!mediaOverlay) return this.start(sectionIndex + 1)
     this.#sectionIndex = sectionIndex
     this.#stop()
     const generation = this.#generation
-    await this.#loadSMIL(mediaOverlay)
+    const entries = await this.#loadSMIL(mediaOverlay)
     if (generation !== this.#generation) return
+    this.#entries = entries
+    this.#lastMediaOverlayItem = mediaOverlay
 
-    for (let i = 0; i < this.#entries.length; i++) {
+    for (let n = 0; n < this.#entries.length; n++) {
+      const i = fromEnd ? this.#entries.length - 1 - n : n
       const { items } = this.#entries[i]
-      for (let j = 0; j < items.length; j++) {
+      for (let k = 0; k < items.length; k++) {
+        const j = fromEnd ? items.length - 1 - k : k
         if (items[j].text.split('#')[0] === href && filter(items[j], j, items)) return this.#play(i, j).catch((e) => this.#error(e))
       }
     }
@@ -539,6 +557,7 @@ class MediaOverlay extends EventTarget {
   pause() {
     this.#setState('paused')
     this.#audio?.pause()
+    this.#position()
   }
   resume() {
     if (!this.#audio) { this.#setState('loading'); return this.start(this.#sectionIndex) }
@@ -546,6 +565,8 @@ class MediaOverlay extends EventTarget {
   }
   #stop() {
     this.#generation++
+    this.#position()
+    this.#positionReady = false
     if (this.#audio) {
       this.#audio.pause()
       URL.revokeObjectURL(this.#audio.src)
@@ -560,7 +581,11 @@ class MediaOverlay extends EventTarget {
   prev() {
     if (this.#itemIndex > 0) this.#play(this.#audioIndex, this.#itemIndex - 1).catch(e => this.#error(e))
     else if (this.#audioIndex > 0) this.#play(this.#audioIndex - 1, this.#entries[this.#audioIndex - 1].items.length - 1).catch(e => this.#error(e))
-    else if (this.#sectionIndex > 0) this.start(this.#sectionIndex - 1, (_, i, items) => i === items.length - 1).catch(e => this.#error(e))
+    else if (this.#sectionIndex > 0) {
+      let previous = this.#sectionIndex - 1
+      while (previous >= 0 && !this.book.sections[previous].mediaOverlay) previous--
+      if (previous >= 0) this.start(previous, () => true, true).catch(e => this.#error(e))
+    }
   }
   next() {
     if (this.#itemIndex + 1 < (this.#activeAudio?.items.length ?? 0)) this.#play(this.#audioIndex, this.#itemIndex + 1).catch(e => this.#error(e))
@@ -569,6 +594,25 @@ class MediaOverlay extends EventTarget {
   setVolume(volume) {
     this.#volume = volume
     if (this.#audio) this.#audio.volume = volume
+  }
+  /** Restore only by exact SMIL and resource identity; never map a text percentage to audio time. */
+  async restore(position) {
+    if (!Number.isInteger(position?.sectionIndex) || position.sectionIndex < 0 ||
+        typeof position.fragment !== 'string' || typeof position.audioSrc !== 'string' ||
+        !Number.isFinite(position.audioSeconds) || position.audioSeconds < 0) throw new Error('Invalid overlay position')
+    this.#stop()
+    const generation = this.#generation
+    const section = this.book.sections[position.sectionIndex]
+    if (!section?.mediaOverlay) throw new Error('Overlay section changed')
+    const entries = await this.#loadSMIL(section.mediaOverlay)
+    if (generation !== this.#generation) return
+    const audioIndex = entries.findIndex(entry => entry.src === position.audioSrc && entry.items.some(item => item.text === position.fragment))
+    if (audioIndex < 0) throw new Error('Overlay fragment changed')
+    const itemIndex = entries[audioIndex].items.findIndex(item => item.text === position.fragment)
+    this.#sectionIndex = position.sectionIndex
+    this.#entries = entries
+    this.#lastMediaOverlayItem = section.mediaOverlay
+    await this.#play(audioIndex, itemIndex, position.audioSeconds)
   }
   setRate(rate) {
     this.#rate = rate

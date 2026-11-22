@@ -6,14 +6,15 @@ Do not import production databases, secrets or books into development fixtures.
 
 ## Актуальный план после тестирования пользователем
 
-Обновлено 2026-11-22. Этот раздел задаёт текущие приоритеты; разделы ниже —
+Обновлено 2026-11-23. Этот раздел задаёт текущие приоритеты; разделы ниже —
 история уже сделанных инкрементов, а не заявление о готовности всего приложения.
 
 ### Исходное состояние и замечания
 
-- Текущий собранный и автоматически проверенный срез — **0.9.4**, ветка
-  `feat/independent-android-client`: 394 JVM-теста на вариант, 9 JS-проверок,
-  5 SQL-проверок; lint без ошибок. Это не полная проверка на устройстве.
+- Текущий собранный и автоматически проверенный срез — **0.9.5**, ветка
+  `feat/independent-android-client`: 420 JVM-тестов на вариант, 19 JS-проверок,
+  5 SQL-проверок и 2 проверки локализации; lint без ошибок. Это не полная проверка
+  на физическом устройстве.
   Ранее пользователю передана 0.9.1 (`617f904`); её APK сохранён отдельно.
 - Пользователь тестирует APK. Производственный сервер и его данные агент не меняет.
 - **Ошибка сценария выбора:** у пользователя одна аудиокнига состоит из 75
@@ -39,20 +40,20 @@ Do not import production databases, secrets or books into development fixtures.
 
 ### P0. Издания вместо технических файлов
 
-- [ ] В загрузках показывать «Текстовое издание», «Аудиокнига» и выбор обоих.
-- [ ] Все 75 треков одной аудиокниги — **одна карточка и одно действие**.
+- [x] В загрузках показывать «Текстовое издание», «Аудиокнига» и выбор обоих.
+- [x] Все 75 треков одной аудиокниги — **одна карточка и одно действие**.
       Внутри сохраняются точные fileId и корректный порядок аудио, а не один
       произвольно выбранный трек. Список треков уместен в плеере, не в выборе загрузки.
 - [ ] Для аудио показывать рассказчика/чтеца, длительность, общий размер и число
       треков. Не выдумывать неизвестные длительности или размеры.
-- [ ] Частично скачанное аудио показывать как одно частично доступное издание;
+- [x] Частично скачанное аудио показывать как одно частично доступное издание;
       подтверждение скачивает все недостающие треки, не требует выбирать их вручную.
-- [ ] Существующие скачанные издания сохранять при добавлении других. Просмотр
+- [x] Существующие скачанные издания сохранять при добавлении других. Просмотр
       библиотеки, синхронизация и открытие окна выбора ничего не скачивают сами.
-- [ ] В чтении и вкладке книги использовать «Издания», без списка из 75 MP3.
+- [x] В чтении и вкладке книги использовать «Издания», без списка из 75 MP3.
       Разные текстовые издания по-прежнему открываются по точному fileId, с раздельными
       позициями. Формат/расширение файла само по себе не доказывает тождество изданий.
-- [ ] Не выдумывать разделение нескольких аудиоозвучек по имени/размеру файла:
+- [x] Не выдумывать разделение нескольких аудиоозвучек по имени/размеру файла:
       текущая клиентская модель имеет одни audioMetadata на серверную книгу.
       Если сервер предоставляет явные идентификаторы отдельных аудиоизданий,
       сначала добавить их в контракт и только потом разделять озвучки.
@@ -77,7 +78,7 @@ Do not import production databases, secrets or books into development fixtures.
       зазоры. Не оставлять светлые/отличающиеся прямоугольники вокруг страницы.
 - [ ] Не ломать иллюстрации, SVG, комиксы, выделения и читаемость ссылок глобальной
       инверсией либо непрозрачным фоном каждого вложенного элемента.
-- [ ] Добавить регрессии для CSS/палитры и визуальную проверку на реальном
+- [x] Добавить регрессии для CSS/палитры и визуальную проверку на реальном
       WebView. Одна успешная Kotlin-сборка не подтверждает исправление внешнего вида.
 
 ### P0. Повторное нажатие вкладки возвращает в её корень
@@ -105,16 +106,18 @@ Do not import production databases, secrets or books into development fixtures.
 - [ ] Создать синтетический EPUB 3 с SMIL, встроенным аудио и несколькими текстовыми
       фрагментами/главами. Отдельный EPUB + произвольные MP3 без разметки не считать
       автоматически синхронизированным read-along.
-- [ ] Проверить унаследованный движок: в Foliate уже есть `MediaOverlay`,
+- [x] Проверить унаследованный движок: в Foliate уже есть `MediaOverlay`,
       `getMediaOverlay()` и `startMediaOverlay()`. Это инфраструктура библиотеки,
       **не готовая функция Android-клиента**.
-- [ ] Подключить определение поддержки и команды управления в JS/native bridge.
-- [ ] Первый рабочий срез: явный запуск, пауза/продолжение, скорость, подсветка
+- [x] Подключить определение поддержки и команды управления в JS/native bridge.
+- [x] Первый рабочий срез: явный запуск, пауза/продолжение, скорость, подсветка
       текущего фрагмента и следование страницы за текстом, без второго параллельного
       аудиоплеера. Ошибку аудио показывать отдельно от ошибки чтения книги.
 - [ ] Проверить переходы по фрагментам и главам, ручное перелистывание, конец книги
       и секции без overlay; устранить обнаруженные дефекты движка перед включением.
-- [ ] Доказать работу в авиарежиме для явно скачанного EPUB со встроенным аудио.
+- [x] Доказать работу в авиарежиме для явно скачанного EPUB со встроенным аудио.
+      Проверены Android WebView/переходы состояния/подсветка на тихой фикстуре;
+      слышимый звук на физическом устройстве ещё не проверен.
 - [ ] Сохранять точную текстовую позицию и аудиокоординату отдельно. Возобновление,
       статистика и переключение устройств не должны создавать два чтения одной
       активности или дублировать события, как в ранее исправленных случаях BookBridge.
@@ -347,3 +350,52 @@ with an authorized provider remain unverified.
   audio output do not validate audible narration. Physical devices, complete
   visual redesign/Russian localization, full read-along/background alignment and
   expanded AI work remain open; this milestone does not complete the entire plan.
+
+## AI clients, exact local narration restore and Russian resources (0.9.5)
+
+- Implemented selected-excerpt Reading Help with streaming SSE answers, explicit
+  provider/cost confirmation, exact edition identity, UI-language answers and
+  cancellation on closing/backgrounding. Only the previewed selection is sent.
+- Implemented Search photo recognition: Android photo picker, bounded on-device
+  resizing/orientation handling, JPEG without EXIF/GPS, explicit upload confirmation,
+  cover/shelf modes and authoritative library matches. No library edits are made.
+- Both use nonbillable invalid-DTO capability probes and respect stock production
+  attestation denial. Provider budgets, permissions and configuration errors remain
+  separate. Added explicit `APP_ATTEST_REQUIRED` mapping after emulator testing.
+- Potentially billable POSTs use a separate HTTP client with redirects/connection
+  retries disabled and one-shot bodies. Tests verify no replay on 503 Retry-After,
+  disconnect after request, or redirect to a different origin. No provider was called.
+- Local read-along checkpoints include exact SMIL fragment, spine section, asset,
+  fractional asset seconds and playback rate, scoped by server/account/file ID and
+  actual EPUB SHA-256. Loading a checkpoint never autoplays or moves the text page.
+  There are no additional sessions/events or guessed percentage-to-clock mappings.
+- Fixed pause-during-load autoplay, backward transitions across unnarrated sections,
+  and selecting the previous chapter's final fragment across several audio assets.
+  Added a two-narrated-chapter fixture with an unnarrated interlude.
+- Added Russian counterparts for every current string/plural resource, with all
+  Russian plural forms and checked format arguments. Android app-language selection
+  advertises English/Russian. Search layout/cards/error handling are redesigned;
+  large-font navigation/hint issues were found and corrected on the emulator.
+- Prepared, but did not deploy, a strict opt-in server package/certificate policy
+  in `tools/server-compat/`. Default trust and hardware/verified-boot requirements
+  are unchanged. Three parser tests pass and the patch applies cleanly to v3.9.0;
+  full server build/attestation tests and native enrollment/signing remain next work.
+
+Validation: both debug APKs/lints pass, 420 JVM tests per flavor, 19 reader JS,
+5 SQLite, 2 localization and 3 policy-parser tests pass. Production-mode HTTP smoke
+passes, retaining mobile AI 403 protections. Emulator confirms Russian Search and
+AI restriction screens, exact local clock restore after Force stop, explicit offline
+read-along, and readable navigation at 1.4× system font. Full visual/physical-device
+acceptance, audible narration and real provider generation remain unverified.
+
+### Streaming clarification requested by the user
+
+Audiobook playback already uses HTTP streaming/Range with Media3 buffering, not an
+automatic whole-book offline download. The current native EPUB/PDF reader instead
+fetches a complete temporary file before opening; calling this true chapter streaming
+would be incorrect. The online server Web reader is a separate mode.
+
+Next work includes native EPUB on-demand assets through the existing `/epub/{bookId}`
+server contract, without putting JWT into WebView, while preserving exact `fileId`,
+explicit offline editions, progress and read-along. PDF has different seekable-file
+requirements and must not be claimed streamed merely because EPUB becomes streamed.

@@ -1,0 +1,25 @@
+<resources>
+    <string name="vision_rate_limit">Too many photo requests. Wait before explicitly trying again.</string>
+    <string name="vision_title">Find books in a photo · AI</string>
+    <string name="vision_description">Choose a cover or shelf photo, preview it, then explicitly confirm sending it to your server’s AI provider. No library files or reading positions are changed.</string>
+    <string name="vision_cover">Cover</string>
+    <string name="vision_shelf">Shelf</string>
+    <string name="vision_preview">Photo prepared for sending</string>
+    <string name="vision_privacy">The preview is resized on this device and re-encoded as JPEG without EXIF or GPS metadata. The image itself may still contain personal information.</string>
+    <string name="vision_pick">Choose photo</string>
+    <string name="vision_scan">Identify books</string>
+    <string name="vision_cancelled">Photo request cancelled. Provider charges already incurred may still apply.</string>
+    <string name="vision_empty">No readable books were found in this photo.</string>
+    <string name="vision_check">AI recognition can be wrong. Check the title and author before opening a library match.</string>
+    <string name="vision_no_match">No matching book in your accessible libraries.</string>
+    <string name="vision_open_match">Open library match: %1$s</string>
+    <string name="vision_confirm_title">Send this photo to AI?</string>
+    <string name="vision_confirm_body">Your server will send the prepared photo to its configured AI provider. Photos may leave your server and provider charges may apply. Closing this panel or leaving the app cancels the request. It is never retried automatically.</string>
+    <string name="vision_restricted">This server requires attestation from an official app. Photo recognition is unavailable to this independent client. No photo was sent.</string>
+    <string name="vision_disabled">Photo recognition is disabled or the Vision model is not configured on the server.</string>
+    <string name="vision_unsupported">This server does not advertise AI photo recognition.</string>
+    <string name="vision_timeout">The AI provider did not recognize the photo in time.</string>
+    <string name="vision_refused">The AI provider declined this photo.</string>
+    <string name="vision_image_error">Could not prepare this image. Choose a readable image under 10 MB; the prepared JPEG must fit 6 MB.</string>
+    <string name="vision_provider">The AI provider failed or returned an invalid recognition result.</string>
+</resources>

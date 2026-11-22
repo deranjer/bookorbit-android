@@ -1,0 +1,26 @@
+<resources>
+    <string name="help_forbidden">The server refused this request. Check your account and library permissions. No automatic retry was made.</string>
+    <string name="help_title">Reading help · AI</string>
+    <string name="help_context">Only this selected excerpt is used. The answer may be incomplete or incorrect; no unseen chapters are added automatically.</string>
+    <string name="help_recap">Explain excerpt</string>
+    <string name="help_term">Name or term</string>
+    <string name="help_term_label">Name or term in this excerpt</string>
+    <string name="help_careful">Use the server’s Careful model</string>
+    <string name="help_invalid">Select 1–12,000 characters. For a name or term, enter up to 120 characters.</string>
+    <string name="help_ask">Ask about this excerpt</string>
+    <string name="help_completed">Answer complete · check important details against the book</string>
+    <string name="help_cancelled">Request cancelled. Any text above is an incomplete answer. Provider charges already incurred may still apply.</string>
+    <string name="help_confirm_title">Send this excerpt to AI?</string>
+    <string name="help_confirm_body">Your server will send the displayed excerpt to its configured AI provider. Text may leave your server and charges may apply. Closing this panel or leaving the app cancels the request; it is never retried automatically.</string>
+    <string name="help_send">Send excerpt</string>
+    <string name="help_restricted">This server requires attestation from an official app. Reading help is unavailable to this independent client. No excerpt was sent to an AI provider.</string>
+    <string name="help_disabled">Reading help is disabled or its Fast model is not configured on the server.</string>
+    <string name="help_unsupported">This server does not advertise reading help support.</string>
+    <string name="help_budget">The server’s monthly AI budget is exhausted.</string>
+    <string name="help_reader_cap">Your monthly reading-help allowance or request rate limit has been reached.</string>
+    <string name="help_careful_off">The server’s Careful model is not configured.</string>
+    <string name="help_timeout">The AI provider did not answer in time. Retry only if you want to send a new request.</string>
+    <string name="help_refused">The AI provider declined this excerpt.</string>
+    <string name="help_too_long">The excerpt does not fit the provider’s context. Select a shorter passage.</string>
+    <string name="help_provider">The AI provider or response stream failed. Any partial answer is not a completed response.</string>
+</resources>

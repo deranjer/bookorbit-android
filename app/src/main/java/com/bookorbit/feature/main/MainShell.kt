@@ -12,10 +12,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -217,13 +220,13 @@ fun MainShell(
                 MiniPlayer(onOpenPlayer = onOpenPlayer)
                 // On wide windows the tabs move to a rail on the left instead.
                 if (!wide) {
-                    NavigationBar {
+                    NavigationBar(modifier = Modifier.heightIn(min = if (LocalConfiguration.current.fontScale > 1.2f) 104.dp else 80.dp)) {
                         bar.forEach { tab ->
                             NavigationBarItem(
                                 selected = selectedRoute == tab.route,
                                 onClick = { navigateTab(tab.route) },
                                 icon = { Icon(tab.icon(), contentDescription = stringResource(tab.labelRes())) },
-                                label = { Text(stringResource(tab.labelRes()), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                label = { Text(stringResource(tab.labelRes()), maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center) },
                             )
                         }
                     }
@@ -254,14 +257,14 @@ fun MainShell(
       }
       Row(Modifier.padding(padding).consumeWindowInsets(padding)) {
         if (wide) {
-            NavigationRail {
+            NavigationRail(modifier = Modifier.widthIn(min = if (LocalConfiguration.current.fontScale > 1.2f) 104.dp else 80.dp)) {
                 Spacer(Modifier.weight(1f))
                 bar.forEach { tab ->
                     NavigationRailItem(
                         selected = selectedRoute == tab.route,
                         onClick = { navigateTab(tab.route) },
                         icon = { Icon(tab.icon(), contentDescription = stringResource(tab.labelRes())) },
-                        label = { Text(stringResource(tab.labelRes()), maxLines = 1) },
+                        label = { Text(stringResource(tab.labelRes()), maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center) },
                         alwaysShowLabel = true,
                     )
                 }

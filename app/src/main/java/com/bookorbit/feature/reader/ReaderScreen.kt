@@ -72,6 +72,7 @@ fun ReaderScreen(
     var highlightsVisible by remember { mutableStateOf(false) }
     var searchVisible by remember { mutableStateOf(false) }
     var noteDialog by remember { mutableStateOf<String?>(null) }
+    var helpPassage by remember { mutableStateOf<String?>(null) }
     var readAlong by remember { mutableStateOf(ReaderEvent.ReadAlong(false, "unavailable")) }
     val scope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -111,7 +112,7 @@ fun ReaderScreen(
                 is ReaderEvent.Loaded -> vm.onLoaded(event.toc, event.title)
                 is ReaderEvent.Relocate -> vm.onRelocate(event.cfi, event.fraction, event.chapterTitle)
                 is ReaderEvent.Error -> vm.onError(event.message)
-                is ReaderEvent.ReadAlong -> readAlong = event
+                is ReaderEvent.ReadAlong -> { readAlong = event; vm.onReadAlong(event) }
                 is ReaderEvent.Tap -> onTap.value(event.x)
                 is ReaderEvent.SearchResults -> vm.onSearchResults(event.label, event.hits)
                 is ReaderEvent.SearchProgress -> vm.onSearchProgress(event.progress)
@@ -145,7 +146,8 @@ fun ReaderScreen(
         if (ready && resolved != null && !opened && !rendererFailed) {
             opened = true
             withContext(Dispatchers.IO) {
-                controller.open(openParamsFor(resolved.ref, resolved.format, resolved.initial, ui.settings), context)
+                controller.open(openParamsFor(resolved.ref, resolved.format, resolved.initial, ui.settings)
+                    .copy(readAlongPosition = resolved.readAlongPosition), context)
             }
         }
     }
@@ -239,13 +241,16 @@ fun ReaderScreen(
                 onNote = { noteDialog = annotation?.note.orEmpty() },
                 onDelete = annotation?.let { a -> { vm.deleteAnnotation(a.id) } },
                 modifier = Modifier.offset(x = x.dp, y = y.dp),
+                onReadingHelp = (target.selection?.text ?: annotation?.text)?.takeIf { it.isNotBlank() }?.let { text ->
+                    { controller.readAlong("pause"); helpPassage = text; vm.dismissToolbar() }
+                },
             )
         }
 
         if (readAlong.available && ui.loaded && !rendererFailed && showChrome) {
             ReadAlongBar(readAlong, onCommand = { action, rate ->
                 scope.launch {
-                    if (action == "start" || action == "resume") vm.prepareReadAlong()
+                    if (action in setOf("start", "resume", "restart")) vm.prepareReadAlong()
                     controller.readAlong(action, rate)
                 }
             }, modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(horizontal = 12.dp, vertical = 44.dp))
@@ -294,6 +299,11 @@ fun ReaderScreen(
             },
             onDismiss = { tocVisible = false },
         )
+    }
+    helpPassage?.let { passage ->
+        ui.resolved?.fileId?.let { fileId ->
+            com.bookorbit.feature.readinghelp.ReadingHelpSheet(fileId, passage, vm.readingHelp, onDismiss = { helpPassage = null })
+        }
     }
     noteDialog?.let { initial ->
         NoteDialog(

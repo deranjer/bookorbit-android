@@ -12,6 +12,9 @@ data class AppInfo(
     val updateAvailable: Boolean? = null,
     val latestVersion: String? = null,
     val bookDockPath: String? = null,
+    val features: List<String> = emptyList(),
+    val readingHelp: ReadingHelpCapability? = null,
+    val visionScan: VisionScanCapability? = null,
 )
 
 /** Catalog typeahead rows (`GET /metadata/{authors,genres,tags,languages}`) return `{ name }`. */

@@ -77,6 +77,9 @@ jobs:
       - name: Reader appearance and EPUB SMIL engine checks
         run: node --test tools/android/test_reader_appearance.mjs tools/android/test_read_along.mjs
 
+      - name: Russian localization coverage and format arguments
+        run: python3 tools/android/test_localization.py
+
       - name: Assemble debug APKs
         run: ./gradlew :app:assembleFullDebug :app:assembleFdroidDebug --no-daemon
 

@@ -15,6 +15,7 @@ class Overlay extends EventTarget {
   next() { this.calls.push('next'); }
   prev() { this.calls.push('prev'); }
   setRate(value) { this.calls.push(['rate', value]); }
+  async restore(position) { this.calls.push(['restore', position]); this.state('playing'); }
 }
 
 test('overlay detection never autoplays and absent overlays remain unavailable', () => {
@@ -67,7 +68,7 @@ test('audio errors are nonfatal reader events and old overlay listeners detach',
 // Exercise the actual vendored engine without Android, network, or an audio decoder.
 const epubSource = await readFile(new URL('foliate/epub.js', root), 'utf8');
 const overlayClass = epubSource.slice(epubSource.indexOf('class MediaOverlay extends EventTarget'), epubSource.indexOf('\nconst isUUID'));
-function engine(loadBlob = async () => new Blob(['synthetic'])) {
+function engine(loadBlob = async () => new Blob(['synthetic']), sections) {
   const audios = [], loaded = [];
   class Audio extends EventTarget {
     paused = true; currentTime = 0;
@@ -84,8 +85,11 @@ function engine(loadBlob = async () => new Blob(['synthetic'])) {
     Number, doc => ({ $: (node, name) => node[name], $$$: () => doc.pars }), { SMIL: 'smil' },
     { createObjectURL: () => `blob:${audios.length}`, revokeObjectURL() {} }, Audio,
   );
-  const book = { sections: [{ id: 'OEBPS/chapter.xhtml', mediaOverlay: { href: 'OEBPS/overlay.smil' } }], loadBlob: async src => { loaded.push(src); return loadBlob(src); } };
-  return { overlay: new MediaOverlay(book, async () => smil), audios, loaded };
+  const book = { sections: sections ?? [{ id: 'OEBPS/chapter.xhtml', mediaOverlay: { href: 'OEBPS/overlay.smil' } }], loadBlob: async src => { loaded.push(src); return loadBlob(src); } };
+  const loadXML = async href => href.endsWith('second.smil')
+    ? { pars: [par('second.xhtml#one', 'second.mp3', '0', '1'), par('second.xhtml#two', 'second.mp3', '1', '2')] }
+    : smil;
+  return { overlay: new MediaOverlay(book, loadXML), audios, loaded };
 }
 
 const settle = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
@@ -130,4 +134,113 @@ test('end of book reports ended without creating another audio object', async ()
   await overlay.start(99);
   assert.equal(states.at(-1), 'ended');
   assert.equal(audios.length, 0);
+});
+
+test('exact checkpoint restores its audio asset and clock, not the start of the sentence', async () => {
+  const { overlay, audios } = engine();
+  const position = { sectionIndex: 0, fragment: 'OEBPS/chapter.xhtml#two', audioSrc: 'OEBPS/one.mp3', audioSeconds: 1.375 };
+  await overlay.restore(position);
+  audios.at(-1).dispatchEvent(new Event('canplaythrough'));
+  assert.equal(audios.at(-1).currentTime, 1.375);
+  assert.deepEqual(overlay.getPosition(), position);
+});
+
+test('a changed fragment or audio asset is rejected instead of resuming unrelated audio', async () => {
+  for (const change of [{ fragment: 'other.xhtml#two' }, { audioSrc: 'OEBPS/two.mp3' }, { sectionIndex: 99 }]) {
+    const { overlay, audios } = engine();
+    await assert.rejects(overlay.restore({ sectionIndex: 0, fragment: 'OEBPS/chapter.xhtml#two', audioSrc: 'OEBPS/one.mp3', audioSeconds: 1.375, ...change }));
+    assert.equal(audios.length, 0);
+  }
+});
+
+test('a checkpoint outside its SMIL clip safely resumes at that exact fragment start', async () => {
+  const { overlay, audios } = engine();
+  await overlay.restore({ sectionIndex: 0, fragment: 'OEBPS/chapter.xhtml#two', audioSrc: 'OEBPS/one.mp3', audioSeconds: 999 });
+  audios.at(-1).dispatchEvent(new Event('canplaythrough'));
+  assert.equal(audios.at(-1).currentTime, 1);
+});
+
+test('pause while audio bytes load cannot autoplay when canplaythrough arrives', async () => {
+  let resolve;
+  const { overlay, audios } = engine(() => new Promise(done => { resolve = done; }));
+  const pending = overlay.start(0);
+  await settle();
+  overlay.pause();
+  resolve(new Blob(['audio']));
+  await pending;
+  audios.at(-1).dispatchEvent(new Event('canplaythrough'));
+  assert.equal(audios.at(-1).paused, true);
+  assert.equal(overlay.getPosition().audioSeconds, 0);
+});
+
+test('loading a saved checkpoint is inert until explicit Play and retains its rate', async () => {
+  const overlay = new Overlay(), events = [];
+  const checkpoint = { sectionIndex: 0, fragment: 'chapter#two', audioSrc: 'a.mp3', audioSeconds: 4.25, rate: 1.5 };
+  const ctl = new ReadAlongController(event => events.push(event));
+  ctl.attach({ mediaOverlay: overlay }, checkpoint);
+  assert.equal(overlay.calls.length, 0);
+  assert.equal(events.at(-1).rate, 1.5);
+  await ctl.command('start');
+  assert.deepEqual(overlay.calls.at(-1), ['restore', checkpoint]);
+});
+
+test('position events publish a separate audio coordinate without text progress or session events', () => {
+  const overlay = new Overlay(), events = [];
+  const ctl = new ReadAlongController(event => events.push(event));
+  ctl.attach({ mediaOverlay: overlay });
+  overlay.state('playing');
+  const position = { sectionIndex: 0, fragment: 'chapter#two', audioSrc: 'a.mp3', audioSeconds: 4.25 };
+  overlay.dispatchEvent(new DetailEvent('position', position));
+  overlay.pause();
+  assert.equal(events.at(-1).position.audioSeconds, 4.25);
+  assert.ok(events.every(event => event.type === 'readAlong'));
+});
+
+test('explicit chapter restart discards the saved audio clock instead of replaying its checkpoint', async () => {
+  const overlay = new Overlay();
+  const ctl = new ReadAlongController(() => {});
+  let starts = 0;
+  ctl.attach({ mediaOverlay: overlay, startMediaOverlay: async () => { starts++; overlay.state('playing'); } },
+    { sectionIndex: 0, fragment: 'c#two', audioSrc: 'a.mp3', audioSeconds: 4.25, rate: 1.25 });
+  await ctl.command('restart');
+  assert.equal(starts, 1);
+  assert.equal(overlay.calls.some(call => call?.[0] === 'restore'), false);
+});
+
+const chapters = [
+  { id: 'OEBPS/chapter.xhtml', mediaOverlay: { href: 'OEBPS/overlay.smil' } },
+  { id: 'OEBPS/interlude.xhtml' },
+  { id: 'OEBPS/second.xhtml', mediaOverlay: { href: 'OEBPS/second.smil' } },
+];
+
+test('previous chapter crosses un-narrated spine sections backwards rather than returning to the current chapter', async () => {
+  const { overlay, audios } = engine(undefined, chapters);
+  await overlay.start(2);
+  audios.at(-1).dispatchEvent(new Event('canplaythrough'));
+  assert.equal(overlay.getPosition().sectionIndex, 2);
+  overlay.prev(); await settle();
+  audios.at(-1).dispatchEvent(new Event('canplaythrough'));
+  assert.equal(overlay.getPosition().sectionIndex, 0);
+  assert.equal(overlay.getPosition().fragment, 'OEBPS/chapter.xhtml#three');
+});
+
+test('start in an un-narrated interlude advances to the next narrated chapter', async () => {
+  const { overlay, audios } = engine(undefined, chapters);
+  await overlay.start(1);
+  audios.at(-1).dispatchEvent(new Event('canplaythrough'));
+  assert.equal(overlay.getPosition().fragment, 'OEBPS/second.xhtml#one');
+  assert.equal(overlay.getPosition().sectionIndex, 2);
+});
+
+test('ending an audio asset advances across an un-narrated chapter and end-of-book stays terminal', async () => {
+  const { overlay, audios } = engine(undefined, chapters);
+  await overlay.start(0);
+  overlay.next(); await settle(); overlay.next(); await settle();
+  audios.at(-1).dispatchEvent(new Event('ended')); await settle();
+  audios.at(-1).dispatchEvent(new Event('canplaythrough'));
+  assert.equal(overlay.getPosition().sectionIndex, 2);
+  const states = [];
+  overlay.addEventListener('state', event => states.push(event.detail));
+  audios.at(-1).dispatchEvent(new Event('ended')); await settle();
+  assert.equal(states.at(-1), 'ended');
 });

@@ -76,3 +76,33 @@ to finish; no client integrity check was disabled.
 Still required: physical-device tests, real spoken EPUB overlays, long-book page
 following, external audio alignment, background MediaSession read-along, Bluetooth/
 Cast/Auto, process-death restoration, SAF interruption, and authorized AI generation.
+
+## 0.9.5 additional emulator checks
+
+- Switched the application's Android locale to `ru-RU`. Home and the redesigned
+  Search render in Russian (`36`–`37`); the fixture's English book metadata remains
+  original content, not UI strings. All base string/plural resources have Russian
+  counterparts and formatting checks; whole-app large-font visual acceptance is
+  still in progress.
+- Paused the second SMIL fragment and inspected the persisted audio checkpoint:
+  exact EPUB fingerprint, section 0, `OEBPS/chapter.xhtml#two`, resource
+  `OEBPS/audio.mp3`, asset clock **11.724068 s**. Force-stopped and relaunched the
+  app, reopened the edition and observed inert Play controls (`40`–`41`). Explicit
+  Play then Pause saved **13.668752 s**, continuing within that resource rather
+  than jumping to its clip start (10 s) or mapping the text percentage (`42`).
+- Explicitly downloaded the read-along EPUB (`43`–`44`). With emulator Wi-Fi and
+  mobile data disabled, the edition opened and resumed foreground playback with
+  the expected fragment highlight and Pause control (`45`). Networking was
+  restored afterwards. Silent fixture/no audio output limitations still apply.
+- The first photo capability check surfaced a real server error code,
+  `APP_ATTEST_REQUIRED`, which the initial generic error mapper incorrectly
+  classified as a provider failure. Added the explicit mapping and regression
+  cases; the final APK reports the correct restriction (`46`, `48`).
+- Russian Search at 1.4× system font exposed clipped navigation labels and an
+  edge-to-edge hint (`49`). Adaptive navigation space, concise tab labels and hint
+  padding/alignment fix these (`51`); system font scale was restored to 1.0.
+
+The local checkpoint is scoped by server, account, file ID and SHA-256 of actual
+EPUB bytes. It is not cross-device narration sync and does not create another
+listening/reading session. Server narration coordinates, native background
+read-along and real provider answers remain separate work.

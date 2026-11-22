@@ -1,0 +1,25 @@
+<resources>
+    <string name="vision_rate_limit">Слишком много запросов распознавания. Подождите перед новой попыткой.</string>
+    <string name="vision_title">Найти книги на фото · ИИ</string>
+    <string name="vision_description">Выберите фото обложки или полки, проверьте его и явно подтвердите отправку ИИ-провайдеру сервера. Файлы библиотеки и позиции чтения не изменяются.</string>
+    <string name="vision_cover">Обложка</string>
+    <string name="vision_shelf">Полка</string>
+    <string name="vision_preview">Подготовленное к отправке фото</string>
+    <string name="vision_privacy">Фото уменьшено на устройстве и пересохранено в JPEG без EXIF и координат GPS. Само изображение всё ещё может содержать личные сведения.</string>
+    <string name="vision_pick">Выбрать фото</string>
+    <string name="vision_scan">Распознать книги</string>
+    <string name="vision_cancelled">Запрос распознавания отменён. Уже начисленная провайдером плата может сохраниться.</string>
+    <string name="vision_empty">На фото не удалось прочитать названия книг.</string>
+    <string name="vision_check">ИИ может ошибаться. Проверьте название и автора перед открытием найденной книги.</string>
+    <string name="vision_no_match">Совпадений в доступных вам библиотеках нет.</string>
+    <string name="vision_open_match">Открыть в библиотеке: %1$s</string>
+    <string name="vision_confirm_title">Отправить это фото ИИ?</string>
+    <string name="vision_confirm_body">Сервер отправит подготовленное фото настроенному ИИ-провайдеру. Фото может покинуть ваш сервер, возможна плата. Закрытие панели или уход из приложения отменяет запрос. Автоматических повторов нет.</string>
+    <string name="vision_restricted">Сервер требует аттестацию официального приложения. Распознавание фото недоступно независимому клиенту. Фото не отправлялось.</string>
+    <string name="vision_disabled">Распознавание фото отключено или модель обработки изображений не настроена на сервере.</string>
+    <string name="vision_unsupported">Сервер не сообщает о поддержке ИИ-распознавания фото.</string>
+    <string name="vision_timeout">ИИ-провайдер не распознал фото вовремя.</string>
+    <string name="vision_refused">ИИ-провайдер отказался обрабатывать фото.</string>
+    <string name="vision_image_error">Не удалось подготовить изображение. Выберите читаемое фото размером до 10 МБ; подготовленный JPEG должен быть не больше 6 МБ.</string>
+    <string name="vision_provider">Ошибка ИИ-провайдера или неверный результат распознавания.</string>
+</resources>

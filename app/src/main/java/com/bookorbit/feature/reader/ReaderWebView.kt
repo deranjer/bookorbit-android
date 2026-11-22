@@ -31,6 +31,7 @@ data class OpenParams(
     val cfi: String?,
     val fraction: Double?,
     val settings: ReaderSettings,
+    val readAlongPosition: ReadAlongPosition? = null,
 )
 
 @Serializable
@@ -39,6 +40,7 @@ private data class OpenMeta(
     val cfi: String?,
     val fraction: Double?,
     val settings: ReaderSettings,
+    val readAlongPosition: ReadAlongPosition? = null,
 )
 
 // Base64 is streamed in slices so a large book never rides in a single evaluateJavascript call.
@@ -91,7 +93,7 @@ class ReaderController {
     fun readAlong(action: String, rate: Double? = null) {
         webView?.post {
             // Native controls are the explicit user gesture; do not enable autoplay at reader creation.
-            if (action == "start" || action == "resume") webView?.settings?.mediaPlaybackRequiresUserGesture = false
+            if (action in setOf("start", "resume", "restart")) webView?.settings?.mediaPlaybackRequiresUserGesture = false
             if (action == "stop") webView?.settings?.mediaPlaybackRequiresUserGesture = true
             command(buildJsonObject {
                 put("type", "readAlong"); put("action", action)
@@ -133,7 +135,7 @@ class ReaderController {
     // the chunk size instead of the whole file (a naive readBytes()+encodeToString() on a 90MB
     // EPUB peaks at ~450MB and reliably OOMs on default heap sizes).
     private fun runOpen(params: OpenParams, context: Context) {
-        val meta = OpenMeta(params.format, params.cfi, params.fraction, params.settings)
+        val meta = OpenMeta(params.format, params.cfi, params.fraction, params.settings, params.readAlongPosition)
         val metaJson = ReaderBridge.json.encodeToString(OpenMeta.serializer(), meta)
         eval(ReaderBridge.jsBegin(metaJson))
 

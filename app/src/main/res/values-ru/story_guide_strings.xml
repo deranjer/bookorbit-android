@@ -1,0 +1,25 @@
+<resources>
+    <string name="guide_title">Путеводитель по книге · ИИ</string>
+    <string name="guide_description">Персонажи, места и пересказы с вашего сервера. Сначала выберите прочитанную главу, чтобы не увидеть спойлеры.</string>
+    <string name="guide_restricted">Сервер разрешает читать путеводитель только аттестованным официальным приложениям. Независимому клиенту он пока недоступен. Генерация здесь отключена, чтобы не платить за недоступный результат. Защита сервера не изменялась.</string>
+    <string name="guide_unsupported">Сервер или это издание не поддерживает путеводители.</string>
+    <string name="guide_auth">Войдите снова, чтобы получить доступ к ИИ-функциям.</string>
+    <string name="guide_format">На сервере нет путеводителя в совместимом с этим клиентом формате.</string>
+    <string name="guide_network">Не удалось загрузить данные с сервера. Проверьте подключение и повторите попытку.</string>
+    <string name="guide_off">Генерация путеводителей отключена или не настроена на сервере.</string>
+    <string name="guide_language">Сейчас сервер создаёт путеводители только для текстовых книг на английском языке.</string>
+    <string name="guide_text_only">Для путеводителя требуется поддерживаемое текстовое издание, а не аудиокнига, PDF или комикс.</string>
+    <string name="guide_build_unavailable">Сервер сейчас не может создать путеводитель для этого издания.</string>
+    <string name="guide_build">Создать путеводитель</string>
+    <string name="guide_update">Обновить путеводитель</string>
+    <string name="guide_job_status">%1$s · %2$s</string>
+    <string name="guide_spoiler_hint">Граница спойлеров: выберите последнюю главу, которую вы дочитали полностью. По умолчанию сведения скрыты.</string>
+    <string name="guide_no_chapter">Прочитанная глава не выбрана</string>
+    <string name="guide_chapter">Глава %1$d</string>
+    <string name="guide_action_failed">Сервер не смог выполнить действие. Обновите статус перед повторной попыткой.</string>
+    <string name="guide_refresh">Обновить статус</string>
+    <string name="guide_confirm_title">Отправить это издание ИИ-провайдеру?</string>
+    <string name="guide_confirm_provider">Сервер обработает книгу с помощью настроенного ИИ-провайдера. Текст может покинуть ваш сервер, а провайдер может списать плату. Это не локальная Apple Intelligence.</string>
+    <string name="guide_estimated_cost">Оценка сервера: %1$s долл. США. Итоговая стоимость может отличаться.</string>
+    <string name="guide_confirm">Подтвердить генерацию</string>
+</resources>

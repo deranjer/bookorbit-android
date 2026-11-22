@@ -65,6 +65,7 @@ fun HighlightToolbar(
     onNote: () -> Unit,
     onDelete: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    onReadingHelp: (() -> Unit)? = null,
 ) {
     Surface(
         modifier = modifier,
@@ -73,6 +74,7 @@ fun HighlightToolbar(
         shadowElevation = 6.dp,
         color = Color(0xF21E1E1E),
     ) {
+        Column {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -103,6 +105,10 @@ fun HighlightToolbar(
                     Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.delete_highlight), tint = Color.White)
                 }
             }
+        }
+        if (onReadingHelp != null) TextButton(onClick = onReadingHelp, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.help_title), color = Color.White)
+        }
         }
     }
 }

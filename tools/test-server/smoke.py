@@ -62,7 +62,7 @@ def main():
             detail_rows.append(detail)
         paired = next((book for book in detail_rows if book['title'] == 'First Orbit'), None)
         many_tracks = next((book for book in detail_rows if book['title'] == '75 Track Orbit'), None)
-        if (scan_finished and len(items) >= 4 and paired
+        if (scan_finished and len(items) >= 5 and paired
                 and many_tracks and len([file for file in many_tracks['files'] if file['format'] == 'mp3']) == 75
                 and len([file for file in paired['files'] if file['format'] == 'mp3']) == 2
                 and len([file for file in paired['files'] if file['format'] == 'epub']) == 2):
@@ -75,6 +75,9 @@ def main():
     assert overlay_file.get('mediaOverlay', {}).get('available'), 'Server did not recognize the SMIL fixture'
     assert overlay_file['sizeBytes'] == (ROOT / '.local/fixtures/Read Along Orbit/Read Along Orbit.epub').stat().st_size
     assert overlay_file['mediaOverlay']['durationSeconds'] == 20, 'Stale overlay metadata after scan'
+    chapter_book = next(book for book in detail_rows if book['title'] == 'Read Along Chapters')
+    chapter_file = next(file for file in chapter_book['files'] if file['format'] == 'epub')
+    assert chapter_file['mediaOverlay']['available'] and chapter_file['mediaOverlay']['durationSeconds'] == 40
     many_tracks = next(book for book in detail_rows if book['title'] == '75 Track Orbit')
     assert len([file for file in many_tracks['files'] if file['format'] == 'mp3']) == 75
     assert {'epub', 'mp3'} <= formats, f'Paired fixture lost a format: {formats}'
@@ -111,6 +114,12 @@ def main():
     assert 'allowed' in guide_status['build'] and 'canManage' in guide_status
     status, denial = call('GET', f"/mobile/books/files/{epub['id']}/story-guide?format=1", headers=headers)
     assert status == 403, 'Production-mode test server must retain attestation protection'
+    # Empty DTOs cannot invoke a provider. Confirm mobile AI gates without any book text/photo.
+    status, app_info = call('GET', '/app-info', headers=headers)
+    assert status == 200 and {'reading-help', 'vision-scan'} <= set(app_info.get('features', []))
+    for route in ('reading-help', 'vision-scan'):
+        status, _ = call('POST', f'/mobile/{route}', {}, headers)
+        assert status == 403, f'Production {route} gate unexpectedly accepted independent client'
     for asset in manifest['assets']:
         file = next(file for file in paired['files'] if file['id'] == asset['fileId'])
         check_range(f"/audiobooks/{paired['id']}/assets/{asset['assetId']}/content", (fixture_root / file['filename']).read_bytes())

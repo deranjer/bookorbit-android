@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.bookorbit.core.model.BookAnnotation
 import com.bookorbit.core.model.BookBookmark
 import com.bookorbit.core.storage.LocalRef
+import com.bookorbit.core.storage.openInputStream
 import com.bookorbit.feature.bookdetail.BookDetailRepository
 import com.bookorbit.feature.downloads.DownloadsRepository
 import com.bookorbit.feature.sessions.ReadingSessionTracker
@@ -34,6 +35,10 @@ class ReaderViewModel @Inject constructor(
     private val annotationRepo: ReaderAnnotationRepository,
     private val bookmarkRepo: ReaderBookmarkRepository,
     private val player: PlayerManager,
+    val readingHelp: com.bookorbit.feature.readinghelp.ReadingHelpRepository,
+    private val readAlongPositions: ReadAlongPositionStore,
+    private val session: com.bookorbit.core.auth.SessionManager,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
@@ -44,6 +49,7 @@ class ReaderViewModel @Inject constructor(
         val format: String,
         val fileId: Int,
         val initial: InitialProgress,
+        val readAlongPosition: ReadAlongPosition? = null,
     )
 
     /** Text the user has selected in the page, not yet saved as a highlight. */
@@ -93,6 +99,18 @@ class ReaderViewModel @Inject constructor(
 
     suspend fun prepareReadAlong() { player.pauseForReadAlong() }
 
+    private var readAlongOwner: ReadAlongOwner? = null
+    private val checkpointServer = session.serverUrl
+    private val checkpointUser = session.currentUser?.id
+
+    fun onReadAlong(event: ReaderEvent.ReadAlong) {
+        val owner = readAlongOwner ?: return
+        val position = event.position ?: return
+        if (event.state !in setOf("ready", "playing", "paused", "ended")) return
+        readAlongPositions.record(owner, position)
+        _ui.update { it.copy(resolved = it.resolved?.copy(readAlongPosition = position)) }
+    }
+
     private var lastSaved = 0L
     private var pending: Pair<String?, Double>? = null
 
@@ -121,12 +139,30 @@ class ReaderViewModel @Inject constructor(
 
             try {
                 val resolved = source.resolve(book, selectedFileId)
+                val checkpoint = if (resolved.format == "epub") {
+                    val server = checkpointServer
+                    val user = checkpointUser
+                    if (server != null && user != null) {
+                        val fingerprint = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            val digest = java.security.MessageDigest.getInstance("SHA-256")
+                            resolved.ref.openInputStream(context).use { input ->
+                                val buffer = ByteArray(64 * 1024)
+                                while (true) { val count = input.read(buffer); if (count < 0) break; digest.update(buffer, 0, count) }
+                            }
+                            digest.digest().joinToString("") { "%02x".format(it) }
+                        }
+                        ReadAlongOwner(server, user, resolved.fileId, fingerprint).let { owner ->
+                            readAlongOwner = owner
+                            readAlongPositions.load(owner)
+                        }
+                    } else null
+                } else null
                 val initial = progress.resolveInitial(resolved.fileId)
                 sessions.beginReading(resolved.fileId, initial.fraction?.let { it * 100 })
                 _ui.update {
                     it.copy(
                         loadingFile = false,
-                        resolved = ResolvedOpen(resolved.ref, resolved.format, resolved.fileId, initial),
+                        resolved = ResolvedOpen(resolved.ref, resolved.format, resolved.fileId, initial, checkpoint),
                     )
                 }
             } catch (e: Exception) {

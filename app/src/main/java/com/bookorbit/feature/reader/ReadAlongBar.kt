@@ -23,7 +23,7 @@ internal fun ReadAlongBar(state: ReaderEvent.ReadAlong, onCommand: (String, Doub
                     Text(stringResource(R.string.read_along_foreground), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 IconButton(onClick = { onCommand("prev", null) }, enabled = state.state in setOf("playing", "paused")) {
-                    Icon(Icons.Default.SkipPrevious, contentDescription = stringResource(R.string.previous_page))
+                    Icon(Icons.Default.SkipPrevious, contentDescription = stringResource(R.string.read_along_previous_fragment))
                 }
                 IconButton(onClick = {
                     onCommand(when (state.state) { "playing" -> "pause"; "paused" -> "resume"; else -> "start" }, null)
@@ -33,7 +33,7 @@ internal fun ReadAlongBar(state: ReaderEvent.ReadAlong, onCommand: (String, Doub
                         contentDescription = stringResource(if (state.state == "playing") R.string.read_along_pause else R.string.read_along_play))
                 }
                 IconButton(onClick = { onCommand("next", null) }, enabled = state.state in setOf("playing", "paused")) {
-                    Icon(Icons.Default.SkipNext, contentDescription = stringResource(R.string.next_page))
+                    Icon(Icons.Default.SkipNext, contentDescription = stringResource(R.string.read_along_next_fragment))
                 }
                 TextButton(onClick = { onCommand("rate", if (state.rate >= 2.0) 0.75 else state.rate + 0.25) }) {
                     Text(stringResource(R.string.read_along_rate, state.rate.toString()))
@@ -41,6 +41,9 @@ internal fun ReadAlongBar(state: ReaderEvent.ReadAlong, onCommand: (String, Doub
             }
             if (state.error != null) Text(stringResource(R.string.read_along_audio_error),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(8.dp))
+            if (state.position != null || state.error != null) TextButton(onClick = { onCommand("restart", null) }, enabled = state.state != "loading") {
+                Text(stringResource(R.string.read_along_from_chapter))
+            }
         }
     }
 }

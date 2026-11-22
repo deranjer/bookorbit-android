@@ -9,7 +9,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class StoryGuideRepository @Inject constructor(private val api: ApiService, private val json: Json) {
+class StoryGuideRepository @Inject constructor(@com.bookorbit.core.network.MobileAiApi private val api: ApiService, private val json: Json) {
     enum class Problem { UNSUPPORTED, RESTRICTED, AUTH, NETWORK, FORMAT }
     data class Snapshot(val status: StoryGuideStatus? = null, val content: StoryGuidePayload? = null, val canRead: Boolean = false, val problem: Problem? = null)
 
