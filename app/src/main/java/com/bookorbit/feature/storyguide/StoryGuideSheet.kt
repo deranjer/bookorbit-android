@@ -1,12 +1,17 @@
 package com.bookorbit.feature.storyguide
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.bookorbit.R
 import com.bookorbit.core.model.*
@@ -17,6 +22,8 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StoryGuideSheet(book: BookDetail, repository: StoryGuideRepository, onDismiss: () -> Unit) {
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focus = LocalFocusManager.current
     val editions = book.files.filter { it.format?.lowercase() in setOf("epub", "mobi", "azw3", "fb2", "txt") }
     var selected by remember(book.id) { mutableStateOf(editions.firstOrNull()?.id) }
     var snapshot by remember(selected) { mutableStateOf<StoryGuideRepository.Snapshot?>(null) }
@@ -25,6 +32,14 @@ fun StoryGuideSheet(book: BookDetail, repository: StoryGuideRepository, onDismis
     var failed by remember(selected) { mutableStateOf(false) }
     var confirm by remember(selected) { mutableStateOf<String?>(null) }
     var completedSection by remember(selected, snapshot?.content?.textKey) { mutableIntStateOf(-1) }
+    var query by remember(selected, snapshot?.content?.textKey) { mutableStateOf("") }
+    val projection = remember(snapshot?.content, completedSection) {
+        snapshot?.content?.let { StoryGuideSpoilers.project(it, completedSection) } ?: StoryGuideSpoilers.Projection()
+    }
+    val entries = remember(projection, query) { projection.entries.filter { query.isBlank() || it.name.contains(query, true) || it.text.contains(query, true) } }
+    val relationships = remember(projection, query) { projection.relationships.filter {
+        query.isBlank() || it.from.contains(query, true) || it.to.contains(query, true) || it.label.contains(query, true)
+    } }
     val scope = rememberCoroutineScope()
     val fileId = selected
     LaunchedEffect(fileId, refresh) {
@@ -52,7 +67,8 @@ fun StoryGuideSheet(book: BookDetail, repository: StoryGuideRepository, onDismis
         }
     }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        LazyColumn(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+          item { Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(stringResource(R.string.guide_title), style = MaterialTheme.typography.headlineMedium)
             Text(stringResource(R.string.guide_description), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (editions.isEmpty()) Text(stringResource(R.string.guide_text_only))
@@ -120,21 +136,53 @@ fun StoryGuideSheet(book: BookDetail, repository: StoryGuideRepository, onDismis
                                 onClick = { completedSection = section.s; chapterMenu = false }) }
                         }
                     }
-                    StoryGuideSpoilers.entries(content, completedSection).forEach { entry ->
-                        Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLow) {
-                            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(entry.name, style = MaterialTheme.typography.titleMedium)
-                                Text(entry.text, style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
-                    }
-                    StoryGuideSpoilers.recap(content, completedSection).forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                    if (completedSection >= 0) OutlinedTextField(value = query, onValueChange = { query = it },
+                        label = { Text(stringResource(R.string.guide_search_visible)) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { keyboard?.hide(); focus.clearFocus() }))
                 }
                 if (failed) Text(stringResource(R.string.guide_action_failed), color = MaterialTheme.colorScheme.error)
                 if (working) LinearProgressIndicator(Modifier.fillMaxWidth())
                 TextButton(onClick = { refresh++ }, enabled = !working) { Text(stringResource(R.string.guide_refresh)) }
             }
-            Spacer(Modifier.height(24.dp))
+          } }
+          if (query.isNotBlank() && entries.isEmpty() && relationships.isEmpty()) item {
+              Text(stringResource(R.string.guide_no_visible_matches), style = MaterialTheme.typography.bodyMedium,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant)
+          }
+          items(entries, key = { "entity:${it.key}" }) { entry ->
+              Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                  Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                      Text(stringResource(when (entry.kind) {
+                          "character" -> R.string.guide_kind_character
+                          "place" -> R.string.guide_kind_place
+                          "group" -> R.string.guide_kind_group
+                          "event" -> R.string.guide_kind_event
+                          "object" -> R.string.guide_kind_object
+                          else -> R.string.guide_kind_term
+                      }), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                      Text(entry.name, style = MaterialTheme.typography.titleMedium)
+                      Text(entry.text, style = MaterialTheme.typography.bodyMedium)
+                  }
+              }
+          }
+          if (relationships.isNotEmpty()) item {
+              Text(stringResource(R.string.guide_relationships), style = MaterialTheme.typography.titleLarge)
+          }
+          items(relationships, key = { "tie:${it.key}" }) { tie ->
+              Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                  Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                      Text(tie.from, style = MaterialTheme.typography.titleMedium)
+                      Text(relationshipLabel(tie), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                      Text(tie.to, style = MaterialTheme.typography.titleMedium)
+                  }
+              }
+          }
+          if (query.isBlank() && projection.recaps.isNotEmpty()) {
+              item { Text(stringResource(R.string.guide_recaps), style = MaterialTheme.typography.titleLarge) }
+              items(projection.recaps) { Text(it, style = MaterialTheme.typography.bodyMedium) }
+          }
+          item { Spacer(Modifier.height(24.dp)) }
         }
     }
     confirm?.let { name ->
@@ -146,4 +194,28 @@ fun StoryGuideSheet(book: BookDetail, repository: StoryGuideRepository, onDismis
             confirmButton = { TextButton(onClick = { confirm = null; action(name) }) { Text(stringResource(R.string.guide_confirm)) } },
             dismissButton = { TextButton(onClick = { confirm = null }) { Text(stringResource(R.string.cancel)) } })
     }
+}
+
+@Composable
+private fun relationshipLabel(tie: StoryGuideSpoilers.Relationship): String = when (tie.type) {
+    "parent_of" -> stringResource(R.string.guide_tie_parent)
+    "grandparent_of" -> stringResource(R.string.guide_tie_grandparent)
+    "aunt_or_uncle_of" -> stringResource(R.string.guide_tie_aunt_uncle)
+    "sibling_of" -> stringResource(R.string.guide_tie_sibling)
+    "spouse_of" -> stringResource(R.string.guide_tie_spouse)
+    "betrothed_to" -> stringResource(R.string.guide_tie_betrothed)
+    "cousin_of" -> stringResource(R.string.guide_tie_cousin)
+    "relative_of" -> stringResource(R.string.guide_tie_relative)
+    "loves" -> stringResource(R.string.guide_tie_loves)
+    "bonded_to" -> stringResource(R.string.guide_tie_bonded)
+    "friend_of" -> stringResource(R.string.guide_tie_friend)
+    "enemy_of" -> stringResource(R.string.guide_tie_enemy)
+    "rival_of" -> stringResource(R.string.guide_tie_rival)
+    "teaches" -> stringResource(R.string.guide_tie_teaches)
+    "works_for" -> stringResource(R.string.guide_tie_works)
+    "studies_at" -> stringResource(R.string.guide_tie_studies)
+    "member_of" -> stringResource(R.string.guide_tie_member)
+    "owns" -> stringResource(R.string.guide_tie_owns)
+    "lives_at" -> stringResource(R.string.guide_tie_lives)
+    else -> tie.label // The format contract requires unknown types to retain the server fallback.
 }

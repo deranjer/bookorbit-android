@@ -158,3 +158,23 @@ login (`64`), checking the new enrollment/main-client dependency wiring at runti
 The emulator has no registered key, so this is not an attestation success claim.
 Both APKs/lints and 450 JVM tests per flavor pass; local HTTPS tests verify exact
 guarded GET signing without adding headers to unguarded progress/file routes.
+
+## 0.9.9 synthetic Story Guide UI
+
+`StoryGuideSheetTest` runs Compose against a local MockWebServer with a synthetic
+two-chapter guide. It checks no identities by default, explicit completed-chapter
+selection, a separate pre-revelation identity, local search, disappearance after
+merge and no canonical future names. Exactly two read-only HTTP requests occur;
+chapter changes/search do not call a provider or write progress/sessions.
+
+The initial run passed, but a rerun failed because the keyboard could obscure the
+result. Added Search IME handling to hide the keyboard and clear focus, then ran the
+final test **three consecutive times successfully**. Evidence is under
+`.local/instrumentation/20261122T230959517914Z/`. The harness explicitly rejects JUnit
+failure output even when `adb shell am instrument` returns exit code zero; 3 Python
+parser checks cover that behavior. No arbitrary sleeps or ignored assertions were
+used to make the scenario pass.
+
+Both debug APKs/lints and 461 JVM tests per flavor pass, alongside existing Node,
+SQLite/localization/policy checks. This is automated synthetic emulator UI evidence,
+not full visual, physical-device, real guide generation or hardware acceptance.

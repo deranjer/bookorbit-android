@@ -11,8 +11,8 @@ Do not import production databases, secrets or books into development fixtures.
 
 ### Исходное состояние и замечания
 
-- Текущий собранный и автоматически проверенный срез — **0.9.8**, ветка
-  `feat/independent-android-client`: 450 JVM-тестов на вариант, 21 JS-проверка,
+- Текущий собранный и автоматически проверенный срез — **0.9.9**, ветка
+  `feat/independent-android-client`: 461 JVM-тест на вариант, 21 JS-проверка,
   5 SQL-проверок и 2 проверки локализации; lint без ошибок. Это не полная проверка
   на физическом устройстве.
   Ранее пользователю передана 0.9.1 (`617f904`); её APK сохранён отдельно.
@@ -473,3 +473,42 @@ changes were added. Both builds/lints and 450 JVM tests per flavor pass, includi
 an actual local HTTPS signed/unsigned route check. The emulator starts after an
 in-place upgrade and renders Home with retained login (`64`). This is not hardware
 attestation acceptance; native background read-along and the broader plan remain open.
+
+## Story Guide relationships and joined identities (0.9.9)
+
+- Added format-1 joined identities and relationships, using the audited v3.9.0
+  shared payload contract. Canonical future names are never used as fallbacks.
+- Before a revelation, a joined identity remains its own visible entry. After the
+  user explicitly completes that chapter, relationships can resolve its key to the
+  merged visible identity. Unknown/invisible/ambiguous endpoints and merged self
+  ties are omitted. Moving the boundary backwards restores the earlier projection.
+- A future-only detailed profile no longer hides an already available safe identity
+  line. Invalid/missing anchor sections fail closed. Completed-chapter selection
+  remains explicit; there is no percentage-to-anchor guess or automatic completion.
+- Added locally filtered search, known relationship labels in English/Russian,
+  unknown-type fallback labels and a lazy list of entries/ties/recaps. Searching or
+  changing the boundary makes no provider request or progress/session write.
+- Synthetic JVM regressions cover identity separation/merge/rollback, unseen names,
+  unknown endpoints/types, invalid anchors and payload parsing. A Compose instrumented
+  test on the isolated emulator verifies default hiding, explicit chapter selection,
+  local search, removal after merge and exactly two read-only mock HTTP requests.
+  This is synthetic UI/projection validation, not real provider/hardware acceptance.
+- Repeated UI testing exposed the keyboard obscuring search results. Added a local
+  Search IME action that hides the keyboard and clears focus. The final instrumented
+  scenario passes **three consecutive runs**; the earlier failure is not counted as
+  a pass. The new emulator-only runner fails on JUnit failures even if adb exits zero
+  and records each run's evidence; its 3 parser tests pass.
+
+Both APKs/lints, 461 JVM tests per flavor, 21 reader Node, 5 SQLite, 2 localization
+and 3 policy-parser tests pass. The separate synthetic Story Guide Compose scenario
+passes on the emulator, not a physical device or a real model-generated guide.
+
+Automatic CFI-to-guide-anchor mapping, guide fix editing, native background read-along,
+external-audio alignment and remaining design/device acceptance are still separate
+work. Production server, book contents and provider configuration remain untouched.
+
+Before native background narration takes ownership of session reporting, audit and
+test account-switch races in `ReadingSessionTracker` and token refresh: queued rows
+already have user IDs, but the owner of an open snapshot must be captured when it
+starts, not inferred later from whichever account happens to be current. This is
+an explicit validation task, not a claim of a reproduced production incident.

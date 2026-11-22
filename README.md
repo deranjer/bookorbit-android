@@ -4,17 +4,25 @@ Development fork of [deranjer/bookorbit-android](https://github.com/deranjer/boo
 retaining its AGPL license and upstream attribution. This is **not the official app**.
 No Premium gate or automatic library-wide download is added.
 
-Work in progress: separate installation/OIDC identity, explicit offline file selection,
-durable additive download plans, explicit reader edition selection, and exact audiobook
-manifest file-ID matching. Initial validation
-uses an isolated BookOrbit 3.9.0 with synthetic media; this is not yet a parity release.
+Work in progress: independent installation/OIDC identity, edition-based additive offline
+downloads, exact audiobook file IDs, HTTP audio streaming, opt-in on-demand native EPUB,
+foreground EPUB/SMIL read-along, Russian UI and access-gated server AI clients. Validation
+uses isolated BookOrbit 3.9.0 and synthetic media; this is not yet a parity release.
 
 - [Build and local test server](tools/README.md)
 - [Scope, next stages and validation boundaries](docs/CLIENT_PLAN.md)
 
-Read-along, AI integration, dependency modernization and physical-device validation
-are subsequent work. Existing reading/audio features are inherited, not newly implemented.
-Production databases and reading history are not used for development.
+Online EPUB loads chapters/resources without saving a complete archive; explicitly
+downloaded editions take priority. Cached-file mode remains the default, and PDF still
+needs a complete file. Embedded narration is foreground-only and currently loads each
+audio asset as a Blob, unlike ordinary Media3 audiobook range streaming.
+
+AI clients include Reading Help, photo recognition and Story Guide. Optional hardware
+key enrollment/signing does not bypass the stock official-app-only server policy;
+the companion opt-in policy is undeployed and real hardware/provider acceptance is
+unverified. Native background read-along, external-audio alignment, broader UI work and
+physical-device acceptance remain open. See the plan for exact test/evidence boundaries.
+Production databases, books and reading history are not used for development.
 
 ---
 

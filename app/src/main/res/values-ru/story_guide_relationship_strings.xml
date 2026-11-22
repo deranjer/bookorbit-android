@@ -1,0 +1,31 @@
+<resources>
+    <string name="guide_search_visible">Поиск в раскрытых записях</string>
+    <string name="guide_no_visible_matches">Среди раскрытых записей и связей совпадений нет.</string>
+    <string name="guide_relationships">Известные связи</string>
+    <string name="guide_recaps">Пересказы глав</string>
+    <string name="guide_kind_character">Персонаж</string>
+    <string name="guide_kind_place">Место</string>
+    <string name="guide_kind_group">Группа</string>
+    <string name="guide_kind_event">Событие</string>
+    <string name="guide_kind_object">Предмет</string>
+    <string name="guide_kind_term">Термин</string>
+    <string name="guide_tie_parent">родитель для</string>
+    <string name="guide_tie_grandparent">дедушка или бабушка для</string>
+    <string name="guide_tie_aunt_uncle">тётя или дядя для</string>
+    <string name="guide_tie_sibling">брат или сестра для</string>
+    <string name="guide_tie_spouse">супруг или супруга для</string>
+    <string name="guide_tie_betrothed">помолвлен(а) с</string>
+    <string name="guide_tie_cousin">двоюродный брат или сестра для</string>
+    <string name="guide_tie_relative">родственник для</string>
+    <string name="guide_tie_loves">любит</string>
+    <string name="guide_tie_bonded">связан(а) с</string>
+    <string name="guide_tie_friend">дружит с</string>
+    <string name="guide_tie_enemy">враждует с</string>
+    <string name="guide_tie_rival">соперничает с</string>
+    <string name="guide_tie_teaches">обучает</string>
+    <string name="guide_tie_works">работает на</string>
+    <string name="guide_tie_studies">учится у / в</string>
+    <string name="guide_tie_member">состоит в</string>
+    <string name="guide_tie_owns">владеет</string>
+    <string name="guide_tie_lives">живёт у / в</string>
+</resources>

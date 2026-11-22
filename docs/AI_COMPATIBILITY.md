@@ -28,8 +28,9 @@ key registration, nonce handling or signed requests.
 - Accessible deployments can read format 1, explicitly confirm generation/update,
   see job status, retry or cancel, and view chapter-bounded identity lines/recaps.
 - No details are displayed before choosing a fully completed chapter. Future
-  canonical names are not substituted for names already encountered. Relationships,
-  joins and automatic CFI-to-guide-anchor mapping are not implemented yet.
+  canonical names are not substituted for names already encountered. Relationships
+  and joins are added in 0.9.9 below; automatic CFI-to-guide-anchor mapping remains
+  unimplemented.
 - Provider disclosure and cost confirmation precede build/retry. The client does
   not configure providers, upload a photo or initiate a paid call automatically.
 
@@ -161,3 +162,21 @@ untouched, as are image/audio transports. A real local HTTPS regression checks t
 three signed reads and that adjacent unguarded routes carry no attestation header.
 This does not assert support for every guarded route the server exposes; future
 client endpoints need their own contract audit.
+
+### Chapter-bounded relationships and joined identities (0.9.9)
+
+The client decodes format-1 `joins`, `ties` and quote anchors from the audited
+shared type contract. Before a join's revelation chapter is completed, its identity
+remains a separate entry. After explicit completion, its key resolves to the visible
+merged entry. Relationship endpoints use only names actually encountered within
+the chosen boundary, never canonical future names. Unseen/dangling/ambiguous
+endpoints and merged self-relationships are omitted. Unknown relationship types
+retain the server-provided label; known types have English/Russian UI labels.
+
+The search operates only on the already spoiler-filtered projection, not the full
+payload. Moving the completed-chapter boundary backwards recomputes entries and
+relationships from scratch. When all detailed profiles are still in the future,
+an earlier identity line remains available. Unknown or malformed anchor sections
+do not grant access. No progress percentage, automatic chapter completion or extra
+provider call is used. Entries/relationships/recaps use a lazy list rather than
+composing an entire long-book guide at once.

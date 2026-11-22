@@ -80,6 +80,9 @@ jobs:
       - name: Russian localization coverage and format arguments
         run: python3 tools/android/test_localization.py
 
+      - name: Instrumentation result parsing
+        run: python3 tools/android/test_instrumentation_runner.py
+
       - name: Assemble debug APKs
         run: ./gradlew :app:assembleFullDebug :app:assembleFdroidDebug --no-daemon
 
