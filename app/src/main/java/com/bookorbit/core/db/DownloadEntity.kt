@@ -27,4 +27,8 @@ data class DownloadEntity(
     val lastError: String? = null,
     /** Exact selected server file IDs; null only for legacy download plans. */
     val selectedFileIdsJson: String? = null,
+    /** Generation token: obsolete workers cannot publish into a replaced or deleted plan. */
+    @androidx.room.ColumnInfo(defaultValue = "''") val planId: String = "",
+    /** Stable across additive updates/retries so interrupted bytes can be resumed in place. */
+    @androidx.room.ColumnInfo(defaultValue = "''") val storageId: String = "",
 )

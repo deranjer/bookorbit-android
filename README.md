@@ -5,7 +5,8 @@ retaining its AGPL license and upstream attribution. This is **not the official 
 No Premium gate or automatic library-wide download is added.
 
 Work in progress: separate installation/OIDC identity, explicit offline file selection,
-durable retry plans, and exact audiobook manifest file-ID matching. Initial validation
+durable additive download plans, explicit reader edition selection, and exact audiobook
+manifest file-ID matching. Initial validation
 uses an isolated BookOrbit 3.9.0 with synthetic media; this is not yet a parity release.
 
 - [Build and local test server](tools/README.md)

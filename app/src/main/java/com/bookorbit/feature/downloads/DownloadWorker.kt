@@ -23,6 +23,9 @@ import com.bookorbit.core.settings.DownloadLocationStore
 import com.bookorbit.core.storage.DownloadFileNaming
 import com.bookorbit.core.storage.LocalRef
 import com.bookorbit.core.storage.length
+import com.bookorbit.core.storage.exists
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
@@ -94,22 +97,29 @@ class DownloadWorker @AssistedInject constructor(
         val bookId = inputData.getInt(KEY_BOOK_ID, -1)
         if (bookId < 0) return Result.failure()
         val entity = dao.get(bookId) ?: return Result.failure()
+        val planId = inputData.getString(KEY_PLAN_ID).orEmpty()
+        if (entity.planId != planId || entity.status != DownloadStatus.DOWNLOADING.name) return Result.success()
         val book = runCatching { json.decodeFromString<BookDetail>(entity.bookJson) }.getOrNull()
-            ?: return Result.failure()
+            ?: run {
+                dao.failPlan(bookId, planId, DownloadStatus.FAILED.name, "Invalid cached book metadata.")
+                return Result.failure()
+            }
 
         notificationTitle = book.title ?: notificationTitle
         goForeground(entity.progress.takeIf { it > 0f })
 
         val files = runCatching { DownloadPlan.files(entity, book, json) }.getOrElse {
-            dao.updateFailure(bookId, DownloadStatus.FAILED.name, "Invalid offline file selection.")
+            dao.failPlan(bookId, planId, DownloadStatus.FAILED.name, "Invalid offline file selection.")
             return Result.failure()
         }
         if (files.isEmpty()) {
-            dao.updateFailure(bookId, DownloadStatus.FAILED.name, "This book has no files available to download.")
+            dao.failPlan(bookId, planId, DownloadStatus.FAILED.name, "This book has no files available to download.")
             return Result.failure()
         }
 
-        val internalDir = DownloadFolders.internalDir(applicationContext, session.dataScope, bookId).apply { mkdirs() }
+        val rootDir = DownloadFolders.internalDir(applicationContext, session.dataScope, bookId)
+        val storageId = entity.storageId
+        val internalDir = (if (storageId.isEmpty()) rootDir else File(rootDir, "plan-$storageId")).apply { mkdirs() }
 
         // configuredTreeUri (raw preference) vs treeUri (validated) are deliberately distinct: a
         // configured-but-currently-inaccessible tree must still count as a fallback below, whereas
@@ -119,13 +129,23 @@ class DownloadWorker @AssistedInject constructor(
         val bookFolder = treeUri?.let { tree ->
             val root = DocumentFile.fromTreeUri(applicationContext, tree) ?: return@let null
             val name = DownloadFileNaming.bookFolderName(book.title, bookId)
-            root.findFile(name)?.takeIf { it.isDirectory } ?: root.createDirectory(name)
+            val bookDir = root.findFile(name)?.takeIf { it.isDirectory } ?: root.createDirectory(name)
+            if (storageId.isEmpty()) bookDir
+            else bookDir?.let { it.findFile("plan-$storageId")?.takeIf { folder -> folder.isDirectory } ?: it.createDirectory("plan-$storageId") }
         }
         // Configured but unusable right now (permission revoked, tree gone, or folder creation
         // failed) - fall back silently for this run rather than failing the whole download.
         val fellBack = configuredTreeUri != null && bookFolder == null
 
-        val downloaded = mutableListOf<DownloadedFile>()
+        val downloaded = runCatching { DownloadPlan.completed(entity, json) }.getOrElse {
+            dao.failPlan(bookId, planId, DownloadStatus.FAILED.name, "Invalid offline file journal.")
+            return Result.failure()
+        }.filter { LocalRef.parse(it.localPath).exists(applicationContext) }.toMutableList()
+        fun reusable(ref: BookFileRef): DownloadedFile? = downloaded.firstOrNull { file ->
+            file.id == ref.id && LocalRef.parse(file.localPath).length(applicationContext).let { size ->
+                size > 0 && (ref.sizeBytes == null || ref.sizeBytes <= 0 || ref.sizeBytes == size)
+            }
+        }
         val knownSizes = files.map { it.sizeBytes?.takeIf { size -> size > 0 } }
         val useByteWeights = knownSizes.all { it != null }
         val weights = if (useByteWeights) knownSizes.map { it!!.toDouble() }
@@ -137,22 +157,25 @@ class DownloadWorker @AssistedInject constructor(
 
         try {
             activeStage = "audiobook_manifest"
-            val audioFiles = files.filter { it.format?.lowercase() in BookFiles.AUDIO_FORMATS }
+            val audioFiles = files.filter { it.format?.lowercase() in BookFiles.AUDIO_FORMATS && reusable(it) == null }
             val sources = if (audioFiles.isEmpty()) Sources.Legacy
                 else audiobookAssets.resolve(bookId, BookFiles.audioFiles(book))
             files.forEachIndexed { index, ref ->
                 activeFileId = ref.id
-                val name = DownloadFileNaming.fileName(ref, index, book)
+                val name = DownloadFileNaming.uniqueFileName(ref, book)
                 activeStage = "request_or_transfer"
-                val localPath = if (bookFolder != null) {
+                val localPath = reusable(ref)?.localPath ?: if (bookFolder != null) {
                     downloadToSaf(bookFolder, name, ref, bookId, sources, completedWeight, weights[index], totalWeight)
                 } else {
                     downloadToInternal(internalDir, name, ref, bookId, sources, completedWeight, weights[index], totalWeight)
                 }
+                downloaded.removeAll { it.id == ref.id }
                 downloaded.add(DownloadedFile(ref.id, localPath, ref.filename, ref.format, ref.durationSeconds))
                 completedWeight += weights[index]
                 val progress = (completedWeight / totalWeight).toFloat().coerceIn(0f, 1f)
-                dao.updateProgress(bookId, progress)
+                if (dao.checkpoint(bookId, planId,
+                        json.encodeToString(ListSerializer(DownloadedFile.serializer()), downloaded),
+                        downloaded.sumOf { LocalRef.parse(it.localPath).length(applicationContext) }, progress) == 0) return Result.success()
                 setProgress(workDataOf(KEY_PROGRESS to progress))
             }
         } catch (e: CancellationException) {
@@ -176,30 +199,23 @@ class DownloadWorker @AssistedInject constructor(
             }
             val reason = "Failed while ${stage.replace('_', ' ')}: ${cause.javaClass.simpleName}" +
                 (cause.message?.let { " ($it)" } ?: "")
-            dao.updateFailure(bookId, DownloadStatus.FAILED.name, reason)
+            dao.failPlan(bookId, planId, DownloadStatus.FAILED.name, reason)
             return Result.failure()
         }
 
         // Cover is best-effort, and always internal (see class doc).
-        val coverPath = runCatching {
+        val coverPath = entity.coverLocalPath?.takeIf { LocalRef.parse(it).exists(applicationContext) } ?: runCatching {
             val coverFile = File(internalDir, "cover.jpg")
             api.serveCover(bookId).byteStream().use { input ->
                 coverFile.outputStream().use { output -> input.copyTo(output) }
             }
             Uri.fromFile(coverFile).toString()
-        }.getOrNull()
+        }.onFailure { if (it is CancellationException) throw it }.getOrNull()
 
-        val finalStatus = if (fellBack) DownloadStatus.COMPLETE_FALLBACK else DownloadStatus.COMPLETE
-        dao.upsert(
-            entity.copy(
-                status = finalStatus.name,
-                progress = 1f,
-                lastError = null,
-                coverLocalPath = coverPath,
-                sizeBytes = downloaded.sumOf { LocalRef.parse(it.localPath).length(applicationContext) },
-                filesJson = json.encodeToString(ListSerializer(DownloadedFile.serializer()), downloaded),
-            ),
-        )
+        val finalStatus = if (fellBack || configuredTreeUri != null && downloaded.any { LocalRef.parse(it.localPath) is LocalRef.PlainFile })
+            DownloadStatus.COMPLETE_FALLBACK else DownloadStatus.COMPLETE
+        // UPDATE only: a cancelled/deleted generation must never recreate its database row.
+        dao.finishPlan(bookId, planId, finalStatus.name, coverPath)
         return Result.success()
     }
 
@@ -328,6 +344,7 @@ class DownloadWorker @AssistedInject constructor(
         var copied = alreadyWritten
         var lastReportedBytes = alreadyWritten
         while (true) {
+            currentCoroutineContext().ensureActive()
             val count = input.read(buffer)
             if (count < 0) break
             output.write(buffer, 0, count)
@@ -336,7 +353,8 @@ class DownloadWorker @AssistedInject constructor(
                 val withinFile = (copied.toDouble() / length).coerceIn(0.0, 1.0)
                 val progress = ((completedWeight + fileWeight * withinFile) / totalWeight)
                     .toFloat().coerceIn(0f, 0.999f)
-                dao.updateProgress(inputData.getInt(KEY_BOOK_ID, -1), progress)
+                if (dao.progressForPlan(inputData.getInt(KEY_BOOK_ID, -1), inputData.getString(KEY_PLAN_ID).orEmpty(), progress) == 0)
+                    throw CancellationException("Offline plan was removed or replaced")
                 setProgress(workDataOf(KEY_PROGRESS to progress))
                 notifyProgress(progress)
                 lastReportedBytes = copied
@@ -361,6 +379,7 @@ class DownloadWorker @AssistedInject constructor(
         private const val HTTP_RANGE_NOT_SATISFIABLE = 416
         private const val NOTIFY_INTERVAL_MS = 1_000L
         const val KEY_BOOK_ID = "bookId"
+        const val KEY_PLAN_ID = "planId"
         const val KEY_PROGRESS = "progress"
         fun tag(bookId: Int) = "download-$bookId"
     }

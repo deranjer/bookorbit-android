@@ -27,7 +27,7 @@ import com.bookorbit.core.model.BookFiles
 
 /** Choosing content does not fetch it; only the explicit confirmation enqueues a download. */
 @Composable
-internal fun DownloadSelectionDialog(book: BookDetail, onConfirm: (Set<Int>) -> Unit, onDismiss: () -> Unit) {
+internal fun DownloadSelectionDialog(book: BookDetail, onConfirm: (Set<Int>) -> Unit, onDismiss: () -> Unit, existingFileIds: Set<Int> = emptySet()) {
     val files = remember(book) { BookFiles.downloadCandidates(book) }
     var selected by remember(book) { mutableStateOf(emptySet<Int>()) }
     AlertDialog(
@@ -36,19 +36,23 @@ internal fun DownloadSelectionDialog(book: BookDetail, onConfirm: (Set<Int>) -> 
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 Text(stringResource(R.string.offline_choose_hint))
+                if (existingFileIds.isNotEmpty()) Text(stringResource(R.string.offline_existing_hint))
                 files.forEach { file ->
-                    val checked = file.id in selected
+                    val existing = file.id in existingFileIds
+                    val checked = existing || file.id in selected
                     Row(
                         Modifier.fillMaxWidth().toggleable(
                             value = checked,
                             role = Role.Checkbox,
+                            enabled = !existing,
                             onValueChange = { selected = if (it) selected + file.id else selected - file.id },
                         ).padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Checkbox(checked = checked, onCheckedChange = null)
+                        Checkbox(checked = checked, onCheckedChange = null, enabled = !existing)
                         Column(Modifier.padding(start = 8.dp)) {
                             Text(file.filename ?: stringResource(R.string.offline_file_id, file.id))
+                            if (existing) Text(stringResource(R.string.downloaded))
                             Text(stringResource(
                                 if (file.format?.lowercase() in BookFiles.AUDIO_FORMATS) R.string.offline_audio_format
                                 else R.string.offline_text_format,

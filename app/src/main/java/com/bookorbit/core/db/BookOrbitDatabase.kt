@@ -20,7 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PendingAnnotationOpEntity::class,
         AnnotationCacheEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = false,
 )
 abstract class BookOrbitDatabase : RoomDatabase() {
@@ -35,6 +35,14 @@ abstract class BookOrbitDatabase : RoomDatabase() {
 }
 
 /** Persist explicit download plans without modifying existing content or progress. */
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `downloads` ADD COLUMN `planId` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `downloads` ADD COLUMN `storageId` TEXT NOT NULL DEFAULT ''")
+    }
+}
+
+/** Persist snapshot IDs without clearing queued positions. */
 val MIGRATION_9_10 = object : Migration(9, 10) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE `reader_progress` ADD COLUMN `pageNumber` INTEGER")

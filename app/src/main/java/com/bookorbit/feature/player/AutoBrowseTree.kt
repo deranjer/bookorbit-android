@@ -8,7 +8,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaConstants
 import com.bookorbit.core.db.AudioProgressEntity
 import com.bookorbit.core.db.DownloadEntity
-import com.bookorbit.feature.downloads.isCompleteDownloadStatus
+import com.bookorbit.feature.downloads.hasPublishedAudio
 
 /**
  * Pure browse IDs, offline shelves and bounded grouping for Android Auto. Online shelves are
@@ -199,7 +199,7 @@ object AutoBrowseTree {
     }
 
     private val DownloadEntity.isComplete: Boolean
-        get() = isAudiobook && status.isCompleteDownloadStatus()
+        get() = hasPublishedAudio()
 
     private fun DownloadEntity.toBrowseEntry(labels: Labels): BrowseEntry = BrowseEntry(
         mediaId = bookMediaId(bookId),

@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 
 private const val EDIT_METADATA_PERMISSION = "library_edit_metadata"
@@ -46,6 +47,7 @@ class BookDetailViewModel @Inject constructor(
         val fileProgress: Map<Int, Double> = emptyMap(),
         val statusUpdating: Boolean = false,
         val ratingUpdating: Boolean = false,
+        val downloadActionFailed: Boolean = false,
     )
 
     data class CollectionsState(
@@ -142,21 +144,32 @@ class BookDetailViewModel @Inject constructor(
 
     fun startDownload(selectedFileIds: Set<Int>) {
         val book = _ui.value.book ?: return
-        viewModelScope.launch { downloads.startDownload(book, selectedFileIds) }
+        downloadAction { downloads.startDownload(book, selectedFileIds) }
     }
 
     fun removeDownload() {
-        viewModelScope.launch { downloads.delete(bookId) }
+        downloadAction { downloads.delete(bookId) }
     }
 
     fun retryDownload() {
-        viewModelScope.launch { downloads.retryDownload(bookId) }
+        downloadAction { downloads.retryDownload(bookId) }
+    }
+
+    private fun downloadAction(action: suspend () -> Unit) {
+        viewModelScope.launch {
+            _ui.update { it.copy(downloadActionFailed = false) }
+            try {
+                action()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _ui.update { it.copy(downloadActionFailed = true) }
+            }
+        }
     }
 
     fun downloadedFileIds(entity: DownloadEntity?): Set<Int> =
-        if (entity?.status in setOf("COMPLETE", "COMPLETE_FALLBACK"))
-            downloads.decodeFiles(checkNotNull(entity)).map { it.id }.toSet()
-        else emptySet()
+        entity?.let { downloads.decodeFiles(it).map { file -> file.id }.toSet() }.orEmpty()
 
     private suspend fun reloadBook() {
         val book = loadedBook()

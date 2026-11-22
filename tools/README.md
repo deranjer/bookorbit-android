@@ -4,6 +4,7 @@
 
 ```sh
 bash tools/android/gradle.sh :app:testFdroidDebugUnitTest :app:assembleFdroidDebug
+python tools/android/test_storage_sql.py
 ```
 
 The pinned image runs as your UID and caches dependencies in
@@ -13,6 +14,10 @@ The source namespace stays `com.bookorbit` to minimize unrelated fork churn.
 
 For a Google Cast-enabled build, use `:app:assembleFullDebug`. Both flavors
 share an installation ID, but are separate from upstream/official installations.
+
+The Python checks run production download migration/guarded SQL on an in-memory
+SQLite database. Android Room migrations, real WorkManager interruption and SAF
+permissions still require a device/emulator test.
 
 ## Isolated BookOrbit 3.9.0 test server
 

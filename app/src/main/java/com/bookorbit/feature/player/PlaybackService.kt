@@ -30,7 +30,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import com.bookorbit.feature.downloads.DownloadsRepository
-import com.bookorbit.feature.downloads.isCompleteDownloadStatus
+import com.bookorbit.feature.downloads.hasPublishedAudio
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -115,7 +115,7 @@ class PlaybackService : MediaLibraryService() {
 
         serviceScope.launch {
             combine(
-                downloads.downloads.map { rows -> rows.filter { it.isAudiobook && it.status.isCompleteDownloadStatus() } },
+                downloads.downloads.map { rows -> rows.filter { it.hasPublishedAudio() } },
                 audioProgress.observeRecent().map { rows -> rows.map { it.bookId to (it.percentage >= ResumeCandidates.FINISHED_PERCENT) } },
             ) { books, history -> books to history }.distinctUntilChanged().drop(1).collect {
                 mediaSession?.let { callback.refresh(it, setOf(AutoBrowseTree.DOWNLOADS_ID, AutoBrowseTree.CONTINUE_ID)) }

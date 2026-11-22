@@ -1,4 +1,7 @@
 <resources>
+    <string name="offline_action_failed">Could not update offline files. Please try again or check Downloads.</string>
+    <string name="offline_add_files">Add files</string>
+    <string name="offline_existing_hint">Downloaded files are kept. Select only the files you want to add.</string>
     <string name="reading_choose_file">Choose a file to read</string>
     <string name="offline_choose_files">Download for offline use</string>
     <string name="offline_choose_hint">Select text, audio, or both. Only selected files will be downloaded.</string>

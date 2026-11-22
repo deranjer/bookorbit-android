@@ -40,6 +40,11 @@ object DownloadFileNaming {
         return "$base.$ext"
     }
 
+    /** Server filenames can collide; IDs also make unnamed files independent of list ordering. */
+    fun uniqueFileName(ref: BookFileRef, book: BookDetail): String =
+        if (ref.filename.isNullOrBlank()) "${ref.id}.${extensionOf(ref)}"
+        else "${ref.id}-${fileName(ref, 0, book)}"
+
     private val MIME_OVERRIDES = mapOf(
         "m4b" to "audio/mp4",
         "cbz" to "application/vnd.comicbook+zip",

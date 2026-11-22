@@ -158,7 +158,8 @@ fun BookDetailScreen(
 
     val book = ui.book
     if (book != null && downloadSheet) {
-        DownloadSelectionDialog(book, confirmDownload, onDismiss = { downloadSheet = false })
+        val download by vm.downloadState.collectAsStateWithLifecycle()
+        DownloadSelectionDialog(book, confirmDownload, onDismiss = { downloadSheet = false }, existingFileIds = vm.downloadedFileIds(download))
     }
     if (book != null && statusSheet) {
         ReadStatusSheet(
@@ -256,7 +257,12 @@ private fun BookDetailContent(
                     }
                 }
             }
-            DownloadControl(download, onStartDownload = onStartDownload, onRetry = vm::retryDownload, onRemove = vm::removeDownload)
+            DownloadControl(download, onStartDownload = onStartDownload, onRetry = vm::retryDownload, onRemove = vm::removeDownload,
+                canAddFiles = BookFiles.downloadCandidates(book).any { it.id !in offlineIds })
+            if (ui.downloadActionFailed) {
+                Text(stringResource(R.string.offline_action_failed), color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall)
+            }
         }
 
         FormatChips(book, ui.fileProgress)
@@ -371,16 +377,18 @@ private fun DownloadControl(
     onStartDownload: () -> Unit,
     onRetry: () -> Unit,
     onRemove: () -> Unit,
+    canAddFiles: Boolean,
 ) {
     when (download?.status) {
-        "COMPLETE", "COMPLETE_FALLBACK" -> Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = com.bookorbit.ui.theme.SuccessGreen)
-            Text(stringResource(R.string.downloaded), color = com.bookorbit.ui.theme.SuccessGreen, modifier = Modifier.weight(1f))
-            androidx.compose.material3.TextButton(onClick = onRemove) { Text(stringResource(R.string.remove)) }
+        "COMPLETE", "COMPLETE_FALLBACK" -> Column(Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = com.bookorbit.ui.theme.SuccessGreen)
+                Text(stringResource(R.string.downloaded), color = com.bookorbit.ui.theme.SuccessGreen)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (canAddFiles) androidx.compose.material3.TextButton(onClick = onStartDownload) { Text(stringResource(R.string.offline_add_files)) }
+                androidx.compose.material3.TextButton(onClick = onRemove) { Text(stringResource(R.string.remove)) }
+            }
         }
         "DOWNLOADING" -> Row(
             modifier = Modifier.fillMaxWidth(),

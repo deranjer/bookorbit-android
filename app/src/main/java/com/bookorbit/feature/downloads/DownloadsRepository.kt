@@ -2,19 +2,11 @@ package com.bookorbit.feature.downloads
 
 import android.content.Context
 import androidx.documentfile.provider.DocumentFile
-import androidx.work.BackoffPolicy
-import androidx.work.Constraints
-import androidx.work.ExistingWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.workDataOf
 import com.bookorbit.core.auth.SessionManager
 import com.bookorbit.core.db.DownloadDao
 import com.bookorbit.core.db.DownloadEntity
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFiles
-import com.bookorbit.core.settings.AppSettingsStore
 import com.bookorbit.core.settings.DownloadLocationStore
 import com.bookorbit.core.storage.DownloadFileNaming
 import com.bookorbit.core.storage.LocalRef
@@ -22,11 +14,16 @@ import com.bookorbit.core.storage.delete
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.io.File
-import java.util.concurrent.TimeUnit
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -36,10 +33,11 @@ class DownloadsRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val dao: DownloadDao,
     private val json: Json,
-    private val appSettings: AppSettingsStore,
+    private val scheduler: DownloadWorkScheduler,
     private val locationStore: DownloadLocationStore,
     private val session: SessionManager,
 ) {
+    private val changes = Mutex()
     val downloads: Flow<List<DownloadEntity>> = dao.observeAll()
 
     fun observe(bookId: Int): Flow<DownloadEntity?> = dao.observe(bookId)
@@ -52,22 +50,28 @@ class DownloadsRepository @Inject constructor(
     suspend fun cachedBook(bookId: Int): BookDetail? =
         dao.get(bookId)?.let { runCatching { json.decodeFromString(BookDetail.serializer(), it.bookJson) }.getOrNull() }
 
-    /** Map of fileId -> local file path for a completed download (else empty). */
+    /** Published files stay usable while additional formats are downloading or have failed. */
     suspend fun localFiles(bookId: Int): Map<Int, String> {
-        val entity = dao.get(bookId)?.takeIf { it.status.isCompleteDownloadStatus() } ?: return emptyMap()
+        val entity = dao.get(bookId) ?: return emptyMap()
         return decodeFiles(entity).associate { it.id to it.localPath }
     }
 
     suspend fun coverPath(bookId: Int): String? =
-        dao.get(bookId)?.takeIf { it.status.isCompleteDownloadStatus() }?.coverLocalPath
+        dao.get(bookId)?.coverLocalPath
 
     fun decodeFiles(entity: DownloadEntity): List<DownloadedFile> =
         runCatching { json.decodeFromString(ListSerializer(DownloadedFile.serializer()), entity.filesJson) }
             .getOrDefault(emptyList())
 
-    suspend fun startDownload(book: BookDetail, selectedFileIds: Set<Int>) {
+    suspend fun startDownload(book: BookDetail, selectedFileIds: Set<Int>) = change {
         val files = BookFiles.selectedDownloads(book, selectedFileIds)
-        // Never reset a running/completed plan or hide files already on disk.
+        val existing = dao.get(book.id)
+        if (existing != null) {
+            val updated = DownloadPlan.expand(existing, book, selectedFileIds, json) ?: return@change
+            if (dao.replacePlan(existing, updated)) enqueue(book.id, updated.planId)
+            return@change
+        }
+        val planId = UUID.randomUUID().toString()
         val inserted = dao.insertPlan(
             DownloadEntity(
                 bookId = book.id,
@@ -84,36 +88,35 @@ class DownloadsRepository @Inject constructor(
                 status = DownloadStatus.DOWNLOADING.name,
                 progress = 0f,
                 selectedFileIdsJson = json.encodeToString(files.map { it.id }),
+                planId = planId,
+                storageId = planId,
             ),
         )
-        if (inserted == -1L) return
-
-        enqueue(book.id)
-    }
-
-    private suspend fun enqueue(bookId: Int) {
-        val networkType = if (appSettings.wifiOnlyDownloads.first()) NetworkType.UNMETERED else NetworkType.CONNECTED
-        val request = OneTimeWorkRequestBuilder<DownloadWorker>()
-            .setInputData(workDataOf(DownloadWorker.KEY_BOOK_ID to bookId))
-            .setConstraints(Constraints.Builder().setRequiredNetworkType(networkType).build())
-            .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
-            .addTag(DownloadWorker.tag(bookId))
-            .build()
-
-        WorkManager.getInstance(context)
-            .enqueueUniqueWork(DownloadWorker.tag(bookId), ExistingWorkPolicy.KEEP, request)
+        if (inserted != -1L) enqueue(book.id, planId)
     }
 
     /** Restarts a download after a terminal [DownloadStatus.FAILED], using the last-known book detail. */
-    suspend fun retryDownload(bookId: Int) {
-        val entity = dao.get(bookId) ?: return
-        if (entity.status != DownloadStatus.FAILED.name) return
-        dao.upsert(entity.copy(status = DownloadStatus.DOWNLOADING.name, lastError = null))
-        enqueue(bookId)
+    suspend fun retryDownload(bookId: Int) = change {
+        val entity = dao.get(bookId) ?: return@change
+        if (entity.status != DownloadStatus.FAILED.name) return@change
+        val updated = entity.copy(status = DownloadStatus.DOWNLOADING.name, lastError = null, planId = UUID.randomUUID().toString())
+        if (dao.replacePlan(entity, updated)) enqueue(bookId, updated.planId)
     }
 
-    suspend fun delete(bookId: Int) {
-        WorkManager.getInstance(context).cancelUniqueWork(DownloadWorker.tag(bookId))
+    private suspend fun enqueue(bookId: Int, planId: String) {
+        try {
+            scheduler.enqueue(bookId, planId)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            dao.failPlan(bookId, planId, DownloadStatus.FAILED.name, "Could not schedule download. Please retry.")
+            throw e
+        }
+    }
+
+    suspend fun delete(bookId: Int) = change {
+        scheduler.cancel(bookId)
+
         val entity = dao.get(bookId)
         dao.delete(bookId)
         entity?.let {
@@ -124,6 +127,11 @@ class DownloadsRepository @Inject constructor(
         }
         // Handles the cover (always internal) plus legacy/fallback-mode files in one sweep.
         DownloadFolders.internalDir(context, session.dataScope, bookId).deleteRecursively()
+    }
+
+    /** Finish DB + WorkManager bookkeeping even if the user immediately leaves the detail screen. */
+    private suspend fun <T> change(action: suspend () -> T): T = withContext(NonCancellable + Dispatchers.IO) {
+        changes.withLock { action() }
     }
 
     private suspend fun deleteSafFolderIfAny(entity: DownloadEntity) {

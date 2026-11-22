@@ -71,6 +71,9 @@ jobs:
       - name: Unit tests
         run: ./gradlew :app:testFullDebugUnitTest :app:testFdroidDebugUnitTest --no-daemon
 
+      - name: Download migration and generation-guard SQL
+        run: python3 tools/android/test_storage_sql.py
+
       - name: Assemble debug APKs
         run: ./gradlew :app:assembleFullDebug :app:assembleFdroidDebug --no-daemon
 

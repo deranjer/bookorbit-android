@@ -51,8 +51,8 @@ android {
         // .github/workflows/release-please.yml (release-please's own generic-file updater is
         // unreliable for this -- see the commit that introduced this comment). Both must stay
         // plain literals so F-Droid's static manifest parser can find them too.
-        versionCode = 900
-        versionName = "0.9.0"
+        versionCode = 901
+        versionName = "0.9.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
