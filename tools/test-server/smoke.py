@@ -49,6 +49,9 @@ def main():
     assert status == 202 or (status == 409 and 'scan is already running' in scan.get('message', '')), f'Fixture scan failed: HTTP {status}'
     deadline = time.monotonic() + 90
     while True:
+        status, history = call('GET', f"/scanner/libraries/{library['id']}/scan-history", headers=headers)
+        assert status == 200
+        scan_finished = bool(history) and history[0]['status'] == 'completed'
         status, books = call('POST', '/books/query', dict(page=0, size=20), headers)
         assert status == 201
         items = books.get('items', [])
@@ -58,7 +61,9 @@ def main():
             assert status == 200, 'Book detail contract failed'
             detail_rows.append(detail)
         paired = next((book for book in detail_rows if book['title'] == 'First Orbit'), None)
-        if (len(items) >= 3 and paired
+        many_tracks = next((book for book in detail_rows if book['title'] == '75 Track Orbit'), None)
+        if (scan_finished and len(items) >= 4 and paired
+                and many_tracks and len([file for file in many_tracks['files'] if file['format'] == 'mp3']) == 75
                 and len([file for file in paired['files'] if file['format'] == 'mp3']) == 2
                 and len([file for file in paired['files'] if file['format'] == 'epub']) == 2):
             break
@@ -68,6 +73,10 @@ def main():
     overlay_book = next(book for book in detail_rows if book['title'] == 'Read Along Orbit')
     overlay_file = next(file for file in overlay_book['files'] if file['format'] == 'epub')
     assert overlay_file.get('mediaOverlay', {}).get('available'), 'Server did not recognize the SMIL fixture'
+    assert overlay_file['sizeBytes'] == (ROOT / '.local/fixtures/Read Along Orbit/Read Along Orbit.epub').stat().st_size
+    assert overlay_file['mediaOverlay']['durationSeconds'] == 20, 'Stale overlay metadata after scan'
+    many_tracks = next(book for book in detail_rows if book['title'] == '75 Track Orbit')
+    assert len([file for file in many_tracks['files'] if file['format'] == 'mp3']) == 75
     assert {'epub', 'mp3'} <= formats, f'Paired fixture lost a format: {formats}'
     assert paired.get('description') and paired.get('authors'), 'Card description/author missing'
     epub = next(file for file in paired['files'] if file['format'] == 'epub')

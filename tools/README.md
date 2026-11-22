@@ -16,6 +16,10 @@ The source namespace stays `com.bookorbit` to minimize unrelated fork churn.
 For a Google Cast-enabled build, use `:app:assembleFullDebug`. Both flavors
 share an installation ID, but are separate from upstream/official installations.
 
+0.9.4 uses AGP 9.5.2 built-in Kotlin and Gradle 9.9.2; Compose requires compile
+SDK 37.2. Target SDK remains 36 and minimum SDK 26. The Dockerfile installs the
+compile platform. Deprecated API warnings are not hidden; both lint variants pass.
+
 The Python checks run production download migration/guarded SQL on an in-memory
 SQLite database. Android Room migrations, real WorkManager interruption and SAF
 permissions still require a device/emulator test.
@@ -51,3 +55,38 @@ Stop the test services without deleting their data:
 ```sh
 docker compose -f tools/test-server/compose.yaml stop
 ```
+
+## Isolated Android emulator (Linux/KVM)
+
+Build the Android image once using the Gradle wrapper above, then:
+
+```sh
+docker build -f tools/android/emulator.Dockerfile -t bookorbit-client-emulator:local tools/android
+mkdir -p .local/emulator-home
+docker run --rm --init --name bookorbit-client-emulator --device /dev/kvm \
+  --group-add "$(stat -c %g /dev/kvm)" --user "$(id -u):$(id -g)" \
+  --network bookorbit-client-test_default --shm-size=1g \
+  --mount "type=bind,source=$PWD,target=/workspace,readonly" \
+  --mount "type=bind,source=$PWD/.local/emulator-home,target=/emulator-home" \
+  bookorbit-client-emulator:local
+```
+
+The command runs until stopped; no emulator/ADB ports are published. In another
+terminal, wait for Android boot, then install and inspect the app:
+
+```sh
+docker exec bookorbit-client-emulator adb wait-for-device
+docker exec bookorbit-client-emulator adb shell getprop sys.boot_completed
+docker exec bookorbit-client-emulator adb install -r /workspace/app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk
+python tools/android/device-ui.py launch
+python tools/android/device-ui.py snapshot --name start
+```
+
+`server` fills the isolated app container's internal URL; `credentials` fills the
+synthetic account without printing its password. Use these only on the respective
+URL/login screens. `tap --text LABEL` uses current UI bounds; `back` goes back.
+Snapshots go to ignored `.local/device-screenshots/` and may contain private UI
+text. The harness targets only this named Docker emulator, not a connected phone.
+Fixtures include two text editions, equal-sized audio, a 75-track audiobook and
+a 20-second silent EPUB/SMIL. Smoke waits for scanning before checking metadata.
+This headless emulator has no audio output; see `docs/DEVICE_TESTING.md` for limits.

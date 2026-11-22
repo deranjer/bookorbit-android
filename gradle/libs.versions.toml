@@ -1,9 +1,9 @@
 [versions]
 # Build tooling
-agp = "8.9.1"
-kotlin = "2.0.21"
-ksp = "2.0.21-1.0.28"
-playPublisher = "3.13.0"
+agp = "9.5.2"
+kotlin = "2.4.21"
+ksp = "2.3.14"
+playPublisher = "4.1.2"
 
 # AndroidX core / lifecycle / activity
 coreKtx = "1.15.0"
@@ -12,11 +12,11 @@ appcompat = "1.6.1"
 activityCompose = "1.9.3"
 
 # Compose
-composeBom = "2024.12.01"
+composeBom = "2026.11.01"
 navigationCompose = "2.8.5"
 
 # DI
-hilt = "2.53.1"
+hilt = "2.60.1"
 hiltNavigationCompose = "1.2.0"
 
 # Networking
@@ -26,13 +26,13 @@ kotlinxSerialization = "1.7.3"
 coroutines = "1.9.0"
 
 # Media / images
-media3 = "1.5.1"
+media3 = "1.11.1"
 coil = "2.7.0"
 playServicesCast = "21.5.0"
 androidxMediarouter = "1.7.0"
 
 # Persistence
-room = "2.6.1"
+room = "2.8.5"
 datastore = "1.1.1"
 securityCrypto = "1.1.0-alpha06"
 documentfile = "1.1.0"
@@ -130,7 +130,6 @@ androidx-room-testing = { group = "androidx.room", name = "room-testing", versio
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

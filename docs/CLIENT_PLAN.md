@@ -11,7 +11,7 @@ Do not import production databases, secrets or books into development fixtures.
 
 ### Исходное состояние и замечания
 
-- Текущий собранный и автоматически проверенный срез — **0.9.3**, ветка
+- Текущий собранный и автоматически проверенный срез — **0.9.4**, ветка
   `feat/independent-android-client`: 394 JVM-теста на вариант, 9 JS-проверок,
   5 SQL-проверок; lint без ошибок. Это не полная проверка на устройстве.
   Ранее пользователю передана 0.9.1 (`617f904`); её APK сохранён отдельно.
@@ -62,7 +62,8 @@ Do not import production databases, secrets or books into development fixtures.
 
 **Срез 0.9.3:** `BookEditions`, группировка аудио, вкладка изданий и bottom sheets
 собраны и покрыты тестами на 75 треков. Детальное состояние остальных работ и
-границы проверки описаны в конце плана. Визуальная/device-приёмка ещё не выполнена.
+границы проверки описаны в конце плана. Проверка на физическом устройстве ещё
+не выполнена; эмуляторные результаты — ниже.
 
 ### P0. Единый фон тёмной читалки
 
@@ -325,3 +326,24 @@ passed per flavor, both lint tasks passed; 9 Node tests for appearance/SMIL and
 ordinary Story Guide metadata access and production attestation denial. Real
 device playback, visual navigation/dark-theme acceptance and actual AI generation
 with an authorized provider remain unverified.
+
+## Toolchain migration and emulator validation (0.9.4)
+
+- Migrated to AGP 9.5.2 built-in Kotlin, Gradle 9.9.2 (distribution checksum
+  pinned), Kotlin/Compose compiler 2.4.21, KSP 2.3.14, Hilt 2.60.1,
+  Compose BOM 2026.11.01, Media3 1.11.1, Room 2.8.5, Play Publisher 4.1.2.
+- Compose requires compile SDK 37.2. Target SDK stays 36; minimum stays 26.
+  Docker includes the required platform/build tools; host SDK/JDK not required.
+- Adapted exposed dropdown APIs and fixed four new configuration-awareness lint
+  errors using Compose string resources, without suppressing the checks.
+- Both flavor APKs and lint tasks pass; 394 JVM tests per flavor, 9 JS tests and
+  5 SQLite checks pass. A transient Maven DNS failure was retried, not bypassed.
+- An isolated Android 36 Pixel 6 emulator validated in-place upgrade with retained
+  login/download, edition grouping, adding all 75 tracks, retained offline text,
+  Home/Library root reselection, Library subsection reset, dark/light reader,
+  foreground SMIL playback/highlighting, pause/rate/fragment controls, background
+  pause and the production Story Guide restriction message.
+- Evidence and limits: `docs/DEVICE_TESTING.md`. Silent fixtures and no emulator
+  audio output do not validate audible narration. Physical devices, complete
+  visual redesign/Russian localization, full read-along/background alignment and
+  expanded AI work remain open; this milestone does not complete the entire plan.

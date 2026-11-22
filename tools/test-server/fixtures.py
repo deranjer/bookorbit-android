@@ -52,7 +52,7 @@ def create():
     wav = io.BytesIO()
     with wave.open(wav, 'wb') as audio:
         audio.setparams((1, 2, 22050, 0, 'NONE', 'not compressed'))
-        audio.writeframes(b'\0\0' * 22050 * 2)
+        audio.writeframes(b'\0\0' * 22050 * 20)
     # Use the same pinned test image's encoder; no host multimedia tools or network access.
     image = 'ghcr.io/bookorbit/bookorbit:3.9.0@sha256:79cd9c66c990a82944514e3e82d5be5987f21eda96cb37a378ed1484043716fc'
     encoded = subprocess.run([
@@ -71,7 +71,7 @@ def create():
         payload = {name: book.read(name) for name in book.namelist()}
     opf = payload['OEBPS/content.opf'].decode()
     opf = opf.replace('<metadata ', '<metadata ').replace('</metadata>',
-        '<meta property="media:duration">00:00:02.000</meta><meta property="media:active-class">read-along-active</meta></metadata>')
+        '<meta property="media:duration">00:00:20.000</meta><meta property="media:active-class">read-along-active</meta></metadata>')
     opf = opf.replace('id="chapter" href=', 'id="chapter" media-overlay="overlay" href=')
     opf = opf.replace('</manifest>', '<item id="overlay" href="overlay.smil" media-type="application/smil+xml"/>'
         '<item id="audio" href="audio.mp3" media-type="audio/mpeg"/></manifest>')
@@ -79,12 +79,17 @@ def create():
     payload['OEBPS/audio.mp3'] = encoded
     payload['OEBPS/overlay.smil'] = b'''<?xml version="1.0" encoding="UTF-8"?>
 <smil xmlns="http://www.w3.org/ns/SMIL" version="3.0"><body><seq>
-<par><text src="chapter.xhtml#one"/><audio src="audio.mp3" clipBegin="0s" clipEnd="1s"/></par>
-<par><text src="chapter.xhtml#two"/><audio src="audio.mp3" clipBegin="1s" clipEnd="2s"/></par>
+<par><text src="chapter.xhtml#one"/><audio src="audio.mp3" clipBegin="0s" clipEnd="10s"/></par>
+<par><text src="chapter.xhtml#two"/><audio src="audio.mp3" clipBegin="10s" clipEnd="20s"/></par>
 </seq></body></smil>'''
     with zipfile.ZipFile(overlay_book, 'w') as book:
         for name, data in payload.items():
             book.writestr(name, data, compress_type=zipfile.ZIP_STORED)
+    many_tracks = ROOT / '75 Track Orbit'
+    many_tracks.mkdir(exist_ok=True)
+    epub(many_tracks / '75 Track Orbit.epub', '75 Track Orbit')
+    for index in range(1, 76):
+        (many_tracks / f'{index:02d} Orbit.mp3').write_bytes(encoded)
     legacy = paired / 'First Orbit.wav'
     if legacy.exists():
         legacy.unlink()  # Remove only our obsolete generated fixture, never user media.
@@ -93,8 +98,12 @@ def create():
     with zipfile.ZipFile(comic / 'Orbit Comic.cbz', 'w') as book:
         book.writestr('001.png', png())
         book.writestr('ComicInfo.xml', '<ComicInfo><Title>Orbit Comic</Title><Writer>Client Test Author</Writer><Summary>Synthetic comic fixture.</Summary></ComicInfo>')
+    # The scanner skips unchanged directory mtimes; overwriting an existing file
+    # alone does not update its parent directory on Linux.
+    for directory in (paired, read_along, many_tracks, comic):
+        os.utime(directory, None)
 
 
 if __name__ == '__main__':
     create()
-    print('Created text/audio editions, EPUB/SMIL read-along and CBZ fixtures in .local/fixtures/.')
+    print('Created text/audio editions, a 75-track book, EPUB/SMIL read-along and CBZ fixtures in .local/fixtures/.')

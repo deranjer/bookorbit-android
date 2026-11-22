@@ -73,6 +73,9 @@ fun PdfReaderScreen(
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val noTextMessage = stringResource(R.string.pdf_no_text)
+    val clipLabel = stringResource(R.string.pdf_clip_label)
+    val copiedMessage = stringResource(R.string.pdf_text_copied)
     val scope = rememberCoroutineScope()
     var chromeVisible by remember { mutableStateOf(true) }
     var settingsVisible by remember { mutableStateOf(false) }
@@ -99,11 +102,11 @@ fun PdfReaderScreen(
                         scope.launch {
                             val text = core.pageText(page)
                             if (text.isBlank()) {
-                                Toast.makeText(context, context.getString(R.string.pdf_no_text), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, noTextMessage, Toast.LENGTH_SHORT).show()
                             } else {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(ClipData.newPlainText(context.getString(R.string.pdf_clip_label), text))
-                                Toast.makeText(context, context.getString(R.string.pdf_text_copied), Toast.LENGTH_SHORT).show()
+                                clipboard.setPrimaryClip(ClipData.newPlainText(clipLabel, text))
+                                Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
                             }
                         }
                     }

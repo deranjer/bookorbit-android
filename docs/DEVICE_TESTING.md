@@ -38,3 +38,41 @@ app is started again; do not expect background work to defeat that restriction.
 Report exact steps, expected/actual behavior, app version and whether the server
 was reachable. Never send passwords, access tokens, full private logs or user books.
 CBR/CB7 still require server-rendered pages; CBZ uses the local reading engine.
+
+## 0.9.4 emulator evidence (2026-11-22)
+
+Environment: isolated Docker/KVM Pixel 6, Android 36 Google APIs x86_64;
+synthetic BookOrbit 3.9.0 production-mode server only. This is **not physical
+phone validation**, audio-output validation or acceptance of all UI screens.
+Private screenshots/XML are retained in `.local/device-screenshots/`.
+
+Verified:
+
+- 0.9.3 → 0.9.4 installation over the same debug certificate preserves login
+  and the existing text-only offline download (`09`–`11`).
+- A 75-track book offers exactly two edition cards: text and audiobook (`07`).
+  Adding the audiobook selects all missing tracks as one action (`29`); completed
+  storage contains 75 MP3s plus the original EPUB, in the original plan directory.
+- Existing text still opens after adding audio with emulator Wi-Fi/mobile data
+  disabled (`34`); networking was restored afterwards.
+- Home → book → Home returns to Home (`12`). Library → book → Library returns
+  to its list (`31`); Authors → Library resets its subsection to Books (`32`).
+- EPUB/SMIL explicit playback produces the playing control and visible fragment
+  highlight (`20`); pause, 1.25× speed and next-fragment highlighting work
+  (`22`–`23`). Leaving the app and returning presents paused controls (`25`).
+  The fixture is silent and the emulator has no audio output: audible playback,
+  headphone routing and synchronization against spoken words remain untested.
+- Light/dark reader mode changes work (`27`–`28`). The synthetic dark EPUB has
+  one continuous chapter/margin canvas without page borders. Reader chrome has
+  its own surface; the user's original EPUB still needs visual acceptance.
+- Story Guide explicitly reports production attestation restrictions and does
+  not offer generation (`35`). No provider call was made.
+
+During testing, regenerated EPUB bytes initially disagreed with cached server
+metadata. The reader rejected them instead of accepting an incomplete cache.
+The fixture generator now updates directory mtimes and smoke waits for the scan
+to finish; no client integrity check was disabled.
+
+Still required: physical-device tests, real spoken EPUB overlays, long-book page
+following, external audio alignment, background MediaSession read-along, Bluetooth/
+Cast/Auto, process-death restoration, SAF interruption, and authorized AI generation.
