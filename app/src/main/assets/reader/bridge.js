@@ -11,7 +11,7 @@
  * Keep this file dependency-free and in plain ES module JS — it is shipped as a static
  * asset served by WebViewAssetLoader.
  */
-import './foliate/view.js';
+import { makeStreamingBook } from './foliate/view.js';
 import { chapterSurfaceCSS, applyCanvasTheme } from './appearance.js';
 import { ReadAlongController } from './read-along.js';
 
@@ -467,8 +467,15 @@ async function openBook(meta, parts) {
   try {
     createView();
     const format = (meta.format ?? 'epub').toLowerCase();
-    const blob = new Blob(parts, { type: MIME[format] ?? 'application/octet-stream' });
-    const file = new File([blob], `book.${format}`, { type: blob.type });
+    let file;
+    if (meta.streaming) {
+      const { bookId, fileId, baseUrl, info } = meta.streaming;
+      // Native interception owns authorization. No bearer token is ever exposed to this page.
+      file = await makeStreamingBook(bookId, baseUrl, info, null, null, fileId);
+    } else {
+      const blob = new Blob(parts, { type: MIME[format] ?? 'application/octet-stream' });
+      file = new File([blob], `book.${format}`, { type: blob.type });
+    }
 
     applyStyles(meta.settings ?? currentSettings);
     readAlong.detach();

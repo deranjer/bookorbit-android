@@ -90,12 +90,17 @@ def create():
     chapter_payload = dict(payload)
     opf = opf.replace('Read Along Orbit', 'Read Along Chapters').replace('00:00:20.000', '00:00:40.000')
     opf = opf.replace('</manifest>',
+        '<item id="art" href="art%20100%25.svg" media-type="image/svg+xml"/>'
         '<item id="interlude" href="interlude.xhtml" media-type="application/xhtml+xml"/>'
         '<item id="second" href="second.xhtml" media-type="application/xhtml+xml" media-overlay="second-overlay"/>'
         '<item id="second-overlay" href="second.smil" media-type="application/smil+xml"/>'
         '<item id="second-audio" href="second.mp3" media-type="audio/mpeg"/></manifest>')
     opf = opf.replace('<itemref idref="chapter"/>', '<itemref idref="chapter"/><itemref idref="interlude"/><itemref idref="second"/>')
     chapter_payload['OEBPS/content.opf'] = opf.encode()
+    chapter_payload['OEBPS/art 100%.svg'] = b'<svg xmlns="http://www.w3.org/2000/svg" width="220" height="80"><rect width="220" height="80" fill="#2468ab"/><text x="15" y="48" fill="white" font-size="24">Original blue 100%</text></svg>'
+    chapter_payload['OEBPS/chapter.xhtml'] = payload['OEBPS/chapter.xhtml'].replace(b'</head>',
+        b'<style>html,body{background:white;border:4px solid red;box-shadow:0 0 15px #888}p{background:white}</style></head>').replace(b'</body>',
+        b'<img src="art%20100%25.svg" alt="Original blue illustration"/></body>')
     chapter_payload['OEBPS/interlude.xhtml'] = b'<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Silent interlude</title></head><body><h1>Silent interlude</h1><p>This section deliberately has no narration.</p></body></html>'
     chapter_payload['OEBPS/second.xhtml'] = b'<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Second chapter</title></head><body><h1>Second chapter</h1><p id="one">A new chapter uses another audio asset.</p><p id="two">The saved clock belongs to this exact resource, not a percentage.</p></body></html>'
     chapter_payload['OEBPS/second.mp3'] = encoded

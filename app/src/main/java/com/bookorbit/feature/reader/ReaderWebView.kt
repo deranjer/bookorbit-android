@@ -23,15 +23,17 @@ import com.bookorbit.core.storage.openInputStream
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 /** Parameters for opening a book in the reader. */
 data class OpenParams(
-    val ref: LocalRef,
+    val ref: LocalRef?,
     val format: String,
     val cfi: String?,
     val fraction: Double?,
     val settings: ReaderSettings,
     val readAlongPosition: ReadAlongPosition? = null,
+    val stream: EpubStreamPlan? = null,
 )
 
 @Serializable
@@ -41,6 +43,7 @@ private data class OpenMeta(
     val fraction: Double?,
     val settings: ReaderSettings,
     val readAlongPosition: ReadAlongPosition? = null,
+    val streaming: EpubStreamingMeta? = null,
 )
 
 // Base64 is streamed in slices so a large book never rides in a single evaluateJavascript call.
@@ -58,6 +61,7 @@ private const val CHUNK_BYTES = CHUNK_CHARS / 4 * 3
 class ReaderController {
     @Volatile
     private var webView: WebView? = null
+    @Volatile private var streamSession: EpubStreamSession? = null
 
     /** Set by the screen to receive parsed reader events. */
     var listener: ((ReaderEvent) -> Unit)? = null
@@ -66,8 +70,18 @@ class ReaderController {
         this.webView = webView
     }
 
-    fun detach(view: WebView) {
-        if (webView === view) webView = null
+    @Synchronized fun detach(view: WebView) {
+        if (webView === view) {
+            webView = null
+            streamSession?.close()
+            streamSession = null
+        }
+    }
+
+    fun streamResource(url: String): WebResourceResponse? {
+        val asset = streamSession?.asset(url.toHttpUrlOrNull() ?: return null) ?: return null
+        return WebResourceResponse(asset.mime, null, asset.status,
+            if (asset.status in 200..299) "OK" else "Resource unavailable", mapOf("Cache-Control" to "no-store"), asset.input)
     }
 
     /** Called from the JS interface (binder thread); marshals events to the main thread. */
@@ -135,11 +149,22 @@ class ReaderController {
     // the chunk size instead of the whole file (a naive readBytes()+encodeToString() on a 90MB
     // EPUB peaks at ~450MB and reliably OOMs on default heap sizes).
     private fun runOpen(params: OpenParams, context: Context) {
-        val meta = OpenMeta(params.format, params.cfi, params.fraction, params.settings, params.readAlongPosition)
+        val streaming = synchronized(this) {
+            if (webView == null) return
+            streamSession?.close()
+            streamSession = params.stream?.newSession()
+            params.stream?.let { plan -> EpubStreamingMeta(plan.bookId, plan.fileId, checkNotNull(streamSession).baseUrl, plan.info) }
+        }
+        val meta = OpenMeta(params.format, params.cfi, params.fraction, params.settings, params.readAlongPosition, streaming)
         val metaJson = ReaderBridge.json.encodeToString(OpenMeta.serializer(), meta)
         eval(ReaderBridge.jsBegin(metaJson))
 
-        params.ref.openInputStream(context).use { input ->
+        if (streaming != null) {
+            eval(ReaderBridge.jsCommit())
+            return
+        }
+
+        checkNotNull(params.ref).openInputStream(context).use { input ->
             val buffer = ByteArray(CHUNK_BYTES)
             while (true) {
                 var filled = 0
@@ -217,6 +242,9 @@ fun ReaderWebView(
                 )
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
+                settings.allowFileAccess = false
+                settings.allowContentAccess = false
+                settings.cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 isVerticalScrollBarEnabled = false
                 isHorizontalScrollBarEnabled = false
@@ -236,7 +264,24 @@ fun ReaderWebView(
                     override fun shouldInterceptRequest(
                         view: WebView,
                         request: WebResourceRequest,
-                    ): WebResourceResponse? = assetLoader.shouldInterceptRequest(request.url)
+                    ): WebResourceResponse? {
+                        if (request.method == "GET") {
+                            assetLoader.shouldInterceptRequest(request.url)?.let { return it }
+                            try { controller.streamResource(request.url.toString())?.let { return it } }
+                            catch (_: Exception) { return blockedResource(502) }
+                        }
+                        // Books cannot turn this authenticated resource bridge into a general proxy.
+                        return if (request.url.scheme in setOf("https", "http", "file", "content")) blockedResource(403) else null
+                    }
+
+                    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                        if (request.url.toString() == "https://appassets.androidplatform.net/assets/reader/index.html") return false
+                        if (request.isForMainFrame && request.hasGesture() && request.url.scheme in setOf("https", "http") && request.url.host != "appassets.androidplatform.net") {
+                            runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, request.url)
+                                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                        }
+                        return request.isForMainFrame
+                    }
                 }
 
                 addJavascriptInterface(
@@ -263,8 +308,11 @@ fun ReaderWebView(
 
 /** Build OpenParams once the file and initial position are resolved. */
 fun openParamsFor(
-    ref: LocalRef,
+    ref: LocalRef?,
     format: String,
     initial: InitialProgress,
     settings: ReaderSettings,
 ): OpenParams = OpenParams(ref, format, initial.cfi, initial.fraction, settings)
+
+private fun blockedResource(status: Int) = WebResourceResponse("text/plain", "UTF-8", status, "Resource unavailable",
+    mapOf("Cache-Control" to "no-store"), java.io.ByteArrayInputStream(ByteArray(0)))

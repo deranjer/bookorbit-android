@@ -75,7 +75,7 @@ jobs:
         run: python3 tools/android/test_storage_sql.py
 
       - name: Reader appearance and EPUB SMIL engine checks
-        run: node --test tools/android/test_reader_appearance.mjs tools/android/test_read_along.mjs
+        run: node --test tools/android/test_reader_appearance.mjs tools/android/test_read_along.mjs tools/android/test_epub_streaming.mjs
 
       - name: Russian localization coverage and format arguments
         run: python3 tools/android/test_localization.py

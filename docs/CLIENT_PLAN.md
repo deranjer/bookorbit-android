@@ -11,8 +11,8 @@ Do not import production databases, secrets or books into development fixtures.
 
 ### Исходное состояние и замечания
 
-- Текущий собранный и автоматически проверенный срез — **0.9.5**, ветка
-  `feat/independent-android-client`: 420 JVM-тестов на вариант, 19 JS-проверок,
+- Текущий собранный и автоматически проверенный срез — **0.9.6**, ветка
+  `feat/independent-android-client`: 428 JVM-тестов на вариант, 21 JS-проверка,
   5 SQL-проверок и 2 проверки локализации; lint без ошибок. Это не полная проверка
   на физическом устройстве.
   Ранее пользователю передана 0.9.1 (`617f904`); её APK сохранён отдельно.
@@ -391,11 +391,41 @@ acceptance, audible narration and real provider generation remain unverified.
 ### Streaming clarification requested by the user
 
 Audiobook playback already uses HTTP streaming/Range with Media3 buffering, not an
-automatic whole-book offline download. The current native EPUB/PDF reader instead
+automatic whole-book offline download. Through 0.9.5 the native EPUB/PDF reader instead
 fetches a complete temporary file before opening; calling this true chapter streaming
 would be incorrect. The online server Web reader is a separate mode.
 
-Next work includes native EPUB on-demand assets through the existing `/epub/{bookId}`
-server contract, without putting JWT into WebView, while preserving exact `fileId`,
-explicit offline editions, progress and read-along. PDF has different seekable-file
-requirements and must not be claimed streamed merely because EPUB becomes streamed.
+The EPUB on-demand mode is implemented in 0.9.6 below. PDF has different seekable-file
+requirements and is not streamed merely because EPUB becomes streamed.
+
+## Native online EPUB (0.9.6)
+
+- Settings → Reading → Reader interface → **App · online EPUB** enables on-demand
+  chapters/resources through `/epub/{bookId}/info` and `/file/…`, always with the
+  exact `fileId`. Existing **App · cached file** remains the default.
+- Explicit offline editions take priority in either native mode. PDF/other formats
+  still use complete files; the server Web reader remains a distinct mode.
+- WebView receives metadata and a scoped resource lease, never JWT. Native HTTP
+  authorizes only allowlisted resources of that book/file, blocks redirects and
+  cross-account/server reuse, and cancels requests when the lease closes. No whole
+  ZIP is written to disk; unsupported streaming fails without a hidden full download.
+- Literal-percent asset names account for the pinned server's double-decoding
+  behavior. HTTP/Node/JVM checks and emulator rendering cover `art 100%.svg`.
+- Embedded read-along works in the foreground with streamed EPUB resources, but
+  currently fetches the current audio asset as a whole Blob. This is **not** native
+  Media3 range streaming for embedded narration; a large single asset can use
+  substantial memory/bandwidth. Ordinary audiobook playback remains separate.
+- Stream checkpoints use the captured server content revision; local checkpoints
+  use full EPUB SHA-256. Each fingerprint has its own key; 0.9.5 legacy positions
+  remain readable. The server's `fileHash` is KOReader partial MD5, not a full-byte
+  cryptographic hash. Server API has no atomic archive revision precondition, so an
+  archive changed during an open session is not guaranteed byte-consistent.
+
+Validation: both APKs, both lints and **428 JVM tests per flavor** pass; **21 reader
+Node, 5 SQLite, 2 localization and 3 policy-parser tests** pass. Local production-mode
+HTTP smoke checks exact-edition asset bytes and literal-percent SVG. Emulator checks
+chapters/TOC, foreground read-along across an unnarrated interlude, downloaded EPUB
+priority without network, unchanged complete-file cache, and a blue SVG with no
+publisher white backgrounds/red root borders (`52`–`59`). No physical-device,
+audible-output or paid provider claim is made. Next: native key enrollment/signing,
+companion-server validation, native background read-along and remaining plan items.

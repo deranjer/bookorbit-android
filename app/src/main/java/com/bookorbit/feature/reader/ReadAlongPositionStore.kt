@@ -37,10 +37,14 @@ data class ReadAlongPosition(
 
 data class ReadAlongOwner(val server: String, val userId: Int, val fileId: Int, val fingerprint: String) {
     fun key(): String {
-        require(server.isNotBlank() && userId > 0 && fileId > 0 && fingerprint.isNotBlank())
-        val identity = "${DataScope.key(server)}\n$userId\n$fileId"
-        return MessageDigest.getInstance("SHA-256").digest(identity.toByteArray()).joinToString("") { "%02x".format(it) }
+        return digest("${identity()}\n$fingerprint")
     }
+    internal fun legacyKey() = digest(identity())
+    private fun identity(): String {
+        require(server.isNotBlank() && userId > 0 && fileId > 0 && fingerprint.isNotBlank())
+        return "${DataScope.key(server)}\n$userId\n$fileId"
+    }
+    private fun digest(value: String) = MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).joinToString("") { "%02x".format(it) }
 }
 
 private val Context.readAlongDataStore by preferencesDataStore("read_along_positions")
@@ -74,7 +78,8 @@ class ReadAlongPositionStore internal constructor(
     suspend fun load(owner: ReadAlongOwner): ReadAlongPosition? {
         val key = owner.key()
         val saved = latest[key] ?: run {
-            val raw = try { data.data.first()[stringPreferencesKey(key)] } catch (_: java.io.IOException) { null }
+            val raw = try { data.data.first().let { it[stringPreferencesKey(key)] ?: it[stringPreferencesKey(owner.legacyKey())] } }
+                catch (_: java.io.IOException) { null }
             latest[key] ?: raw?.let { runCatching { json.decodeFromString<Saved>(it) }.getOrNull() }
         }
         return saved?.takeIf { it.fingerprint == owner.fingerprint }?.position?.takeIf { it.valid() }

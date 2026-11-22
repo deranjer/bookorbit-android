@@ -17,6 +17,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.roundToInt
@@ -39,17 +40,20 @@ class ReaderViewModel @Inject constructor(
     private val readAlongPositions: ReadAlongPositionStore,
     private val session: com.bookorbit.core.auth.SessionManager,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
+    private val epubStreaming: EpubStreaming,
+    private val appSettings: com.bookorbit.core.settings.AppSettingsStore,
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
     private val selectedFileId = checkNotNull(savedStateHandle.get<Int>("fileId"))
 
     data class ResolvedOpen(
-        val ref: LocalRef,
+        val ref: LocalRef?,
         val format: String,
         val fileId: Int,
         val initial: InitialProgress,
         val readAlongPosition: ReadAlongPosition? = null,
+        val stream: EpubStreamPlan? = null,
     )
 
     /** Text the user has selected in the page, not yet saved as a highlight. */
@@ -138,34 +142,46 @@ class ReaderViewModel @Inject constructor(
             _ui.update { it.copy(title = book.title) }
 
             try {
-                val resolved = source.resolve(book, selectedFileId)
-                val checkpoint = if (resolved.format == "epub") {
+                val target = (com.bookorbit.core.model.BookFiles.readingTarget(book, selectedFileId)
+                    as? com.bookorbit.core.model.BookFiles.ReadingTarget.Foliate)?.file
+                    ?: error("The selected edition cannot be opened in this reader")
+                val mode = appSettings.readerInterface.first()
+                val offline = source.offlineFile(book.id, target)
+                val stream = if (offline == null && target.format?.lowercase() == "epub" && mode == com.bookorbit.core.settings.ReaderInterface.APP_STREAMING)
+                    epubStreaming.open(book.id, target.id) else null
+                val resolved = offline ?: if (stream == null) source.resolve(book, selectedFileId) else null
+                val fingerprint = if (stream != null) target.contentVersion?.takeIf { it.isNotBlank() }?.let {
+                    "stream-v1:$it:${target.fileHash.orEmpty()}:${target.sizeBytes}"
+                } else if (resolved?.format == "epub") {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        val digest = java.security.MessageDigest.getInstance("SHA-256")
+                        resolved.ref.openInputStream(context).use { input ->
+                            val buffer = ByteArray(64 * 1024)
+                            while (true) { val count = input.read(buffer); if (count < 0) break; digest.update(buffer, 0, count) }
+                        }
+                        digest.digest().joinToString("") { "%02x".format(it) }
+                    }
+                } else null
+                val checkpoint = if (fingerprint != null) {
                     val server = checkpointServer
                     val user = checkpointUser
                     if (server != null && user != null) {
-                        val fingerprint = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                            val digest = java.security.MessageDigest.getInstance("SHA-256")
-                            resolved.ref.openInputStream(context).use { input ->
-                                val buffer = ByteArray(64 * 1024)
-                                while (true) { val count = input.read(buffer); if (count < 0) break; digest.update(buffer, 0, count) }
-                            }
-                            digest.digest().joinToString("") { "%02x".format(it) }
-                        }
-                        ReadAlongOwner(server, user, resolved.fileId, fingerprint).let { owner ->
+                        ReadAlongOwner(server, user, selectedFileId, fingerprint).let { owner ->
                             readAlongOwner = owner
                             readAlongPositions.load(owner)
                         }
                     } else null
                 } else null
-                val initial = progress.resolveInitial(resolved.fileId)
-                sessions.beginReading(resolved.fileId, initial.fraction?.let { it * 100 })
+                val initial = progress.resolveInitial(selectedFileId)
+                sessions.beginReading(selectedFileId, initial.fraction?.let { it * 100 })
                 _ui.update {
                     it.copy(
                         loadingFile = false,
-                        resolved = ResolvedOpen(resolved.ref, resolved.format, resolved.fileId, initial, checkpoint),
+                        resolved = ResolvedOpen(resolved?.ref, target.format.orEmpty().lowercase(), selectedFileId, initial, checkpoint, stream),
                     )
                 }
-            } catch (e: Exception) {
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Exception) {
                 _ui.update { it.copy(loadingFile = false, error = e.message?.let { m -> UiText.raw(m) } ?: UiText.of(R.string.reader_err_open_book)) }
             }
         }

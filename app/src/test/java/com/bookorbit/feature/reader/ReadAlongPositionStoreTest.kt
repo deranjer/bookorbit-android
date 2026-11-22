@@ -2,6 +2,7 @@ package com.bookorbit.feature.reader
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
@@ -51,5 +52,20 @@ class ReadAlongPositionStoreTest {
             position.copy(sectionIndex = -1), position.copy(rate = 99.0), position.copy(audioSrc = ""))) assertFalse(bad.valid())
         val event = ReaderBridge.parseEvent("""{"type":"readAlong","available":true,"state":"paused","position":{"sectionIndex":0,"fragment":"c#1","audioSrc":"a.mp3","audioSeconds":-1}}""") as ReaderEvent.ReadAlong
         assertNull(event.position)
+    }
+
+    @Test fun `0_9_5 checkpoint remains readable and other content revisions cannot overwrite it`() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        try {
+            val data = PreferenceDataStoreFactory.create(scope = scope, produceFile = { temp.newFolder().resolve("positions.preferences_pb") })
+            val raw = """{"fingerprint":"${owner.fingerprint}","position":${Json.encodeToString(ReadAlongPosition.serializer(), position)}}"""
+            data.edit { it[stringPreferencesKey(owner.legacyKey())] = raw }
+            val store = ReadAlongPositionStore(data, Json, scope)
+            assertEquals(position, store.load(owner))
+            val revision = owner.copy(fingerprint = "stream-v1:other-revision")
+            store.record(revision, position.copy(audioSeconds = 5.5))
+            assertEquals(position, store.load(owner))
+            assertEquals(5.5, store.load(revision)!!.audioSeconds, 0.0)
+        } finally { scope.cancel() }
     }
 }

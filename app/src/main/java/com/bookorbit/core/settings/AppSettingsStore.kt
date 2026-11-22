@@ -14,7 +14,7 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
 enum class SeriesViewMode { LIST, GRID }
 
-enum class ReaderInterface { APP, SERVER_WEB }
+enum class ReaderInterface { APP, APP_STREAMING, SERVER_WEB }
 
 private val Context.appSettingsDataStore by preferencesDataStore("app_settings")
 

@@ -5,6 +5,7 @@ import secrets
 import time
 import urllib.error
 import urllib.request
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE = 'http://127.0.0.1:6264/api/v1'
@@ -78,11 +79,24 @@ def main():
     chapter_book = next(book for book in detail_rows if book['title'] == 'Read Along Chapters')
     chapter_file = next(file for file in chapter_book['files'] if file['format'] == 'epub')
     assert chapter_file['mediaOverlay']['available'] and chapter_file['mediaOverlay']['durationSeconds'] == 40
+    percent_asset = urllib.request.Request(BASE + f"/epub/{chapter_book['id']}/file/OEBPS/art%20100%2525.svg?fileId={chapter_file['id']}", headers=headers)
+    with urllib.request.urlopen(percent_asset, timeout=30) as response:
+        with zipfile.ZipFile(ROOT / '.local/fixtures/Read Along Chapters/Read Along Chapters.epub') as original:
+            assert response.read() == original.read('OEBPS/art 100%.svg')
     many_tracks = next(book for book in detail_rows if book['title'] == '75 Track Orbit')
     assert len([file for file in many_tracks['files'] if file['format'] == 'mp3']) == 75
     assert {'epub', 'mp3'} <= formats, f'Paired fixture lost a format: {formats}'
     assert paired.get('description') and paired.get('authors'), 'Card description/author missing'
     epub = next(file for file in paired['files'] if file['format'] == 'epub')
+    for edition in (file for file in paired['files'] if file['format'] == 'epub'):
+        status, info = call('GET', f"/epub/{paired['id']}/info?fileId={edition['id']}", headers=headers)
+        assert status == 200 and info['manifest'] and info['containerPath']
+        asset = 'OEBPS/chapter.xhtml'
+        request = urllib.request.Request(BASE + f"/epub/{paired['id']}/file/{asset}?fileId={edition['id']}", headers=headers)
+        with urllib.request.urlopen(request, timeout=30) as response:
+            chapter_bytes = response.read()
+        with zipfile.ZipFile(ROOT / '.local/fixtures/First Orbit' / edition['filename']) as original:
+            assert chapter_bytes == original.read(asset), 'EPUB stream crossed edition identity'
     progress = dict(cfi='epubcfi(/6/2!/4/2)', percentage=10)
     status, _ = call('POST', f"/books/files/{epub['id']}/progress", progress, headers)
     assert status in (200, 201, 204), f'Progress route rejected independent client: HTTP {status}'

@@ -469,8 +469,10 @@
     <string name="settings_nav_add">Добавить «%1$s» на панель</string>
     <string name="settings_reading">Чтение</string>
     <string name="settings_reader_interface">Интерфейс читалки</string>
-    <string name="settings_reader_interface_desc">Читалка приложения используется по умолчанию и поддерживает скачанные книги. Серверная читалка работает через веб-интерфейс сервера и требует подключения. Применяется при следующем открытии книги.</string>
-    <string name="reader_interface_app">В приложении (по умолчанию)</string>
+    <string name="settings_reader_interface_desc">Файловый режим получает полный временный файл. Онлайн-режим EPUB подгружает главы и ресурсы без скачивания всего архива; нужен совместимый сервер. Явно скачанные издания всегда открываются локально. PDF и другие форматы пока требуют полный файл. Веб-читалка использует интерфейс сервера. Применяется при следующем открытии книги.</string>
+    <string name="reader_interface_app">Приложение · файл (по умолчанию)</string>
+    <string name="reader_interface_streaming">Приложение · EPUB онлайн</string>
+    <string name="reader_streaming_progress">EPUB онлайн · %1$d%%</string>
     <string name="reader_interface_web">Веб-читалка сервера</string>
     <string name="settings_reading_fullscreen">Полноэкранное чтение</string>
     <string name="settings_reading_fullscreen_desc">Скрывать строки состояния и навигации в книгах, PDF и комиксах. Проведите от края экрана, чтобы показать их.</string>

@@ -68,6 +68,10 @@ import com.bookorbit.feature.player.SPEED_PRESETS
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlinx.coroutines.launch
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.RadioButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -142,14 +146,18 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                     subtitle = stringResource(R.string.settings_reader_interface_desc),
                     trailing = {},
                 )
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    ReaderInterface.entries.forEachIndexed { index, mode ->
-                        SegmentedButton(
-                            selected = readerInterface == mode,
-                            onClick = { vm.setReaderInterface(mode) },
-                            shape = SegmentedButtonDefaults.itemShape(index, ReaderInterface.entries.size),
-                            label = { Text(stringResource(if (mode == ReaderInterface.APP) R.string.reader_interface_app else R.string.reader_interface_web)) },
-                        )
+                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).selectableGroup()) {
+                    ReaderInterface.entries.forEach { mode ->
+                        Row(Modifier.fillMaxWidth().selectable(selected = readerInterface == mode,
+                            role = androidx.compose.ui.semantics.Role.RadioButton, onClick = { vm.setReaderInterface(mode) })
+                            .padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(selected = readerInterface == mode, onClick = null)
+                            Text(stringResource(when (mode) {
+                                ReaderInterface.APP -> R.string.reader_interface_app
+                                ReaderInterface.APP_STREAMING -> R.string.reader_interface_streaming
+                                ReaderInterface.SERVER_WEB -> R.string.reader_interface_web
+                            }), modifier = Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.bodyMedium)
+                        }
                     }
                 }
             }

@@ -147,7 +147,7 @@ fun ReaderScreen(
             opened = true
             withContext(Dispatchers.IO) {
                 controller.open(openParamsFor(resolved.ref, resolved.format, resolved.initial, ui.settings)
-                    .copy(readAlongPosition = resolved.readAlongPosition), context)
+                    .copy(readAlongPosition = resolved.readAlongPosition, stream = resolved.stream), context)
             }
         }
     }
@@ -218,7 +218,8 @@ fun ReaderScreen(
                     .padding(vertical = 6.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("${ui.percentage}%", color = Color.White.copy(alpha = 0.8f))
+                Text(if (ui.resolved?.stream != null) stringResource(R.string.reader_streaming_progress, ui.percentage)
+                    else "${ui.percentage}%", color = Color.White.copy(alpha = 0.8f))
             }
         }
 

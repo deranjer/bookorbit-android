@@ -30,6 +30,13 @@ class ReaderSource @Inject constructor(
 ) {
     data class ResolvedFile(val ref: LocalRef, val format: String, val fileId: Int)
 
+    suspend fun offlineFile(bookId: Int, ref: BookFileRef): ResolvedFile? = withContext(Dispatchers.IO) {
+        downloads.localFiles(bookId)[ref.id]?.let { path ->
+            val local = LocalRef.parse(path)
+            if (local.exists(context)) ResolvedFile(local, ref.format.orEmpty().lowercase(), ref.id) else null
+        }
+    }
+
     /** Resolve the foliate-readable file for a book to a local file. */
     suspend fun resolve(book: BookDetail, fileId: Int): ResolvedFile {
         val ref = (BookFiles.readingTarget(book, fileId) as? BookFiles.ReadingTarget.Foliate)?.file

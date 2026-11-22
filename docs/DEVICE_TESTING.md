@@ -106,3 +106,26 @@ The local checkpoint is scoped by server, account, file ID and SHA-256 of actual
 EPUB bytes. It is not cross-device narration sync and does not create another
 listening/reading session. Server narration coordinates, native background
 read-along and real provider answers remain separate work.
+
+## 0.9.6 native streaming checks
+
+- Selected **Приложение · EPUB онлайн** (`52`), opened undownloaded Read Along
+  Chapters (`54`), used the TOC (`55`) and loaded its second chapter (`56`).
+- Explicit foreground Play and previous-fragment controls traverse the unnarrated
+  interlude back to the first narrated chapter (`57`). These are silent fixtures;
+  this does not prove audible speech or alignment. Embedded audio currently loads
+  a whole current asset Blob, not a native Media3 range stream.
+- With Wi-Fi/data disabled, the explicitly downloaded Read Along Orbit still opens
+  locally in streaming mode, without the online label (`58`). Network restored.
+- After refreshing fixture metadata by Force stop/relaunch (no app-data clearing),
+  the SVG named `OEBPS/art 100%.svg` renders blue, while adversarial publisher white
+  backgrounds, red html/body borders and shadows do not appear on the dark canvas
+  (`59`). Text and illustration remain readable.
+- The list of `reader-cache-v2` complete files is identical before/after these
+  streaming checks, including the refreshed SVG fixture (one preexisting file).
+  This checks the complete-file reader cache, not a claim of zero network buffers.
+
+Both APK/lint variants pass; 428 JVM tests per flavor, 21 reader Node checks,
+5 SQLite checks, 2 localization checks and 3 server-policy parser checks pass.
+Native cached-file mode remains the default. PDF is still a complete-file reader.
+Hardware attestation and real provider/output/device acceptance remain unverified.
