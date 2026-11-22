@@ -11,8 +11,8 @@ Do not import production databases, secrets or books into development fixtures.
 
 ### Исходное состояние и замечания
 
-- Текущий собранный и автоматически проверенный срез — **0.9.7**, ветка
-  `feat/independent-android-client`: 447 JVM-тестов на вариант, 21 JS-проверка,
+- Текущий собранный и автоматически проверенный срез — **0.9.8**, ветка
+  `feat/independent-android-client`: 450 JVM-тестов на вариант, 21 JS-проверка,
   5 SQL-проверок и 2 проверки локализации; lint без ошибок. Это не полная проверка
   на физическом устройстве.
   Ранее пользователю передана 0.9.1 (`617f904`); её APK сохранён отдельно.
@@ -461,3 +461,15 @@ hardware enrollment, unlocked-device behavior and paid AI output are unverified.
 No production installation was patched or configured. Native background read-along,
 external-audio alignment, cross-device narration coordinates and remaining design/
 physical-device acceptance work remain open; this does not complete the plan.
+
+## Other guarded reads (0.9.8)
+
+The v3.9.0 contract audit also found guarded non-AI GETs used by the client:
+reading streak, reading goal and Smart Scope books. The main client now signs only
+these exact GET routes with an explicitly registered key; unrelated auth, downloads,
+progress and session writes remain untouched. Enrollment uses the independent
+refresh transport to avoid a dependency cycle. No automatic registration or trust
+changes were added. Both builds/lints and 450 JVM tests per flavor pass, including
+an actual local HTTPS signed/unsigned route check. The emulator starts after an
+in-place upgrade and renders Home with retained login (`64`). This is not hardware
+attestation acceptance; native background read-along and the broader plan remain open.

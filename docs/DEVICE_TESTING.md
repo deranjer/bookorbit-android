@@ -150,3 +150,11 @@ Both APKs/lints and 447 JVM tests per flavor pass. A disposable companion-server
 checkout builds and passes 102 attestation/contract tests with targeted ESLint/
 Prettier checks. The running isolated server and production server remain unchanged;
 no AI provider was called. Physical-device/hardware acceptance remains necessary.
+
+## 0.9.8 guarded reads
+
+In-place emulator upgrade starts successfully and renders Home with its retained
+login (`64`), checking the new enrollment/main-client dependency wiring at runtime.
+The emulator has no registered key, so this is not an attestation success claim.
+Both APKs/lints and 450 JVM tests per flavor pass; local HTTPS tests verify exact
+guarded GET signing without adding headers to unguarded progress/file routes.

@@ -101,4 +101,21 @@ class SignedAiTransportTest {
         }
         assertEquals(4, server.requestCount)
     }
+
+    @Test fun `non AI guarded reads sign but progress and file routes remain untouched`() = withEnrolled { server, ai, attest, _ ->
+        // Use the same URL/auth preparation as the fixture, without the AI-only signer/body wrapper.
+        val main = ai.newBuilder().apply {
+            interceptors().removeAll { it is SingleAttemptAiInterceptor }
+            networkInterceptors().removeAll { it is AndroidAttestInterceptor }
+        }.addNetworkInterceptor(AttestedReadInterceptor(attest)).build()
+        val routes = listOf("dashboard/widgets/reading-streak", "dashboard/widgets/reading-goal", "smart-scopes/7/books",
+            "books/files/7/progress", "books/1/serve", "dashboard/widgets/batch")
+        for ((index, route) in routes.withIndex()) {
+            server.enqueue(MockResponse().setBody("ok"))
+            main.newCall(Request.Builder().url("http://localhost/$route").build()).execute().close()
+            val wire = server.takeRequest()
+            if (index < 3) assertNotNull(wire.getHeader("X-BookOrbit-Attest-Assertion"))
+            else assertNull(wire.getHeader("X-BookOrbit-Attest-Assertion"))
+        }
+    }
 }

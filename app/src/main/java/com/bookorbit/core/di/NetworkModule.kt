@@ -74,12 +74,14 @@ object NetworkModule {
         authenticator: TokenAuthenticator,
         logging: HttpLoggingInterceptor,
         userCaTrust: UserCaTrust,
+        attestation: com.bookorbit.core.network.AndroidAttestation,
     ): OkHttpClient = userCaTrust.applyTo(OkHttpClient.Builder())
         .cookieJar(cookieJar)
         .addInterceptor(baseUrlInterceptor)
         .addInterceptor(authInterceptor)
         .addInterceptor(logging)
         .authenticator(authenticator)
+        .addNetworkInterceptor(com.bookorbit.core.network.AttestedReadInterceptor(attestation))
         .connectTimeout(15, TimeUnit.SECONDS)
         // Also carries file downloads (serveFile/serveCover): large audiobook files can go quiet
         // for longer than a typical API call between reads, especially on slow/mobile networks.

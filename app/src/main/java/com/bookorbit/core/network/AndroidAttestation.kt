@@ -43,7 +43,7 @@ class AndroidAttestation internal constructor(
     private val write: (String, String?) -> Unit,
 ) {
     @Inject internal constructor(@ApplicationContext context: Context, session: SessionManager, keys: AndroidAttestKeys,
-        json: Json, @MainClient main: OkHttpClient) : this(session, keys, json,
+        json: Json, @RefreshClient main: OkHttpClient) : this(session, keys, json,
         main.newBuilder().apply { interceptors().removeAll { it is BaseUrlInterceptor || it is AuthInterceptor } }
             .authenticator(Authenticator.NONE).retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false).cache(null).build(),
         { context.getSharedPreferences("android_attestation", Context.MODE_PRIVATE).getString(it, null) },

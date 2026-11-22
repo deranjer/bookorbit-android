@@ -131,7 +131,8 @@ signs at the network boundary, after URL rewriting and bearer authorization. ECD
 SHA-256 covers the protocol version, uppercase method, encoded path/query from the
 first `/api/v1/`, millisecond timestamp, lowercase exact-body SHA-256, and a fresh
 URL-safe nonce. Empty GET bodies hash zero bytes. The four attestation headers do
-not contain provider credentials or private keys. Other HTTP clients are not signed.
+not contain provider credentials or private keys. Through 0.9.7 only this AI
+transport is signed; the non-AI guarded GET additions in 0.9.8 follow below.
 
 Redirects, connection retries and authenticators are disabled on this AI client;
 billable POST bodies remain one-shot. A server restart can lose its in-memory key
@@ -145,3 +146,18 @@ tests use synthetic EC keys and local HTTPS, including exact UTF-8 wire signatur
 503/disconnect/redirect/401 no-replay and unknown-key behavior. Companion server
 checks run on an isolated upstream v3.9.0 checkout, not the production installation.
 They do not prove actual Keystore attestation acceptance or provider generation.
+
+### Guarded non-AI reads (0.9.8)
+
+The server also guards `GET dashboard/widgets/reading-streak`,
+`GET dashboard/widgets/reading-goal` and `GET smart-scopes/{id}/books`, all used by
+this client. These exact main-client GET routes now use the registered key too.
+URL/auth preparation precedes signing and each network attempt gets a fresh nonce.
+Enrollment uses the separate refresh transport, avoiding a MainClient dependency
+cycle. There is still no automatic enrollment.
+
+Unrelated auth, batch dashboard, file delivery, progress and session routes are
+untouched, as are image/audio transports. A real local HTTPS regression checks the
+three signed reads and that adjacent unguarded routes carry no attestation header.
+This does not assert support for every guarded route the server exposes; future
+client endpoints need their own contract audit.
