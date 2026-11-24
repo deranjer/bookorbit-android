@@ -12,7 +12,7 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
-data class InitialProgress(val cfi: String?, val fraction: Double?)
+data class InitialProgress(val cfi: String?, val fraction: Double?, val pageNumber: Int? = null)
 
 /**
  * Offline-first reading-position store keyed by server file id, backed by Room: every position is
@@ -26,6 +26,7 @@ class ReaderProgressRepository @Inject constructor(
     private val syncScheduler: SyncScheduler,
 ) {
     private val syncMutex = Mutex()
+    suspend fun mostRecentFileId(fileIds: List<Int>): Int? = fileIds.distinct().mapNotNull { dao.get(it) }.maxByOrNull { it.updatedAt }?.fileId
     /**
      * Save locally, then attempt to push to the server (clearing dirty on success). [pageNumber] is
      * persisted alongside CFI + percentage so offline retries retain PDF/comic coordinates.
@@ -78,15 +79,18 @@ class ReaderProgressRepository @Inject constructor(
 
         val cfi: String?
         val percentage: Double?
+        val pageNumber: Int?
         if (local != null && (local.dirty || server == null)) {
             cfi = local.cfi
             percentage = local.percentage
+            pageNumber = local.pageNumber
         } else if (server != null) {
             cfi = server.cfi
             percentage = server.percentage
+            pageNumber = server.pageNumber
         } else {
             return InitialProgress(null, null)
         }
-        return InitialProgress(cfi, percentage?.let { it / 100.0 })
+        return InitialProgress(cfi, percentage?.let { it / 100.0 }, pageNumber)
     }
 }

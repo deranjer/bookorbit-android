@@ -29,11 +29,14 @@ class BookDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repo: BookDetailRepository,
     private val downloads: DownloadsRepository,
-    session: SessionManager,
+    private val session: SessionManager,
     val storyGuides: StoryGuideRepository,
+    private val lastReadEditions: com.bookorbit.feature.reader.LastReadEditionStore,
+    private val readingProgress: com.bookorbit.feature.reader.ReaderProgressRepository,
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
+    private val owner = session.owner()
 
     val downloadState = downloads.observe(bookId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -50,6 +53,7 @@ class BookDetailViewModel @Inject constructor(
         val statusUpdating: Boolean = false,
         val ratingUpdating: Boolean = false,
         val downloadActionFailed: Boolean = false,
+        val lastReadingFileId: Int? = null,
     )
 
     data class CollectionsState(
@@ -80,7 +84,10 @@ class BookDetailViewModel @Inject constructor(
                 _ui.update { it.copy(loading = false, error = true) }
                 return@launch
             }
-            _ui.update { it.copy(loading = false, book = book) }
+            val remembered = owner?.let { lastReadEditions.load(it, bookId) }
+                ?: readingProgress.mostRecentFileId(book.files.filter { BookFiles.readingTarget(book, it.id) != BookFiles.ReadingTarget.None }.map { it.id })
+            if (owner == null || !session.owns(owner)) return@launch
+            _ui.update { it.copy(loading = false, book = book, lastReadingFileId = remembered) }
             // Recommendations load independently; failures are non-fatal.
             launch {
                 val authorBooks = runCatching { repo.authorBooks(bookId) }.getOrDefault(emptyList())
@@ -110,6 +117,17 @@ class BookDetailViewModel @Inject constructor(
             runCatching { repo.setReadStatus(bookId, status) }
             reloadBook()
             _ui.update { it.copy(statusUpdating = false) }
+        }
+    }
+
+    fun openReadingEdition(fileId: Int, open: () -> Unit) {
+        val book = _ui.value.book ?: return
+        val owner = owner?.takeIf(session::owns) ?: return
+        if (BookFiles.readingTarget(book, fileId) == BookFiles.ReadingTarget.None) return
+        _ui.update { it.copy(lastReadingFileId = fileId) }
+        viewModelScope.launch {
+            lastReadEditions.record(owner, bookId, fileId)
+            if (session.owns(owner)) open()
         }
     }
 

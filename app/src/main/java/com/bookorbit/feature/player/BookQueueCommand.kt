@@ -11,7 +11,8 @@ import androidx.media3.session.SessionCommand
 @UnstableApi
 internal object BookQueueCommand {
     val command = SessionCommand("com.bookorbit.LOAD_BOOK_QUEUE", Bundle.EMPTY)
-    data class Load(val items: List<MediaItem>, val index: Int, val positionMs: Long, val speed: Float, val play: Boolean)
+    data class Load(val items: List<MediaItem>, val index: Int, val positionMs: Long, val speed: Float, val play: Boolean,
+        val owner: com.bookorbit.core.auth.SessionOwner? = null)
 
     fun encode(load: Load) = Bundle().apply {
         putBinder("items", BundleListRetriever(load.items.map { it.toBundleIncludeLocalConfiguration() }))
@@ -19,6 +20,7 @@ internal object BookQueueCommand {
         putLong("position", load.positionMs)
         putFloat("speed", load.speed)
         putBoolean("play", load.play)
+        load.owner?.let { putString("ownerServer", it.serverUrl); putInt("ownerUser", it.userId); putLong("ownerGeneration", it.generation) }
     }
 
     @Suppress("DEPRECATION")
@@ -28,7 +30,10 @@ internal object BookQueueCommand {
         val position = args.getLong("position")
         val speed = args.getFloat("speed")
         require(items.isNotEmpty() && index in items.indices && position >= 0 && speed.isFinite() && speed > 0)
-        return Load(items, index, position, speed, args.getBoolean("play"))
+        val owner = args.getString("ownerServer")?.let {
+            com.bookorbit.core.auth.SessionOwner(it, args.getInt("ownerUser"), args.getLong("ownerGeneration"))
+        }
+        return Load(items, index, position, speed, args.getBoolean("play"), owner)
     }
 
     fun apply(player: Player, load: Load) {

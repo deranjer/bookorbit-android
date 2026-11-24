@@ -7,6 +7,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.catch
+import androidx.datastore.preferences.core.emptyPreferences
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -29,6 +32,10 @@ class ReaderSettingsStore @Inject constructor(
 
     suspend fun save(settings: ReaderSettings) {
         context.readerDataStore.edit { it[key] = json.encodeToString(ReaderSettings.serializer(), settings) }
+    }
+
+    fun observe() = context.readerDataStore.data.catch { if (it is java.io.IOException) emit(emptyPreferences()) else throw it }.map { preferences ->
+        preferences[key]?.let { runCatching { json.decodeFromString<ReaderSettings>(it) }.getOrNull() } ?: ReaderSettings()
     }
 
     /** Whether the one-time paginated tap-zones coach overlay has already been shown. */

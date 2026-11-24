@@ -95,6 +95,9 @@ class AutoMediaSessionTest {
             }.get(15, TimeUnit.SECONDS)
             browser = client
             val root = main { client.getLibraryRoot(null) }.get(10, TimeUnit.SECONDS)
+            assertEquals("Library root: code=${root.resultCode}, error=${root.sessionError}",
+                androidx.media3.session.LibraryResult.RESULT_SUCCESS, root.resultCode)
+            assertNotNull("Successful library root must include browse parameters", root.params)
             assertTrue(root.params!!.extras.getBoolean("android.media.browse.SEARCH_SUPPORTED"))
             val shelves = main { client.getChildren(AutoBrowseTree.ROOT_ID, 0, Int.MAX_VALUE, null) }.get(10, TimeUnit.SECONDS).value!!
             assertEquals(AutoBrowseTree.CONTINUE_ID, shelves.first().mediaId)

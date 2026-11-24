@@ -61,6 +61,7 @@ const DEFAULT_SETTINGS = {
   fontFamily: null,
   maxColumnCount: 2,
   gap: 0.05,
+  pageMargin: 40,
   maxInlineSize: 720,
   maxBlockSize: 1440,
   justify: true,
@@ -68,6 +69,7 @@ const DEFAULT_SETTINGS = {
   isDark: false,
   themeName: 'default',
   flow: 'paginated',
+  animatePageTurns: true,
 };
 
 function themeFor(name) {
@@ -127,9 +129,11 @@ function applyStyles(settings) {
   r.setAttribute('gap', `${s.gap * 100}%`);
   r.setAttribute('max-inline-size', `${s.maxInlineSize}px`);
   r.setAttribute('max-block-size', `${s.maxBlockSize}px`);
-  if (s.flow === 'paginated') r.setAttribute('margin', '40px');
+  if (s.flow === 'paginated') r.setAttribute('margin', `${s.pageMargin}px`);
   else r.removeAttribute('margin');
   r.setAttribute('flow', s.flow);
+  if (s.animatePageTurns) r.setAttribute('animated', '');
+  else r.removeAttribute('animated');
   if (typeof r.setStyles === 'function') r.setStyles(generateCSS(s));
 }
 
@@ -433,6 +437,7 @@ function createView() {
       cfi: d.cfi ?? null,
       fraction: typeof d.fraction === 'number' ? d.fraction : null,
       chapterTitle: d.tocItem?.label ?? null,
+      sectionIndex: Number.isInteger(d.sectionIndex) ? d.sectionIndex : null,
       location: d.location ?? null,
     });
   });
@@ -489,6 +494,7 @@ async function openBook(meta, parts) {
       metadata: {
         title: view.book?.metadata?.title ?? null,
         language: view.book?.metadata?.language ?? null,
+        direction: view.book?.dir === 'rtl' ? 'rtl' : 'ltr',
       },
     });
 
@@ -557,6 +563,9 @@ window.__readerCommand = (json) => {
   switch (cmd.type) {
     case 'readAlong':
       void readAlong.command(cmd.action, cmd.rate);
+      break;
+    case 'nativeReadAlong':
+      readAlong.followNative(cmd.position);
       break;
     case 'goTo':
       void view.goTo(cmd.target).catch(() => {});

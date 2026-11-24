@@ -195,3 +195,251 @@ Closing the reader reports a **34-second** session for exact file 84 successfull
 to the isolated stock server. The owner lease is a local Retrofit tag, not an extra
 server DTO field. This is not a test of production history or audible/background
 narration. Physical-device/provider/hardware acceptance remains unverified.
+
+## Unreleased native narration foundation (2026-11-23)
+
+- Android/Media3 Range instrumentation passes four tests twice against synthetic
+  HTTP responses: exact file ID, single-encoded literal-percent asset URL, requested
+  bytes/auth header, stale-account read refusal and allowlist refusal. Evidence:
+  `.local/instrumentation/20261123T175108428507Z/`.
+- The existing real-service Android Auto regression initially failed with library
+  root result **-4**, before playback. Media3 1.11.1's deprecated `super.onConnect`
+  returns an empty-command sentinel; copying it strips browse/player commands.
+  `onConnectAsync` now uses the controller-aware defaults and adds the private load
+  command only for this package **and UID**. Two consecutive complete tests pass,
+  including legacy voice start, search, live downloads, chapters and empty-queue
+  resume: `.local/instrumentation/20261123T175440827447Z/`.
+- A standalone real ExoPlayer + MediaSession test passes twice with synthetic
+  silent WAV and exact SMIL clipping: asset-clock checkpoint, natural fragment
+  transition, system next/previous narrated section, foreground-before-play hook,
+  and shared delegate survival after wrapper detach. Initial evidence:
+  `.local/instrumentation/20261123T175733896933Z/`.
+- Reading/narration handles and a single-activity arbiter have JVM tests for stale
+  callbacks, exact-file progress and disjoint READ/LISTEN durations, including
+  reader closure while narration remains active.
+- Final development check: both full/fdroid APKs and lints pass, with **511 JVM
+  tests per flavor**, 21 reader Node checks and 10 Android-tool Python checks.
+  After the final test changes, native ExoPlayer/MediaSession (also checking that
+  an old account cannot resume buffered audio), asynchronous 127-to-one Cast-style
+  queue replacement, and the real-service Auto test each pass twice. Evidence:
+  `.local/instrumentation/20261123T180014273074Z/`,
+  `.local/instrumentation/20261123T180020246348Z/`,
+  `.local/instrumentation/20261123T180027495206Z/`. The Cast-style test uses a
+  delayed local delegate, **not a physical Cast receiver**.
+
+These are development components, **not a released background read-along feature**.
+The native clip wrapper is not yet selected by PlaybackService or reader controls;
+offline native assets, JS highlighting, process restoration and service-purpose
+handoff remain unfinished. Silent synthetic playback does not establish audible
+output, spoken alignment, physical Bluetooth/Auto/Cast or real-device acceptance.
+The published APK remains 0.9.10 (`d818ffa`); experimental builds retain code 910
+and must not replace its archived APKs.
+
+## Reader controls and concise UI copy (2026-11-24)
+
+Unreleased working build, still code 910. Both flavor APKs/lints pass, with
+**517 JVM tests per flavor**, 23 reader Node checks and 10 Android-tool Python
+checks. The added JVM cases cover shared 30/40/30 tap zones, manga mirroring,
+scroll-mode menu taps, invalid coordinates, older settings acquiring the original
+40px margin, and serialization of the extended settings. Node checks execute the
+bridge styling functions against a renderer fixture, including font/spacing and
+switching between paginated and scrolled layouts.
+
+`ReaderControlsUiTest` passes three tests twice on the isolated emulator:
+`.local/instrumentation/20261123T220533062410Z/`. Tests cover help-zone labels and
+RTL placement, dismiss, scroll-mode menu zones, font/flow/margin changes and reset.
+These UI-only tests use a blank activity and never open user books or contact a
+server. They do not establish physical-device gesture behavior or OCR support.
+
+An in-place emulator upgrade retains the fixture login and opens streamed Read
+Along Chapters with its blue literal-percent SVG. Reopening help via the toolbar
+shows translucent 30/40/30 zones over the book; dismiss returns to the same view.
+Changing font 16→17 and paginated→continuous updates the real WebView; help then
+shows menu taps across all three zones. Reopening settings retains the chosen
+font value. Font and flow were restored to their initial test values afterward.
+Screenshots are under `.local/device-screenshots/reader-controls-*.png` (book,
+zones, settings, scrolled, scrolled-zones, settings-restored). Percentages can
+change with layout in this short fixture; exact-position preservation on a long
+book still needs separate acceptance.
+
+The native comic screen uses the same modal and hit-zone function, with RTL-aware
+labels; an actual CBR/CB7 screen was not visually exercised in this increment.
+EPUB and native comic swipe engines/animations remain different. Translation,
+dictionary, selectable comic OCR and the reported **server web-reader CBZ 404**
+remain open in `docs/CLIENT_PLAN.md`; none is claimed fixed by these controls.
+RU/EN AI descriptions/status messages are shortened. Send confirmations retain
+one brief notice about sharing text/photos with the AI service and possible fees.
+
+## 0.9.11 reading tools and comic fixes (2026-11-24)
+
+Working APKs are archived at `.local/apks/working-0.9.11-20261124/`, separately
+from the published `d818ffa` APKs. Code 911, same signing certificate SHA-256
+`9f8472c84b54b5033314fb3cd26ac949a2b7d818a78530263c3e8dc955c64f0d`.
+Both APKs/lints pass, **532 JVM tests per flavor**, 23 reader Node checks,
+10 Android-tool Python checks and 3 server-policy parser checks. The source is
+still an uncommitted working tree, not a new published Forgejo/GitHub release.
+
+### Selection tools
+
+- EPUB word selection exposes Translate and Dictionary alongside highlights and
+  reading help. Google receives text only after the panel's Translate button;
+  Wiktionary receives the word only after Dictionary. These public online lookups
+  are separate from server AI/attestation and do not use BookOrbit credentials.
+- The emulator translates the actual selected synthetic EPUB word `small` to
+  `маленький`, and the OCR sentence `Hello world!` to `Привет, мир!` through the
+  real public Google endpoint. Wiktionary returns real definitions for `Hello`
+  after its case-sensitive 404 is resolved with a lowercase lookup. Definitions
+  are currently English; the picker chooses the word's language. No paid AI call
+  or user book was used. Public service availability is not guaranteed.
+- JVM tests cover query encoding, exact selected input/language, no auth/cookies,
+  invalid input, missing-language refusal, dictionary case and punctuation.
+  `ReadingToolsUiTest` passes twice, proving opening is inert until the button:
+  `.local/instrumentation/20261123T230930033736Z/`.
+- Screenshots: `epub-selection-tools.png`, `epub-translation-result.png`,
+  `comic-translation-result.png`, `comic-dictionary-fixed.png`.
+
+### Local OCR and comic navigation
+
+- Both flavors bundle Tesseract4Android 4.9.0 and pinned Apache-2.0 English/Russian
+  fast models with hashes/licenses in `assets/ocr/`. OCR processes the active image
+  on-device; it never uploads a page. Recognition is capped at a 2400px longest
+  edge and 10,000 words; cached coordinates are limited to six pages per reader.
+  Cancellation discards stale results; it does not immediately interrupt a native
+  recognition call already running. One worker at a time bounds that work.
+- `ComicOcrTest` passes twice against a drawn synthetic bitmap with real native
+  OCR and word coordinates: `.local/instrumentation/20261123T230924426865Z/`.
+  `ComicOcrOverlayTest` passes twice for fitted-image hit coordinates, word tap,
+  sentence hold and double-tap zoom: `.local/instrumentation/20261123T230914731597Z/`.
+- A separate original `Orbit OCR Comic` fixture has numbered images 1, 2, 10 and
+  English/Russian speech bubbles (`tools/test-server/ocr-fixture.py`). In the
+  actual native reader, both scripts receive correctly aligned word boxes;
+  tapping selects `Hello`, holding selects `Hello world!`, and swiping advances
+  to image 2 with a new OCR result. Screenshots: `comic-native-ocr-zones.png`,
+  `comic-native-ocr-selected.png`, `comic-native-ocr-sentence.png`,
+  `comic-swipe-page-two.png`.
+- CBZ now shares the CBR/CB7 native pager, but CBZ resolves an offline-first local
+  ZIP. Pages are extracted lazily with size bounds and index-based filenames;
+  extraction cache is capped at 128 pages/256 MiB per opened archive revision.
+  Full archive SHA-256 scopes that revision. JVM tests cover numeric order,
+  old lexicographic Foliate-CFI image mapping, hidden/path entries and changed
+  archive refusal. A downloaded CBZ never falls back to server page URLs on a
+  local extraction failure. CBR/CB7 still require server-rendered images.
+- EPUB and comic taps now share 30/40/30 zones, RTL mirroring and 300ms/ease-out
+  transitions, with an animation toggle. Their drag/fling physics, PDF gestures,
+  physical-device acceptance, vertical-script OCR and difficult artwork remain
+  unfinished acceptance work. This is not a claim of complete gesture parity.
+
+### Server web CBZ and edition choice
+
+- Stock 3.9.0 receives `format=cbz` in the exact selected book/file route. A full
+  WebView run also exposed **401** on image requests: JS API requests carried
+  bearer auth, `<img>` requests did not. The client now proxies only the exact
+  selected file's same-origin numeric comic-image paths, with the captured native
+  session owner; it sends no JWT in the URL or response headers. Wrong origins,
+  files, methods/query strings are excluded; account changes stop buffered reads.
+- `ServerComicImagesTest` passes three cases twice, plus once after the final
+  license-only APK repack: `.local/instrumentation/20261123T230908485874Z/` and
+  `.local/instrumentation/20261123T231728401326Z/`. HTTP smoke now checks synthetic
+  CBZ lists and images (`.local/contracts/cbz-reader.json`). The real server
+  WebView successfully renders **page 2** from the position saved in native
+  reading: `comic-server-web-fixed.png`. Production server code was not modified.
+  A separate failure in a standalone browser is not established fixed by this.
+- The split `Read | ▾` button opens the remembered exact edition; only the arrow
+  opens the picker. Choice is persisted by server/account/book, with prior local
+  progress as an initial fallback. The second EPUB was chosen, the app upgraded,
+  and the main button reopened the alternate edition directly with its own
+  position. Screenshots: `edition-split-button.png`, `edition-split-choices.png`,
+  `edition-last-remembered-after-upgrade.png`. `ReadEditionButtonTest` passes twice:
+  `.local/instrumentation/20261123T230940365162Z/`.
+- Existing `ReaderControlsUiTest` (3 cases) and `AutoMediaSessionTest` also pass:
+  `.local/instrumentation/20261123T230957937380Z/`,
+  `.local/instrumentation/20261123T231007657441Z/`.
+
+Foreground EPUB/SMIL read-along is retained. Native background read-along remains
+unconnected. Neither silent fixtures nor this emulator establish audible narration,
+real-device OCR quality, Bluetooth/Cast acceptance or successful paid server AI.
+
+## Selection and comic gesture rework (2026-11-24, unreleased)
+
+User complaints and the running checklist are in `docs/CLIENT_PLAN.md`, under
+the new 2026-11-24 requests. Archived 0.9.11 APKs remain unchanged. These checks
+refer to the working tree, not a delivered release or physical-device acceptance.
+
+- fdroid build, lint and 540 JVM tests passed. The new JVM tests cover measured
+  panel placement, spatial OCR groups with interleaved word indices, punctuation,
+  confidence filtering and the shared native/EPUB motion contract.
+- `ComicOcrOverlayTest`: 2 tests passed in
+  `.local/instrumentation/20261124T172058892997Z/`. Stationary hold, drag after
+  hold, ordinary swipe refusal, fitted coordinates and double-tap are covered.
+- `SelectionActionsUiTest`: passed in
+  `.local/instrumentation/20261124T172106494478Z/`. A real measured toolbar stays
+  inside a 280x400dp viewport at 140% font size and outside the selected rectangle.
+- `ReaderPagerMotionTest`: 2 tests passed in
+  `.local/instrumentation/20261124T172122555673Z/`: slow short drag cancellation,
+  fast one-page flick, reverse direction and RTL boundaries.
+- `ComicOcrTest`: the original native OCR text test passed in
+  `.local/instrumentation/20261124T172112362218Z/`. A newly added blank/artwork
+  test requires a newer test APK and is not included in that run.
+- Actual native fixture reader: a stationary hold over `Hello` selects
+  `Hello world!` directly. `selection-fixes-comic-held.png` shows the panel above
+  the selection, without covering it. A subsequent UI simplification removes
+  the range-mode toggle and replaces the long clear action with a close icon;
+  that later panel still needs a new installed APK check.
+- Actual pan at 2.5x zoom: a 200px horizontal input produces 181px image motion
+  after initial touch slop, measured by screenshot alignment. Evidence:
+  `.local/contracts/comic-pan-check.json`, screenshots
+  `selection-fixes-pan-before.png` and `selection-fixes-pan-after.png`.
+
+Spatial grouping is a conservative word/line proximity heuristic, not an image
+bubble detector. Adjacent bubbles, complex artwork, low-confidence real text,
+all zoom levels and transformed long-drag selection still need acceptance.
+Comic selections are temporary: server-synced comic highlights are not implemented.
+
+Follow-up verification of the final compact-panel working tree: both APKs, both
+lints and 540 JVM tests per flavor pass (no failures/errors/skips). On the newly
+installed fdroid APK, `ComicOcrTest` now passes both text and blank/simple-artwork
+cases (`.local/instrumentation/20261124T172552621310Z/`), the two overlay tests
+pass again (`20261124T172556958997Z/`) and measured toolbar placement passes again
+(`20261124T172604509126Z/`). Actual native-reader stationary hold again selects
+`Hello world!`; the final one-row copy/translate/dictionary/close panel is above
+the selection: `.local/device-screenshots/selection-fixes-comic-compact-final.png`.
+Blank/simple-shape acceptance does not establish false-positive quality on comics.
+
+## First service-connected online native SMIL run (2026-11-24)
+
+The working tree now connects online EPUB narration to the existing service-owned
+ExoPlayer and MediaSession. It does not create a second playback service/player.
+The reader delegates controls and follows the exact SMIL fragment through a
+non-playing WebView overlay. Other editions and offline local sources retain the
+foreground web engine until a native local source is implemented.
+
+- First fdroid APK, test APK, unit tests and lint pass. Both-flavor verification
+  of subsequent control/label changes is still running at this journal entry.
+- 27 reader Node checks pass, including native fragment following without web
+  audio and without duplicate fragment navigation.
+- Auto session regression passes: `.local/instrumentation/20261124T185821418481Z/`.
+- Native exact-clip/session transport regression passes:
+  `.local/instrumentation/20261124T190023164917Z/`.
+- In the actual retained fixture account, open streamed `Read Along Chapters`
+  and start narration. Sending Home leaves the app's system MediaSession in
+  PLAYING; two dumps three seconds apart show clip positions 5361 and 8188ms.
+  `.local/contracts/native-service-background.json` retains filtered evidence.
+- Returning to the app displays the second chapter and highlights its current
+  SMIL sentence: `native-service-return.png`. `native-service-playing.png` shows
+  the earlier first chapter. The older foreground-only subtitle in those images
+  is corrected for native mode in the subsequent source revision.
+
+The fixture is synthetic silent audio. These checks do not establish audible
+output, physical-device behavior, offline native narration, process restoration,
+Cast narration or complete audiobook/narration handover acceptance. No server
+source/configuration was changed; fixture progress/session writes are normal
+client behavior, not production-book changes.
+
+Final follow-up build of the safety/control changes passes for both flavors:
+542 JVM tests each, both APKs, both lints, 27 reader Node and 10 Android-tool
+Python checks. Final installed-fdroid regressions:
+`.local/instrumentation/20261124T190458825555Z/` (Auto) and
+`.local/instrumentation/20261124T190505023248Z/` (native clip/session transport).
+The manual background/return sample above preceded the last handover guards and
+subtitle update; those last changes have build/unit/regression evidence but not
+a repeated manual background sample yet. No new stable release is claimed.

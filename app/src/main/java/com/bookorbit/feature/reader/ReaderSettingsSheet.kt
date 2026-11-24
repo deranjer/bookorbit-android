@@ -26,6 +26,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.Switch
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +35,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.ExperimentalMaterial3Api
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -51,15 +55,48 @@ fun ReaderSettingsSheet(
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.reader_settings_title), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.reader_settings_done)) }
+            }
+            Label(stringResource(R.string.rs_label_layout))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = settings.flow == "paginated", onClick = { onChange(settings.copy(flow = "paginated")) }, label = { Text(stringResource(R.string.paginated)) })
+                FilterChip(selected = settings.flow == "scrolled", onClick = { onChange(settings.copy(flow = "scrolled")) }, label = { Text(stringResource(R.string.reader_continuous)) })
+            }
+            Stepper(
+                label = stringResource(R.string.font_size),
+                value = "${settings.fontSize}",
+                onDecrement = { onChange(settings.copy(fontSize = clampFontSize(settings.fontSize - 1))) },
+                onIncrement = { onChange(settings.copy(fontSize = clampFontSize(settings.fontSize + 1))) },
+            )
+            Stepper(
+                label = stringResource(R.string.line_height),
+                value = String.format("%.1f", settings.lineHeight),
+                onDecrement = { onChange(settings.copy(lineHeight = clampLineHeight(settings.lineHeight - 0.1))) },
+                onIncrement = { onChange(settings.copy(lineHeight = clampLineHeight(settings.lineHeight + 0.1))) },
+            )
+            Label(stringResource(R.string.rs_label_font))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                FONT_FAMILIES.forEach { font ->
+                    FilterChip(
+                        selected = settings.fontFamily == font.value,
+                        onClick = { onChange(settings.copy(fontFamily = font.value)) },
+                        label = { Text(stringResource(font.label)) },
+                    )
+                }
+            }
             Label(stringResource(R.string.rs_label_theme))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 READER_THEMES.forEach { theme ->
+                    val themeLabel = stringResource(theme.label)
                     val bg = Color(if (settings.isDark) theme.darkBg else theme.lightBg)
                     val fg = Color(if (settings.isDark) theme.darkFg else theme.lightFg)
                     val selected = settings.themeName == theme.name
                     Box(
                         modifier = Modifier
                             .size(40.dp)
+                            .semantics { contentDescription = themeLabel }
                             .clip(CircleShape)
                             .background(bg)
                             .border(
@@ -76,39 +113,40 @@ fun ReaderSettingsSheet(
             }
 
             Label(stringResource(R.string.rs_label_mode))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(selected = !settings.isDark, onClick = { onChange(settings.copy(isDark = false)) }, label = { Text(stringResource(R.string.light)) })
                 FilterChip(selected = settings.isDark, onClick = { onChange(settings.copy(isDark = true)) }, label = { Text(stringResource(R.string.dark)) })
             }
 
-            Label(stringResource(R.string.rs_label_layout))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = settings.flow == "paginated", onClick = { onChange(settings.copy(flow = "paginated")) }, label = { Text(stringResource(R.string.paginated)) })
-                FilterChip(selected = settings.flow == "scrolled", onClick = { onChange(settings.copy(flow = "scrolled")) }, label = { Text(stringResource(R.string.scrolled)) })
-            }
-
             Stepper(
-                label = stringResource(R.string.font_size),
-                value = "${settings.fontSize}",
-                onDecrement = { onChange(settings.copy(fontSize = clampFontSize(settings.fontSize - 1))) },
-                onIncrement = { onChange(settings.copy(fontSize = clampFontSize(settings.fontSize + 1))) },
+                label = stringResource(R.string.reader_text_width), value = "${settings.maxInlineSize}",
+                onDecrement = { onChange(settings.copy(maxInlineSize = (settings.maxInlineSize - 40).coerceIn(240, 1200))) },
+                onIncrement = { onChange(settings.copy(maxInlineSize = (settings.maxInlineSize + 40).coerceIn(240, 1200))) },
             )
-            Stepper(
-                label = stringResource(R.string.line_height),
-                value = String.format("%.1f", settings.lineHeight),
-                onDecrement = { onChange(settings.copy(lineHeight = clampLineHeight(settings.lineHeight - 0.1))) },
-                onIncrement = { onChange(settings.copy(lineHeight = clampLineHeight(settings.lineHeight + 0.1))) },
-            )
-
-            Label(stringResource(R.string.rs_label_font))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FONT_FAMILIES.forEach { font ->
-                    FilterChip(
-                        selected = settings.fontFamily == font.value,
-                        onClick = { onChange(settings.copy(fontFamily = font.value)) },
-                        label = { Text(stringResource(font.label)) },
-                    )
+            if (settings.flow == "paginated") {
+                Stepper(
+                    label = stringResource(R.string.reader_page_margins), value = "${settings.pageMargin}",
+                    onDecrement = { onChange(settings.copy(pageMargin = (settings.pageMargin - 4).coerceIn(0, 80))) },
+                    onIncrement = { onChange(settings.copy(pageMargin = (settings.pageMargin + 4).coerceIn(0, 80))) },
+                )
+                Label(stringResource(R.string.reader_columns))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    (1..3).forEach { count ->
+                        FilterChip(selected = settings.maxColumnCount == count,
+                            onClick = { onChange(settings.copy(maxColumnCount = count)) }, label = { Text("$count") })
+                    }
                 }
+            }
+            Stepper(
+                label = stringResource(R.string.reader_side_spacing), value = "${Math.round(settings.gap * 100)}%",
+                onDecrement = { onChange(settings.copy(gap = ((Math.round(settings.gap * 100) - 1) / 100.0).coerceIn(0.0, 0.2))) },
+                onIncrement = { onChange(settings.copy(gap = ((Math.round(settings.gap * 100) + 1) / 100.0).coerceIn(0.0, 0.2))) },
+            )
+            SettingSwitch(stringResource(R.string.reader_justify), settings.justify) { onChange(settings.copy(justify = it)) }
+            SettingSwitch(stringResource(R.string.reader_hyphenate), settings.hyphenate) { onChange(settings.copy(hyphenate = it)) }
+            SettingSwitch(stringResource(R.string.reader_page_animation), settings.animatePageTurns) { onChange(settings.copy(animatePageTurns = it)) }
+            TextButton(onClick = { onChange(ReaderSettings()) }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.reader_settings_reset))
             }
         }
     }
@@ -123,8 +161,16 @@ private fun Label(text: String) {
 private fun Stepper(label: String, value: String, onDecrement: () -> Unit, onIncrement: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        IconButton(onClick = onDecrement) { Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.decrease)) }
+        IconButton(onClick = onDecrement) { Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.reader_decrease_setting, label)) }
         Text(value, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(horizontal = 8.dp))
-        IconButton(onClick = onIncrement) { Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.increase)) }
+        IconButton(onClick = onIncrement) { Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.reader_increase_setting, label)) }
+    }
+}
+
+@Composable
+private fun SettingSwitch(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(label, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = onChange, modifier = Modifier.semantics { contentDescription = label })
     }
 }

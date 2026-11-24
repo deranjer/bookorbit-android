@@ -1,25 +1,25 @@
 <resources>
     <string name="guide_title">Story Guide · AI</string>
-    <string name="guide_description">Characters, places and recaps from your server. Choose a completed chapter before revealing any details.</string>
-    <string name="guide_restricted">The server did not accept device verification. Stock servers trust only official apps. A compatible server and device-key registration in Settings are required. Generation is disabled while its result cannot be opened. No server security was changed.</string>
+    <string name="guide_description">Characters, places and recaps for completed chapters.</string>
+    <string name="guide_restricted">Server access restricted. Check device registration in Settings.</string>
     <string name="guide_unsupported">This server or edition does not support Story Guides.</string>
     <string name="guide_auth">Sign in again to access AI features.</string>
     <string name="guide_format">The server has no compatible Story Guide format for this client.</string>
     <string name="guide_network">Could not load data from the server. Check your connection and retry.</string>
     <string name="guide_off">Story Guide generation is disabled or not configured on your server.</string>
     <string name="guide_language">This server currently generates Story Guides for English text books only.</string>
-    <string name="guide_text_only">Story Guides require a supported text edition, not an audiobook, PDF or comic.</string>
+    <string name="guide_text_only">Choose a text edition for your Story Guide.</string>
     <string name="guide_build_unavailable">The server cannot generate a guide for this edition right now.</string>
     <string name="guide_build">Generate a Story Guide</string>
     <string name="guide_update">Update Story Guide</string>
     <string name="guide_job_status">%1$s · %2$s</string>
-    <string name="guide_spoiler_hint">Spoiler boundary: select the last chapter you have completely finished. No details are shown by default.</string>
+    <string name="guide_spoiler_hint">Select your last completed chapter.</string>
     <string name="guide_no_chapter">No completed chapter selected</string>
     <string name="guide_chapter">Chapter %1$d</string>
     <string name="guide_action_failed">The server could not complete this action. Refresh the status before trying again.</string>
     <string name="guide_refresh">Refresh status</string>
-    <string name="guide_confirm_title">Send this edition to your AI provider?</string>
-    <string name="guide_confirm_provider">The server will process the book with its configured AI provider. Book text may leave your server and provider charges may apply. This is not on-device Apple Intelligence.</string>
+    <string name="guide_confirm_title">Create a Story Guide with AI?</string>
+    <string name="guide_confirm_provider">The AI service will receive the book text. Processing charges may apply.</string>
     <string name="guide_estimated_cost">Server estimate: $%1$s USD. Actual cost may differ.</string>
-    <string name="guide_confirm">Confirm generation</string>
+    <string name="guide_confirm">Create</string>
 </resources>

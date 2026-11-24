@@ -601,6 +601,7 @@ export class View extends HTMLElement {
     const koreaderProgress = getKoreaderProgress(koreaderDocFragmentIndex, range)
     this.lastLocation = {
       ...progress,
+      sectionIndex: index,
       tocItem,
       pageItem,
       cfi,

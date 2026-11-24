@@ -12,12 +12,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 
@@ -39,8 +45,14 @@ fun PdfPageView(
     onLongPress: (Int) -> Unit,
     onToggleZoom: () -> Unit,
     modifier: Modifier = Modifier,
+    onBackgroundTap: (Offset) -> Unit = {},
 ) {
     val density = LocalDensity.current
+    var origin by remember { mutableStateOf(Offset.Zero) }
+    val currentLink by rememberUpdatedState(onLink)
+    val currentLongPress by rememberUpdatedState(onLongPress)
+    val currentZoom by rememberUpdatedState(onToggleZoom)
+    val currentBackgroundTap by rememberUpdatedState(onBackgroundTap)
 
     val pageSize by produceState(PdfRenderCore.PageSize(1, 1), core, index) {
         value = core.pageSize(index)
@@ -65,17 +77,21 @@ fun PdfPageView(
         modifier = modifier
             .size(widthDp, heightDp)
             .background(Color.White)
+            .onGloballyPositioned { origin = it.positionInRoot() }
             .pointerInput(links, dispWpx, dispHpx) {
                 detectTapGestures(
-                    onLongPress = { onLongPress(index) },
-                    onDoubleTap = { onToggleZoom() },
-                    onTap = { offset -> hitLink(links, offset, pageSize, renderWidth, rotation)?.let(onLink) },
+                    onLongPress = { currentLongPress(index) },
+                    onDoubleTap = { currentZoom() },
+                    onTap = { offset ->
+                        val link = hitLink(links, offset, pageSize, renderWidth, rotation)
+                        if (link != null) currentLink(link) else currentBackgroundTap(origin + offset)
+                    },
                 )
             },
     ) {
         val bmp = bitmap
         if (bmp != null) {
-            Image(bitmap = bmp.asImageBitmap(), contentDescription = null, modifier = Modifier.fillMaxWidth())
+            Image(bitmap = bmp.asImageBitmap(), contentDescription = androidx.compose.ui.res.stringResource(com.bookorbit.R.string.page, index + 1), modifier = Modifier.fillMaxWidth())
         }
         if (highlights.isNotEmpty() || activeHighlight != null) {
             // The bitmap fills the box width 1:1, so bitmap px == this DrawScope's px (device px).

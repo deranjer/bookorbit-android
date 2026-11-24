@@ -8,6 +8,7 @@ export class ReadAlongController {
   #rate = 1;
   #checkpoint = null;
   #lastPositionAt = 0;
+  #nativeFragment = null;
   constructor(emit) { this.#emit = emit; }
   #publish(error = null) {
     this.#emit({ type: 'readAlong', available: !!this.#overlay, state: this.#state, rate: this.#rate,
@@ -46,6 +47,18 @@ export class ReadAlongController {
     this.#view = null;
     this.#state = 'unavailable';
     this.#checkpoint = null;
+    this.#nativeFragment = null;
+  }
+  followNative(position) {
+    if (!this.#overlay) return;
+    if (!position && this.#nativeFragment === null) return;
+    this.#overlay.pause();
+    const fragment = position?.fragment;
+    if (fragment === this.#nativeFragment) return;
+    this.#nativeFragment = fragment ?? null;
+    if (typeof fragment === 'string' && fragment.length <= 8192)
+      this.#overlay.dispatchEvent(new CustomEvent('highlight', { detail: { text: fragment } }));
+    else this.#overlay.dispatchEvent(new CustomEvent('unhighlight'));
   }
   async command(action, rate) {
     if (!this.#overlay) return;

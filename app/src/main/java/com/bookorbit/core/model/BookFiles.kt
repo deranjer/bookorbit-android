@@ -93,7 +93,7 @@ object BookFiles {
      * otherwise a PDF opens in the native PDF reader.
      */
     fun readingTarget(book: BookDetail): ReadingTarget {
-        readableFile(book)?.let { return ReadingTarget.Foliate(it) }
+        readableFile(book)?.let { return if (it.format.equals("cbz", ignoreCase = true)) ReadingTarget.Comic(it) else ReadingTarget.Foliate(it) }
         comicFile(book)?.let { return ReadingTarget.Comic(it) }
         pdfFile(book)?.let { return ReadingTarget.Pdf(it) }
         return ReadingTarget.None
@@ -103,6 +103,7 @@ object BookFiles {
     fun readingTarget(book: BookDetail, fileId: Int): ReadingTarget {
         val file = book.files.singleOrNull { it.id == fileId } ?: return ReadingTarget.None
         return when {
+            file.format.equals("cbz", ignoreCase = true) -> ReadingTarget.Comic(file)
             isReadableEbook(file.format) -> ReadingTarget.Foliate(file)
             isPdfFormat(file.format) -> ReadingTarget.Pdf(file)
             isComicServerPaged(file.format) -> ReadingTarget.Comic(file)

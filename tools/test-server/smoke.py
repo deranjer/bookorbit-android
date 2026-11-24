@@ -72,6 +72,23 @@ def main():
         assert time.monotonic() < deadline, 'Fixture scan did not finish within 90 seconds'
         time.sleep(1)
     formats = {file['format'] for file in paired['files']}
+    comic_contracts = []
+    for book in detail_rows:
+        for file in book['files']:
+            if file['format'] != 'cbz':
+                continue
+            status, pages = call('GET', f"/cbz/files/{file['id']}/pages", headers=headers)
+            assert status == 200 and pages['pageCount'] > 0, 'Selected CBZ page list failed'
+            request = urllib.request.Request(BASE + f"/cbz/files/{file['id']}/pages/0", headers=headers)
+            with urllib.request.urlopen(request, timeout=30) as response:
+                assert response.status == 200 and response.headers['Content-Type'].startswith('image/'), 'Selected CBZ image failed'
+                assert response.read(8) == b'\x89PNG\r\n\x1a\n', 'Expected synthetic PNG comic page'
+            comic_contracts.append(dict(bookId=book['id'], fileId=file['id'], pageCount=pages['pageCount'],
+                readerPath=f"/read/{book['id']}/{file['id']}?format=cbz"))
+    assert comic_contracts, 'Missing synthetic CBZ'
+    contract_dir = ROOT / '.local/contracts'
+    contract_dir.mkdir(parents=True, exist_ok=True)
+    (contract_dir / 'cbz-reader.json').write_text(json.dumps(comic_contracts, indent=2) + '\n')
     overlay_book = next(book for book in detail_rows if book['title'] == 'Read Along Orbit')
     overlay_file = next(file for file in overlay_book['files'] if file['format'] == 'epub')
     assert overlay_file.get('mediaOverlay', {}).get('available'), 'Server did not recognize the SMIL fixture'

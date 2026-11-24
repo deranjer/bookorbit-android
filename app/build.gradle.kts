@@ -52,8 +52,8 @@ android {
         // .github/workflows/release-please.yml (release-please's own generic-file updater is
         // unreliable for this -- see the commit that introduced this comment). Both must stay
         // plain literals so F-Droid's static manifest parser can find them too.
-        versionCode = 910
-        versionName = "0.9.10"
+        versionCode = 911
+        versionName = "0.9.11"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -205,6 +205,7 @@ dependencies {
 
     // WebView (foliate reader host)
     implementation(libs.androidx.webkit)
+    implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
 
     // Unit test
     testImplementation(libs.junit)

@@ -116,6 +116,11 @@ class ReaderController {
         }
     }
 
+    fun nativeReadAlong(position: ReadAlongPosition?) = command(buildJsonObject {
+        put("type", "nativeReadAlong")
+        if (position != null) put("position", ReaderBridge.json.encodeToJsonElement(ReadAlongPosition.serializer(), position))
+    }.toString())
+
     /** Replace the set of highlights drawn in the page. Only CFI-anchored, resolvable ones are drawn. */
     fun setAnnotations(items: List<BookAnnotation>) {
         val arr = kotlinx.serialization.json.buildJsonArray {

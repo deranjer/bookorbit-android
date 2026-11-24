@@ -1,0 +1,16 @@
+<resources>
+    <string name="reader_ocr_hint">Нажмите слово; удерживайте для выделения предложения.</string>
+    <string name="reader_comic_ocr">Распознать текст · EN/RU</string>
+    <string name="reader_ocr_failed">Ошибка распознавания текста.</string>
+    <string name="reader_ocr_empty">Текст на странице не найден.</string>
+    <string name="reader_ocr_range">Выделить несколько слов</string>
+    <string name="reader_ocr_range_on">Выделение диапазона включено</string>
+    <string name="reader_ocr_clear">Снять выделение</string>
+    <string name="reader_translate">Перевести</string>
+    <string name="reader_dictionary">Словарь</string>
+    <string name="reader_lookup_text">Выделенный текст</string>
+    <string name="reader_translate_notice">Язык перевода. Кнопка «Перевести» отправит текст в Google.</string>
+    <string name="reader_dictionary_notice">Язык слова. Кнопка «Словарь» отправит слово в Wiktionary. Определения на английском.</string>
+    <string name="reader_lookup_limit">Выделите до %1$d символов.</string>
+    <string name="reader_lookup_failed">Проверьте слово, язык и подключение.</string>
+</resources>

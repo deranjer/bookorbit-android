@@ -21,6 +21,7 @@ class ReaderHostViewModelTest {
     @get:Rule val mainDispatcherRule = MainDispatcherRule()
     private val session = mockk<SessionManager> {
         every { currentUser } returns AuthUser(1, "reader")
+        every { owner() } returns com.bookorbit.core.auth.SessionOwner("https://books.example", 1, 0)
     }
     private val refresher = mockk<TokenRefresher>()
     private val settings = mockk<AppSettingsStore> {
@@ -28,7 +29,7 @@ class ReaderHostViewModelTest {
         every { readingFullscreen } returns flowOf(true)
     }
     private fun vm() = ReaderHostViewModel(
-        SavedStateHandle(mapOf("id" to 12, "fileId" to 34)), settings, mockk(), mockk(), session, refresher, Json,
+        SavedStateHandle(mapOf("id" to 12, "fileId" to 34)), settings, mockk(), mockk(), session, refresher, Json, mockk(relaxed = true), mockk(),
     )
 
     @Test

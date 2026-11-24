@@ -1,0 +1,27 @@
+{
+  "durationMs": 300,
+  "snap": [
+    { "drag": 0, "velocity": 0, "delta": 0 },
+    { "drag": 0.1, "velocity": 0, "delta": 0 },
+    { "drag": 0.49, "velocity": 0, "delta": 0 },
+    { "drag": 0.5, "velocity": 0, "delta": 1 },
+    { "drag": -0.5, "velocity": 0, "delta": 0 },
+    { "drag": -0.51, "velocity": 0, "delta": -1 },
+    { "drag": 0.1, "velocity": 450, "delta": 1 },
+    { "drag": -0.1, "velocity": -450, "delta": -1 },
+    { "drag": 0.1, "velocity": 300, "delta": 0 },
+    { "drag": -0.1, "velocity": -300, "delta": 0 },
+    { "drag": 0.9, "velocity": 5000, "delta": 1 },
+    { "drag": -0.9, "velocity": -5000, "delta": -1 },
+    { "drag": 0.9, "velocity": -1500, "delta": -1 },
+    { "drag": 5, "velocity": 0, "delta": 1 },
+    { "drag": -5, "velocity": 0, "delta": -1 }
+  ],
+  "ease": [
+    { "progress": 0, "position": 0 },
+    { "progress": 0.25, "position": 0.4375 },
+    { "progress": 0.5, "position": 0.75 },
+    { "progress": 0.75, "position": 0.9375 },
+    { "progress": 1, "position": 1 }
+  ]
+}

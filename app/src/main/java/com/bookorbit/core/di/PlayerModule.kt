@@ -10,6 +10,7 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import com.bookorbit.core.network.UserCaTrust
 import okhttp3.OkHttpClient
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
 import com.bookorbit.core.auth.SessionManager
@@ -62,7 +63,7 @@ object PlayerModule {
     fun provideExoPlayer(
         @ApplicationContext context: Context,
         mediaSourceFactory: MediaSource.Factory,
-    ): ExoPlayer = ExoPlayer.Builder(context)
+    ): ExoPlayer = ExoPlayer.Builder(context, DefaultRenderersFactory(context).setEnableDecoderFallback(true))
         .setMediaSourceFactory(mediaSourceFactory)
         // Android Auto's standard rewind/fast-forward buttons use these increments.
         .setSeekBackIncrementMs(DEFAULT_SKIP_BACK * 1000L)

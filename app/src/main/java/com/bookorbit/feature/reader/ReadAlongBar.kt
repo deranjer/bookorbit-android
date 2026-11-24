@@ -12,15 +12,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.bookorbit.R
 
-/** Foreground controls only; embedded overlays do not yet participate in Media3 background playback. */
+/** One control surface for foreground web overlays and the service-owned native SMIL player. */
 @Composable
-internal fun ReadAlongBar(state: ReaderEvent.ReadAlong, onCommand: (String, Double?) -> Unit, modifier: Modifier = Modifier) {
+internal fun ReadAlongBar(state: ReaderEvent.ReadAlong, onCommand: (String, Double?) -> Unit, modifier: Modifier = Modifier, background: Boolean = false) {
     Surface(modifier = modifier, shape = RoundedCornerShape(24.dp), tonalElevation = 4.dp, shadowElevation = 4.dp) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f).padding(start = 8.dp)) {
                     Text(stringResource(R.string.read_along_title), style = MaterialTheme.typography.titleSmall)
-                    Text(stringResource(R.string.read_along_foreground), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(if (background) R.string.read_along_background else R.string.read_along_foreground), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 IconButton(onClick = { onCommand("prev", null) }, enabled = state.state in setOf("playing", "paused")) {
                     Icon(Icons.Default.SkipPrevious, contentDescription = stringResource(R.string.read_along_previous_fragment))

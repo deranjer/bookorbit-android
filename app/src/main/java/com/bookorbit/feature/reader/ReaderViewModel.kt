@@ -37,15 +37,21 @@ class ReaderViewModel @Inject constructor(
     private val bookmarkRepo: ReaderBookmarkRepository,
     private val player: PlayerManager,
     val readingHelp: com.bookorbit.feature.readinghelp.ReadingHelpRepository,
+    val readingTools: ReadingToolsRepository,
+    private val lastEditions: LastReadEditionStore,
     private val readAlongPositions: ReadAlongPositionStore,
     private val session: com.bookorbit.core.auth.SessionManager,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val epubStreaming: EpubStreaming,
     private val appSettings: com.bookorbit.core.settings.AppSettingsStore,
+    val nativeNarration: NativeNarrationSession,
+    private val nativeStreaming: NativeNarrationStreaming,
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
     private val selectedFileId = checkNotNull(savedStateHandle.get<Int>("fileId"))
+    private val activityOwner = session.owner()
+    private var readingHandle: com.bookorbit.feature.sessions.ReadingHandle? = null
 
     data class ResolvedOpen(
         val ref: LocalRef?,
@@ -76,6 +82,7 @@ class ReaderViewModel @Inject constructor(
         val chapterTitle: String? = null,
         val percentage: Int = 0,
         val loaded: Boolean = false,
+        val rightToLeft: Boolean = false,
         val showPagingHint: Boolean = false,
         val annotations: List<BookAnnotation> = emptyList(),
         val bookmarks: List<BookBookmark> = emptyList(),
@@ -102,6 +109,33 @@ class ReaderViewModel @Inject constructor(
     val ui = _ui.asStateFlow()
 
     suspend fun prepareReadAlong() { player.pauseForReadAlong() }
+    private var nativeOwnsCheckpoints = false
+    private var currentSection = 0
+
+    fun nativeReadAlongOwner(): ReadAlongOwner? = readAlongOwner
+
+    suspend fun nativeReadAlong(action: String, rate: Double?): Boolean {
+        val owner = readAlongOwner ?: return false
+        if (nativeNarration.command(owner, action, rate)) return true
+        if (action !in setOf("start", "resume", "restart") || _ui.value.resolved?.stream == null ||
+            player.state.value.isCasting) return false
+        val account = activityOwner ?: return false
+        if (!session.owns(account)) return true
+        val ticket = nativeNarration.ticket()
+        try {
+            val plan = nativeStreaming.open(bookId, selectedFileId, account)
+            if (!nativeNarration.isCurrent(ticket)) return true
+            val saved = if (action == "restart") null else readAlongPositions.load(owner)
+            val queue = NativeNarrationQueue(plan, _ui.value.title.orEmpty())
+            if (!player.prepareForNativeNarration {
+                nativeNarration.isCurrent(ticket) && session.owns(account) && !player.state.value.isCasting
+            }) return true
+            if (!session.owns(account) || player.state.value.isCasting) return true
+            nativeOwnsCheckpoints = nativeNarration.start(ticket, queue, owner, saved, currentSection)
+        } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+        catch (_: Exception) { _ui.update { it.copy(message = UiText.of(com.bookorbit.R.string.reader_native_narration_failed)) } }
+        return true
+    }
 
     private var readAlongOwner: ReadAlongOwner? = null
     private val checkpointServer = session.serverUrl
@@ -109,6 +143,7 @@ class ReaderViewModel @Inject constructor(
 
     fun onReadAlong(event: ReaderEvent.ReadAlong) {
         val owner = readAlongOwner ?: return
+        if (nativeOwnsCheckpoints || nativeNarration.state.value?.owner == owner) return
         val position = event.position ?: return
         if (event.state !in setOf("ready", "playing", "paused", "ended")) return
         readAlongPositions.record(owner, position)
@@ -173,7 +208,8 @@ class ReaderViewModel @Inject constructor(
                     } else null
                 } else null
                 val initial = progress.resolveInitial(selectedFileId)
-                sessions.beginReading(selectedFileId, initial.fraction?.let { it * 100 })
+                activityOwner?.let { lastEditions.record(it, bookId, selectedFileId) }
+                readingHandle = sessions.beginReading(selectedFileId, initial.fraction?.let { it * 100 }, activityOwner)
                 _ui.update {
                     it.copy(
                         loadingFile = false,
@@ -187,8 +223,8 @@ class ReaderViewModel @Inject constructor(
         }
     }
 
-    fun onLoaded(toc: List<TocItem>, title: String?) {
-        _ui.update { it.copy(loaded = true, toc = toc, chapterTitle = it.chapterTitle ?: title) }
+    fun onLoaded(toc: List<TocItem>, title: String?, rightToLeft: Boolean = false) {
+        _ui.update { it.copy(loaded = true, toc = toc, chapterTitle = it.chapterTitle ?: title, rightToLeft = rightToLeft) }
     }
 
     /** Keep the last reading position and reset page state before a fresh WebView is created. */
@@ -208,7 +244,8 @@ class ReaderViewModel @Inject constructor(
         }
     }
 
-    fun onRelocate(cfi: String?, fraction: Double?, chapterTitle: String?) {
+    fun onRelocate(cfi: String?, fraction: Double?, chapterTitle: String?, sectionIndex: Int? = null) {
+        sectionIndex?.takeIf { it in 0..100_000 }?.let { currentSection = it }
         _ui.update {
             it.copy(
                 chapterTitle = chapterTitle ?: it.chapterTitle,
@@ -218,7 +255,7 @@ class ReaderViewModel @Inject constructor(
         if (cfi != null) currentCfi = cfi
         if (cfi != null && fraction != null) {
             report(cfi, fraction * 100)
-            sessions.onReadingProgress(fraction * 100)
+            readingHandle?.let { sessions.onReadingProgress(it, fraction * 100) }
         }
     }
 
@@ -391,7 +428,7 @@ class ReaderViewModel @Inject constructor(
 
     override fun onCleared() {
         flush()
-        sessions.end()
+        readingHandle?.let(sessions::endReading)
         super.onCleared()
     }
 }

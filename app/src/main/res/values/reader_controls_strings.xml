@@ -1,0 +1,24 @@
+<resources>
+    <string name="read_along_background">EPUB audio · background playback</string>
+    <string name="reader_native_narration_failed">Could not start background narration.</string>
+    <string name="reader_selection_more">More actions</string>
+    <string name="reader_zones_pdf">Tap the edges to turn pages. Double-tap to change zoom.</string>
+    <string name="reader_page_animation">Page-turn animation</string>
+    <string name="reader_zones_title">Tap zones</string>
+    <string name="reader_zones_close">Got it</string>
+    <string name="reader_zones_book">Tap the edges to turn pages. Hold a word to select text.</string>
+    <string name="reader_zones_scroll">Swipe up or down to read. Tap to show the menu.</string>
+    <string name="reader_zones_comic">Swipe to turn pages. Pinch or double-tap to zoom; drag to pan.</string>
+    <string name="reader_settings_title">Reading settings</string>
+    <string name="reader_settings_done">Done</string>
+    <string name="reader_settings_reset">Reset reading settings</string>
+    <string name="reader_continuous">Continuous scroll</string>
+    <string name="reader_page_margins">Top and bottom margins</string>
+    <string name="reader_text_width">Maximum column width</string>
+    <string name="reader_columns">Maximum columns</string>
+    <string name="reader_side_spacing">Side spacing</string>
+    <string name="reader_justify">Justify text</string>
+    <string name="reader_hyphenate">Word hyphenation</string>
+    <string name="reader_decrease_setting">Decrease: %1$s</string>
+    <string name="reader_increase_setting">Increase: %1$s</string>
+</resources>

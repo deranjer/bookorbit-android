@@ -4,27 +4,21 @@ import com.bookorbit.ui.asString
 import androidx.compose.ui.res.stringResource
 import com.bookorbit.R
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TextFields
-import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -69,11 +63,19 @@ fun ReaderScreen(
     var chromeVisible by remember { mutableStateOf(true) }
     var tocVisible by remember { mutableStateOf(false) }
     var settingsVisible by remember { mutableStateOf(false) }
+    var zonesHelpVisible by remember { mutableStateOf(false) }
     var highlightsVisible by remember { mutableStateOf(false) }
     var searchVisible by remember { mutableStateOf(false) }
     var noteDialog by remember { mutableStateOf<String?>(null) }
     var helpPassage by remember { mutableStateOf<String?>(null) }
+    var readingTool by remember { mutableStateOf<Pair<ReadingTool, String>?>(null) }
     var readAlong by remember { mutableStateOf(ReaderEvent.ReadAlong(false, "unavailable")) }
+    val nativeState by vm.nativeNarration.state.collectAsStateWithLifecycle()
+    val activeNative = nativeState?.takeIf { it.owner == vm.nativeReadAlongOwner() }
+    val shownReadAlong = activeNative?.event ?: readAlong
+    LaunchedEffect(activeNative?.event?.position, ui.loaded) {
+        if (ui.loaded) controller.nativeReadAlong(activeNative?.event?.position)
+    }
     val scope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, controller) {
@@ -90,11 +92,11 @@ fun ReaderScreen(
     // toggles the chrome, and any tap while the highlight toolbar is open just dismisses it.
     val onTap = remember { mutableStateOf<(Double) -> Unit>({}) }
     onTap.value = { x ->
-        when {
-            ui.toolbar != null -> vm.dismissToolbar()
-            ui.settings.flow == "paginated" && x < 0.3 -> controller.prev()
-            ui.settings.flow == "paginated" && x > 0.7 -> controller.next()
-            else -> chromeVisible = !chromeVisible
+        if (ui.toolbar != null) vm.dismissToolbar()
+        else when (readerTapAction(x, ui.settings.flow == "paginated", ui.rightToLeft)) {
+            ReaderTapAction.PREVIOUS -> controller.prev()
+            ReaderTapAction.NEXT -> controller.next()
+            ReaderTapAction.MENU -> chromeVisible = !chromeVisible
         }
     }
 
@@ -109,8 +111,8 @@ fun ReaderScreen(
         controller.listener = { event ->
             when (event) {
                 is ReaderEvent.Ready -> ready = true
-                is ReaderEvent.Loaded -> vm.onLoaded(event.toc, event.title)
-                is ReaderEvent.Relocate -> vm.onRelocate(event.cfi, event.fraction, event.chapterTitle)
+                is ReaderEvent.Loaded -> vm.onLoaded(event.toc, event.title, event.rightToLeft)
+                is ReaderEvent.Relocate -> vm.onRelocate(event.cfi, event.fraction, event.chapterTitle, event.sectionIndex)
                 is ReaderEvent.Error -> vm.onError(event.message)
                 is ReaderEvent.ReadAlong -> { readAlong = event; vm.onReadAlong(event) }
                 is ReaderEvent.Tap -> onTap.value(event.x)
@@ -207,6 +209,9 @@ fun ReaderScreen(
                 IconButton(onClick = { settingsVisible = true }) {
                     Icon(Icons.Filled.TextFields, contentDescription = stringResource(R.string.settings), tint = Color.White)
                 }
+                IconButton(onClick = { zonesHelpVisible = true }) {
+                    Icon(Icons.Filled.HelpOutline, contentDescription = stringResource(R.string.reader_zones_title), tint = Color.White)
+                }
             }
 
             Box(
@@ -225,36 +230,41 @@ fun ReaderScreen(
 
         ui.toolbar?.let { target ->
             val annotation = target.annotationId?.let { id -> ui.annotations.firstOrNull { it.id == id } }
-            val screenWidth = LocalConfiguration.current.screenWidthDp
-            val toolbarWidth = if (annotation != null) 340 else 290
             val rect = target.rect
-            val centerX = rect?.let { (it.left + it.right) / 2 } ?: (screenWidth / 2.0)
-            val x = (centerX - toolbarWidth / 2).coerceIn(8.0, (screenWidth - toolbarWidth - 8).coerceAtLeast(8).toDouble())
-            // Above the selection when there's room, otherwise below it (clear of the selection handles).
-            val y = when {
-                rect == null -> 120.0
-                rect.top > 150 -> rect.top - 60
-                else -> rect.bottom + 36
-            }
+            val density = androidx.compose.ui.platform.LocalDensity.current.density
+            SelectionActions(rect?.let { androidx.compose.ui.geometry.Rect(
+                it.left.toFloat() * density, it.top.toFloat() * density,
+                it.right.toFloat() * density, it.bottom.toFloat() * density) }, Modifier.fillMaxSize()) {
             HighlightToolbar(
                 currentColor = annotation?.color,
                 onColor = { vm.highlight(it) },
                 onNote = { noteDialog = annotation?.note.orEmpty() },
                 onDelete = annotation?.let { a -> { vm.deleteAnnotation(a.id) } },
-                modifier = Modifier.offset(x = x.dp, y = y.dp),
+                modifier = Modifier.fillMaxWidth(),
                 onReadingHelp = (target.selection?.text ?: annotation?.text)?.takeIf { it.isNotBlank() }?.let { text ->
-                    { controller.readAlong("pause"); helpPassage = text; vm.dismissToolbar() }
+                    { controller.readAlong("pause"); scope.launch { vm.nativeReadAlong("pause", null) }; helpPassage = text; vm.dismissToolbar() }
+                },
+                onTranslate = (target.selection?.text ?: annotation?.text)?.takeIf { it.isNotBlank() }?.let { text ->
+                    { readingTool = ReadingTool.TRANSLATE to text }
+                },
+                onDictionary = (target.selection?.text ?: annotation?.text)?.takeIf { it.isNotBlank() }?.let { text ->
+                    { readingTool = ReadingTool.DICTIONARY to text }
                 },
             )
+            }
         }
 
-        if (readAlong.available && ui.loaded && !rendererFailed && showChrome) {
-            ReadAlongBar(readAlong, onCommand = { action, rate ->
+        if (shownReadAlong.available && ui.loaded && !rendererFailed && showChrome) {
+            ReadAlongBar(shownReadAlong, onCommand = { action, rate ->
                 scope.launch {
+                    if (activeNative != null || (ui.resolved?.stream != null && action in setOf("start", "resume", "restart")))
+                        controller.readAlong("pause")
+                    if (vm.nativeReadAlong(action, rate)) return@launch
                     if (action in setOf("start", "resume", "restart")) vm.prepareReadAlong()
                     controller.readAlong(action, rate)
                 }
-            }, modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(horizontal = 12.dp, vertical = 44.dp))
+            }, modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(horizontal = 12.dp, vertical = 44.dp),
+                background = activeNative != null)
         }
 
         if ((!ui.loaded || !ready) && ui.error == null && !rendererFailed) {
@@ -285,9 +295,11 @@ fun ReaderScreen(
             }
         }
 
-        // One-time coach overlay teaching the (invisible) paginated tap zones.
-        if (!rendererFailed && paginated && ui.loaded && ui.showPagingHint) {
-            PagingHintOverlay(onDismiss = { vm.dismissPagingHint() })
+        if (!rendererFailed && ui.loaded && (zonesHelpVisible || (paginated && ui.showPagingHint))) {
+            ReaderTapZonesHelp(paginated = paginated, rightToLeft = ui.rightToLeft, onDismiss = {
+                zonesHelpVisible = false
+                vm.dismissPagingHint()
+            })
         }
     }
 
@@ -306,6 +318,7 @@ fun ReaderScreen(
             com.bookorbit.feature.readinghelp.ReadingHelpSheet(fileId, passage, vm.readingHelp, onDismiss = { helpPassage = null })
         }
     }
+    readingTool?.let { (tool, text) -> ReadingToolsSheet(text, tool, vm.readingTools, onDismiss = { readingTool = null }) }
     noteDialog?.let { initial ->
         NoteDialog(
             initial = initial,
@@ -362,57 +375,6 @@ fun ReaderScreen(
             onDismiss = { settingsVisible = false },
         )
     }
-}
-
-@Composable
-private fun PagingHintOverlay(onDismiss: () -> Unit) {
-    val interaction = remember { MutableInteractionSource() }
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xE60A0A0A))
-            .clickable(interactionSource = interaction, indication = null, onClick = onDismiss),
-    ) {
-        HintZone(weight = 0.3f, icon = Icons.Filled.ChevronLeft, label = stringResource(R.string.previous_page))
-        HintZone(weight = 0.4f, icon = Icons.Filled.TouchApp, label = stringResource(R.string.tap_for_menu))
-        HintZone(weight = 0.3f, icon = Icons.Filled.ChevronRight, label = stringResource(R.string.next_page))
-    }
-}
-
-@Composable
-private fun androidx.compose.foundation.layout.RowScope.HintZone(
-    weight: Float,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-) {
-    androidx.compose.foundation.layout.Column(
-        modifier = Modifier
-            .weight(weight)
-            .fillMaxHeight(),
-        verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(40.dp))
-        androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
-        Text(
-            label,
-            color = Color.White,
-            style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 8.dp),
-        )
-    }
-}
-
-@Composable
-private fun androidx.compose.foundation.layout.RowScope.TapZone(weight: Float, onTap: () -> Unit) {
-    val interaction = remember { MutableInteractionSource() }
-    Box(
-        modifier = Modifier
-            .weight(weight)
-            .fillMaxHeight()
-            .clickable(interactionSource = interaction, indication = null, onClick = onTap),
-    )
 }
 
 @Composable

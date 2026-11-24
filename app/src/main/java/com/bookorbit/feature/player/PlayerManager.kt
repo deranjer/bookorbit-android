@@ -58,6 +58,7 @@ class PlayerManager @Inject constructor(
     private val livePrefs: LivePlaybackPrefs,
     private val restoreCandidates: RestoreCandidateFinder,
     private val sessions: ReadingSessionTracker,
+    private val session: com.bookorbit.core.auth.SessionManager,
 ) {
     data class UiState(
         val currentBook: BookDetail? = null,
@@ -99,6 +100,7 @@ class PlayerManager @Inject constructor(
      * Auto calls [adoptExternalQueue] off the main thread. */
     private val loadGeneration = AtomicInteger()
     private var restoreAttempted = false
+    private var queueOwner: com.bookorbit.core.auth.SessionOwner? = null
 
     /** Wall-clock deadline for a duration-based sleep timer; null when off or in end-of-chapter mode. */
     private var sleepTimerEndAtMs: Long? = null
@@ -108,7 +110,9 @@ class PlayerManager @Inject constructor(
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             // A successful resume clears any earlier error - it's no longer the reason nothing is playing.
             _state.update { it.copy(isPlaying = isPlaying, playerError = if (isPlaying) null else it.playerError) }
-            sessions.setListeningActive(isPlaying)
+            queueOwner?.let { owner ->
+                if (session.owns(owner)) sessions.setListeningActive(isPlaying, owner) else discardQueue()
+            }
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -122,6 +126,9 @@ class PlayerManager @Inject constructor(
     }
 
     init {
+        scope.launch {
+            session.state.collect { queueOwner?.let { if (!session.owns(it)) discardQueue() } }
+        }
         scope.launch {
             try {
                 settings = settingsStore.load()
@@ -185,12 +192,13 @@ class PlayerManager @Inject constructor(
     }
 
     fun loadAndPlay(bookId: Int) {
+        val owner = session.owner()?.takeUnless { session.dataScopeChanged() } ?: return
         val generation = loadGeneration.incrementAndGet()
         cancelSleepTimer()
         _state.update { it.copy(playerError = null) }
         scope.launch {
             val data = repo.resolve(bookId)
-            if (generation != loadGeneration.get()) return@launch
+            if (generation != loadGeneration.get() || !session.owns(owner)) return@launch
             if (data == null) {
                 Log.e(TAG, "unable to resolve playback data for bookId=$bookId")
                 _state.update {
@@ -201,8 +209,8 @@ class PlayerManager @Inject constructor(
             val c = controller()
             val resume = audioProgress.resolveResume(bookId)
             val bookSpeed = settingsStore.bookSpeed(bookId)
-            if (generation != loadGeneration.get()) return@launch
-            applyQueue(c, data, resume, autoPlay = true, bookSpeed = bookSpeed)
+            if (generation != loadGeneration.get() || !session.owns(owner)) return@launch
+            applyQueue(c, data, resume, autoPlay = true, bookSpeed = bookSpeed, owner = owner)
         }
     }
 
@@ -214,6 +222,7 @@ class PlayerManager @Inject constructor(
      * way if the user or Android Auto loads something while it's still looking.
      */
     fun restoreLastBook() {
+        val owner = session.owner()?.takeUnless { session.dataScopeChanged() } ?: return
         if (restoreAttempted) return
         restoreAttempted = true
         if (_state.value.currentBook != null) return
@@ -225,11 +234,11 @@ class PlayerManager @Inject constructor(
                     val data = withTimeoutOrNull(RESTORE_RESOLVE_TIMEOUT_MS) { repo.resolve(bookId) } ?: continue
                     settingsLoaded.await()
                     val bookSpeed = settingsStore.bookSpeed(bookId)
-                    if (generation != loadGeneration.get() || _state.value.currentBook != null) return@launch
+                    if (generation != loadGeneration.get() || _state.value.currentBook != null || !session.owns(owner)) return@launch
                     val c = controller()
                     // Re-checked after the last suspension point: from here to applyQueue runs without yielding.
-                    if (generation != loadGeneration.get() || _state.value.currentBook != null || c.mediaItemCount > 0) return@launch
-                    applyQueue(c, data, resume, autoPlay = false, bookSpeed = bookSpeed)
+                    if (generation != loadGeneration.get() || _state.value.currentBook != null || c.mediaItemCount > 0 || !session.owns(owner)) return@launch
+                    applyQueue(c, data, resume, autoPlay = false, bookSpeed = bookSpeed, owner = owner)
                     return@launch
                 }
             } catch (e: CancellationException) {
@@ -248,14 +257,17 @@ class PlayerManager @Inject constructor(
         resume: AudioProgress?,
         autoPlay: Boolean,
         bookSpeed: Float?,
+        owner: com.bookorbit.core.auth.SessionOwner,
     ) {
+        if (!session.owns(owner)) return
+        queueOwner = owner
         val speed = resolveSpeed(settings.speed, bookSpeed)
         val totalDurationSec = PlaybackQueue.totalDurationSec(data.files)
         val index = resume?.let { r -> data.files.indexOfFirst { it.id == r.currentFileId }.coerceAtLeast(0) } ?: 0
         val positionMs = ((resume?.positionSeconds ?: 0.0) * 1000).toLong()
         val loaded = c.sendCustomCommand(
             BookQueueCommand.command,
-            BookQueueCommand.encode(BookQueueCommand.Load(data.mediaItems, index, positionMs, speed, autoPlay)),
+            BookQueueCommand.encode(BookQueueCommand.Load(data.mediaItems, index, positionMs, speed, autoPlay, owner)),
         )
         loaded.addListener({
             val success = runCatching { loaded.get().resultCode == SessionResult.RESULT_SUCCESS }.getOrDefault(false)
@@ -283,11 +295,14 @@ class PlayerManager @Inject constructor(
      * sync path covers both phone- and car-initiated playback. The car already set + prepared the
      * items, so this only observes — it does not touch the controller's queue.
      */
-    fun adoptExternalQueue(book: BookDetail, files: List<BookFileRef>, speed: Float, speedIsPerBook: Boolean) {
+    fun adoptExternalQueue(book: BookDetail, files: List<BookFileRef>, speed: Float, speedIsPerBook: Boolean,
+        expectedOwner: com.bookorbit.core.auth.SessionOwner? = session.owner()) {
+        val owner = expectedOwner?.takeIf(session::owns) ?: return
         val generation = loadGeneration.incrementAndGet()
         scope.launch {
             controller() // ensure the listener is attached so play/pause state tracks
-            if (generation != loadGeneration.get()) return@launch
+            if (generation != loadGeneration.get() || !session.owns(owner)) return@launch
+            queueOwner = owner
             cancelSleepTimer()
             _state.update {
                 it.copy(
@@ -313,6 +328,23 @@ class PlayerManager @Inject constructor(
     suspend fun pauseForReadAlong() = kotlinx.coroutines.withContext(Dispatchers.Main.immediate) {
         loadGeneration.incrementAndGet()
         controller?.pause()
+    }
+
+    /** Release audiobook reporting, not the reader's session or the shared service/player. */
+    internal suspend fun prepareForNativeNarration(canApply: () -> Boolean = { true }): Boolean = kotlinx.coroutines.withContext(Dispatchers.Main.immediate) {
+        val c = controller()
+        if (!canApply()) return@withContext false
+        val generation = loadGeneration.incrementAndGet()
+        queueOwner?.takeIf(session::owns)?.let { report(force = true) }
+        if (!canApply() || generation != loadGeneration.get()) return@withContext false
+        c.pause()
+        queueOwner?.let(sessions::endListening)
+        pollJob?.cancel()
+        cancelSleepTimer()
+        queueOwner = null
+        _state.update { it.copy(currentBook = null, files = emptyList(), chapters = emptyList(), isPlaying = false,
+            buffering = false, totalDurationSec = 0.0, positionSec = 0.0) }
+        true
     }
 
     fun skipBack() = scope.launch {
@@ -438,16 +470,24 @@ class PlayerManager @Inject constructor(
     }
 
     fun stop() = scope.launch {
+        if (queueOwner == null) return@launch
+        queueOwner?.takeIf(session::owns)?.let { report(force = true) }
+        discardQueue()
+    }
+
+    private fun discardQueue() {
         loadGeneration.incrementAndGet()
-        report(force = true)
-        sessions.end()
+        val outgoingOwner = queueOwner
+        queueOwner = null
+        outgoingOwner?.let(sessions::endListening)
         controller?.run {
             stop()
             clearMediaItems()
         }
         pollJob?.cancel()
         cancelSleepTimer()
-        _state.update { it.copy(currentBook = null, isPlaying = false) }
+        _state.update { it.copy(currentBook = null, files = emptyList(), chapters = emptyList(), isPlaying = false,
+            buffering = false, totalDurationSec = 0.0, positionSec = 0.0) }
     }
 
     private fun startPoller() {
@@ -469,6 +509,8 @@ class PlayerManager @Inject constructor(
     }
 
     private suspend fun report(force: Boolean) {
+        val owner = queueOwner ?: return
+        if (!session.owns(owner) || session.dataScopeChanged()) { discardQueue(); return }
         val c = controller ?: return
         val book = _state.value.currentBook ?: return
         val files = _state.value.files
@@ -482,7 +524,8 @@ class PlayerManager @Inject constructor(
         val pct = PlaybackQueue.percentageFor(files, loc.index, loc.offsetSec)
         lastReport = System.currentTimeMillis()
         audioProgress.report(book.id, files[loc.index].id, loc.offsetSec, pct)
-        if (c.isPlaying) sessions.onListening(book.id, files.first().id, pct)
+        if (c.isPlaying && queueOwner == owner && _state.value.currentBook?.id == book.id)
+            sessions.onListening(book.id, files.first().id, pct, owner)
     }
 
     /** Friendly text for a Media3 playback failure - falls back to the exception's own message

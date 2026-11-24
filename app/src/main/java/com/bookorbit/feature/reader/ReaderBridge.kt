@@ -35,11 +35,12 @@ data class SearchHit(val cfi: String, val pre: String, val match: String, val po
 
 sealed interface ReaderEvent {
     data object Ready : ReaderEvent
-    data class Loaded(val toc: List<TocItem>, val title: String?) : ReaderEvent
+    data class Loaded(val toc: List<TocItem>, val title: String?, val rightToLeft: Boolean = false) : ReaderEvent
     data class Relocate(
         val cfi: String?,
         val fraction: Double?,
         val chapterTitle: String?,
+        val sectionIndex: Int? = null,
     ) : ReaderEvent
     data class Error(val message: String) : ReaderEvent
     data class ReadAlong(val available: Boolean, val state: String, val rate: Double = 1.0, val error: String? = null,
@@ -108,12 +109,14 @@ object ReaderBridge {
                         .getOrDefault(emptyList())
                 } ?: emptyList()
                 val title = obj["metadata"]?.jsonObject?.get("title")?.jsonPrimitive?.contentOrNull
-                ReaderEvent.Loaded(toc, title)
+                val rightToLeft = obj["metadata"]?.jsonObject?.get("direction")?.jsonPrimitive?.contentOrNull == "rtl"
+                ReaderEvent.Loaded(toc, title, rightToLeft)
             }
             "relocate" -> ReaderEvent.Relocate(
                 cfi = obj["cfi"]?.jsonPrimitive?.contentOrNull,
                 fraction = obj["fraction"]?.jsonPrimitive?.doubleOrNull,
                 chapterTitle = obj["chapterTitle"]?.jsonPrimitive?.contentOrNull,
+                sectionIndex = obj["sectionIndex"]?.jsonPrimitive?.intOrNull?.takeIf { it in 0..100_000 },
             )
             "error" -> ReaderEvent.Error(obj["message"]?.jsonPrimitive?.contentOrNull ?: "Reader error")
             "tap" -> obj["x"]?.jsonPrimitive?.doubleOrNull?.let { ReaderEvent.Tap(it) }

@@ -7,6 +7,7 @@ import android.os.Bundle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import com.bookorbit.core.auth.SessionManager
+import com.bookorbit.core.auth.SessionOwner
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaConstants
@@ -33,6 +34,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.currentCoroutineContext
+import kotlin.coroutines.AbstractCoroutineContextElement
+import kotlin.coroutines.CoroutineContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import java.util.concurrent.ConcurrentHashMap
@@ -56,6 +60,7 @@ class MediaLibraryCallback @Inject constructor(
     private val autoLibrary: AutoLibraryRepository,
     private val search: AutoSearch,
     private val sessionManager: SessionManager,
+    private val nativeNarration: com.bookorbit.feature.reader.NativeNarrationSession,
 ) : MediaLibrarySession.Callback {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -63,20 +68,25 @@ class MediaLibraryCallback @Inject constructor(
     private data class SearchSnapshot(val query: String, val scope: String, val entries: List<AutoBrowseTree.BrowseEntry>)
     private val searchResults = ConcurrentHashMap<ControllerInfo, SearchSnapshot>()
     private val subscriptions = ConcurrentHashMap<ControllerInfo, Set<String>>()
+    private class PlaybackRequestOwner(val owner: SessionOwner, val narrationGeneration: Long) : AbstractCoroutineContextElement(Key) {
+        companion object Key : CoroutineContext.Key<PlaybackRequestOwner>
+    }
 
     override fun onDisconnected(session: MediaSession, controller: ControllerInfo) {
         searchResults.remove(controller)
         subscriptions.remove(controller)
     }
 
-    override fun onConnect(session: MediaSession, controller: ControllerInfo): MediaSession.ConnectionResult {
-        val base = super<MediaLibrarySession.Callback>.onConnect(session, controller)
+    override fun onConnectAsync(session: MediaSession, controller: ControllerInfo): ListenableFuture<MediaSession.ConnectionResult> {
+        // Media3 1.11's deprecated onConnect returns an empty-command sentinel, not usable defaults.
+        val base = MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller).build()
         if (base.isAccepted) artwork.grantTo(controller.packageName)
-        if (!base.isAccepted || controller.packageName != context.packageName) return base
-        return MediaSession.ConnectionResult.accept(
+        if (!base.isAccepted || controller.packageName != context.packageName || controller.uid != android.os.Process.myUid())
+            return Futures.immediateFuture(base)
+        return Futures.immediateFuture(MediaSession.ConnectionResult.accept(
             base.availableSessionCommands.buildUpon().add(BookQueueCommand.command).build(),
             base.availablePlayerCommands,
-        )
+        ))
     }
 
     override fun onCustomCommand(
@@ -85,17 +95,22 @@ class MediaLibraryCallback @Inject constructor(
         command: SessionCommand,
         args: Bundle,
     ): ListenableFuture<SessionResult> {
-        if (command != BookQueueCommand.command || controller.packageName != context.packageName) {
+        if (command != BookQueueCommand.command || controller.packageName != context.packageName ||
+            controller.uid != android.os.Process.myUid()) {
             return Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))
         }
         val generation = ++queueRequestGeneration
+        val narrationGeneration = nativeNarration.generation()
         return future {
             val load = try { BookQueueCommand.decode(args) } catch (_: IllegalArgumentException) {
                 return@future SessionResult(SessionError.ERROR_BAD_VALUE)
             }
             withContext(Dispatchers.Main.immediate) {
                 if (generation != queueRequestGeneration) return@withContext SessionResult(SessionResult.RESULT_SUCCESS)
-                val routed = routeQueue(MediaItemsWithStartPosition(load.items, load.index, load.positionMs))
+                if (narrationGeneration != nativeNarration.generation()) return@withContext SessionResult(SessionError.ERROR_INVALID_STATE)
+                val owner = load.owner
+                if (owner == null || !sessionManager.owns(owner)) return@withContext SessionResult(SessionError.ERROR_SESSION_AUTHENTICATION_EXPIRED)
+                val routed = routeQueue(MediaItemsWithStartPosition(load.items, load.index, load.positionMs), owner)
                 BookQueueCommand.apply(session.player, load.copy(items = routed.mediaItems))
                 SessionResult(SessionResult.RESULT_SUCCESS)
             }
@@ -279,8 +294,15 @@ class MediaLibraryCallback @Inject constructor(
     }
 
     /** Queue replacement follows the active output, including a second book in the same session. */
-    private suspend fun routeQueue(queue: MediaItemsWithStartPosition): MediaItemsWithStartPosition =
-        withContext(Dispatchers.Main.immediate) {
+    private suspend fun routeQueue(queue: MediaItemsWithStartPosition, expectedOwner: SessionOwner? = null): MediaItemsWithStartPosition {
+        val owner = expectedOwner ?: currentCoroutineContext()[PlaybackRequestOwner]?.owner
+            ?: throw AutoRequestException(AutoFailure.SIGN_IN)
+        return withContext(Dispatchers.Main.immediate) {
+            if (!sessionManager.owns(owner)) throw AutoRequestException(AutoFailure.SIGN_IN)
+            currentCoroutineContext()[PlaybackRequestOwner]?.let {
+                if (it.narrationGeneration != nativeNarration.generation()) throw CancellationException("Playback source changed")
+            }
+            nativeNarration.leaveForAudiobook()
             if (castProxyServer.isRunning) {
                 MediaItemsWithStartPosition(
                     castProxyServer.rewriteForCast(queue.mediaItems, queue.startIndex, queue.startPositionMs),
@@ -289,6 +311,7 @@ class MediaLibraryCallback @Inject constructor(
                 )
             } else queue
         }
+    }
 
     /** Built on each request, so the car follows the device language even if it changes while connected. */
     private fun labels() = AutoBrowseTree.Labels(
@@ -312,12 +335,17 @@ class MediaLibraryCallback @Inject constructor(
         return playbackResolver.resolve(bookId, startAtChapterIndex)?.let { adopt(session, it) }
     }
 
-    private suspend fun adopt(session: MediaSession, resolved: AutoPlaybackResolver.Resolved): MediaItemsWithStartPosition =
-        withContext(Dispatchers.Main.immediate) {
+    private suspend fun adopt(session: MediaSession, resolved: AutoPlaybackResolver.Resolved): MediaItemsWithStartPosition {
+        val owner = currentCoroutineContext()[PlaybackRequestOwner]?.owner ?: throw AutoRequestException(AutoFailure.SIGN_IN)
+        return withContext(Dispatchers.Main.immediate) {
+            if (!sessionManager.owns(owner)) throw AutoRequestException(AutoFailure.SIGN_IN)
+            if (currentCoroutineContext()[PlaybackRequestOwner]?.narrationGeneration != nativeNarration.generation())
+                throw CancellationException("Playback source changed")
             session.player.setPlaybackSpeed(resolved.speed)
-            playerManager.adoptExternalQueue(resolved.data.book, resolved.data.files, resolved.speed, resolved.speedIsPerBook)
+            playerManager.adoptExternalQueue(resolved.data.book, resolved.data.files, resolved.speed, resolved.speedIsPerBook, owner)
             MediaItemsWithStartPosition(resolved.data.mediaItems, resolved.index, resolved.positionMs)
         }
+    }
 
     private suspend fun catalog() = downloads.downloads.first()
 
@@ -367,8 +395,18 @@ class MediaLibraryCallback @Inject constructor(
         } catch (e: Exception) { LibraryResult.ofError<T>(error(e)) }
     }
 
-    private fun playbackFuture(session: MediaSession, block: suspend () -> MediaItemsWithStartPosition): ListenableFuture<MediaItemsWithStartPosition> = future {
-        try { block() }
+    private fun playbackFuture(session: MediaSession, block: suspend () -> MediaItemsWithStartPosition): ListenableFuture<MediaItemsWithStartPosition> {
+      val owner = sessionManager.owner()
+      val narrationGeneration = nativeNarration.generation()
+      return future {
+        try {
+            if (owner == null) throw AutoRequestException(AutoFailure.SIGN_IN)
+            withContext(PlaybackRequestOwner(owner, narrationGeneration)) {
+                val result = block()
+                if (!sessionManager.owns(owner)) throw AutoRequestException(AutoFailure.SIGN_IN)
+                result
+            }
+        }
         catch (e: CancellationException) {
             if (e !is TimeoutCancellationException) throw e
             val failure = error(e)
@@ -379,6 +417,7 @@ class MediaLibraryCallback @Inject constructor(
             withContext(Dispatchers.Main.immediate) { session.sendError(failure) }
             throw PlaybackException(failure.message, e, failure.code)
         }
+      }
     }
 
     private fun <T> future(block: suspend () -> T): ListenableFuture<T> {

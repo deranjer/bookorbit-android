@@ -73,4 +73,54 @@ class ReadingSessionOwnershipTest {
         assertEquals(setOf(first.id, second.id), dao.rows.values.map { it.userId }.toSet())
         assertEquals(listOf(30, 30), dao.rows.values.map { it.durationSeconds })
     }
+
+    @Test fun `background narration survives closing the reader and counts each elapsed second only once`() = runTest {
+        val dao = Dao(); val session = session(); var now = 0L
+        val tracker = ReadingSessionTracker(dao, api(), mockk<SyncScheduler>(relaxed = true), session, this) { now }
+        val reader = tracker.beginReading(9, 10.0)!!
+        now = 20_000
+        val narration = tracker.beginNarration(9, session.owner()!!)!!
+        tracker.setNarrationActive(narration, true)
+        now = 30_000; tracker.onForeground(false)
+        now = 40_000; tracker.endReading(reader)
+        now = 60_000; tracker.endNarration(narration)
+        runCurrent()
+        assertEquals(2, dao.rows.size)
+        assertEquals(20, dao.rows.values.single { it.sessionType == "read" }.durationSeconds)
+        assertEquals(40, dao.rows.values.single { it.sessionType == "listen" }.durationSeconds)
+        assertEquals(60, dao.rows.values.sumOf { it.durationSeconds })
+        assertTrue(dao.rows.values.all { it.fileId == 9 && it.userId == first.id })
+    }
+
+    @Test fun `paused narration returns to foreground reading through disjoint read listen read intervals`() = runTest {
+        val dao = Dao(); val session = session(); var now = 0L
+        val tracker = ReadingSessionTracker(dao, api(), mockk<SyncScheduler>(relaxed = true), session, this) { now }
+        val reader = tracker.beginReading(9, 10.0)!!
+        now = 20_000
+        val narration = tracker.beginNarration(9, session.owner()!!)!!
+        tracker.setNarrationActive(narration, true)
+        now = 40_000; tracker.setNarrationActive(narration, false)
+        now = 60_000; tracker.endReading(reader); tracker.endNarration(narration)
+        runCurrent()
+        assertEquals(3, dao.rows.size)
+        assertEquals(40, dao.rows.values.filter { it.sessionType == "read" }.sumOf { it.durationSeconds })
+        assertEquals(20, dao.rows.values.single { it.sessionType == "listen" }.durationSeconds)
+        val ordered = dao.rows.values.sortedBy { it.startedAt }
+        assertTrue(ordered.zipWithNext().all { (a, b) -> a.endedAt <= b.startedAt })
+    }
+
+    @Test fun `a cleared old reader cannot close or change the new readers exact file progress`() = runTest {
+        val dao = Dao(); val session = session(); var now = 0L
+        val tracker = ReadingSessionTracker(dao, api(), mockk<SyncScheduler>(relaxed = true), session, this) { now }
+        val old = tracker.beginReading(9, 0.0)!!
+        now = 20_000; val current = tracker.beginReading(10, 10.0)!!
+        now = 30_000; tracker.onReadingProgress(old, 90.0); tracker.endReading(old)
+        now = 40_000; tracker.onReadingProgress(current, 20.0); tracker.endReading(current)
+        runCurrent()
+        assertEquals(2, dao.rows.size)
+        val currentRow = dao.rows.values.single { it.fileId == 10 }
+        assertEquals(20, currentRow.durationSeconds)
+        assertEquals(20.0, currentRow.endProgress!!, 0.0)
+        assertEquals(10.0, currentRow.progressDelta!!, 0.0)
+    }
 }

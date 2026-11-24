@@ -46,8 +46,10 @@ class ReadingSessionTracker internal constructor(
     @Inject constructor(dao: PendingReadingSessionDao, api: ApiService, syncScheduler: SyncScheduler, session: SessionManager) :
         this(dao, api, syncScheduler, session, CoroutineScope(SupervisorJob() + Dispatchers.IO), System::currentTimeMillis)
     private val recorder = ReadingSessionRecorder(maxGapMs = MAX_GAP_MS)
+    private val activities = ReadingActivityArbiter()
     private var activeOwner: SessionOwner? = null
     private var lastCheckpointMs = 0L
+    private var foreground = true
 
     init {
         // ProcessLifecycleOwner must be touched on the main thread.
@@ -62,63 +64,68 @@ class ReadingSessionTracker internal constructor(
     // --- reading (ebook / PDF) ---
 
     @Synchronized
-    fun beginReading(fileId: Int, percent: Double?) {
-        val owner = liveOwner() ?: run { endLocked(); return }
-        val key = "read:$fileId"
-        if (recorder.key == key && activeOwner == owner) return
-        endLocked()
-        activeOwner = owner
-        recorder.begin(key, fileId, SessionType.READ, percent, now())
-        lastCheckpointMs = now()
+    fun beginReading(fileId: Int, percent: Double?, expectedOwner: SessionOwner? = liveOwner()): ReadingHandle? {
+        if (expectedOwner == null || expectedOwner != liveOwner()) { applyActivity(); return null }
+        val handle = activities.openReader(expectedOwner, fileId, percent)
+        applyActivity()
+        return handle
     }
 
     @Synchronized
-    fun onReadingProgress(percent: Double) {
-        if (recorder.key?.startsWith("read:") != true) return
-        if (activeOwner != liveOwner()) { endLocked(); return }
-        recorder.progress(percent, now())
-        checkpointIfDue()
+    fun onReadingProgress(handle: ReadingHandle, percent: Double) {
+        if (handle.owner == liveOwner()) activities.readerProgress(handle, percent)
+        applyActivity()
     }
+
+    @Synchronized
+    fun endReading(handle: ReadingHandle) { activities.closeReader(handle); applyActivity() }
 
     // --- listening (audiobook) ---
 
     /** Called while playing (every few seconds). Opens a session on first call for a book. */
     @Synchronized
-    fun onListening(bookId: Int, firstFileId: Int, percent: Double) {
-        val owner = liveOwner() ?: run { endLocked(); return }
-        val key = "listen:$bookId"
-        val now = now()
-        if (recorder.key == key && recorder.inactiveForMs(now) > LISTEN_IDLE_CLOSE_MS) endLocked()
-        if (recorder.key != key || activeOwner != owner) {
-            endLocked()
-            activeOwner = owner
-            recorder.begin(key, firstFileId, SessionType.LISTEN, percent, now)
-            lastCheckpointMs = now
-        }
-        recorder.setActive(true, now)
-        recorder.progress(percent, now)
-        checkpointIfDue()
+    fun onListening(bookId: Int, firstFileId: Int, percent: Double, expectedOwner: SessionOwner? = liveOwner()) {
+        if (expectedOwner != null && expectedOwner == liveOwner() && percent.isFinite())
+            activities.listening(expectedOwner, bookId, firstFileId, percent)
+        applyActivity()
     }
 
     @Synchronized
-    fun setListeningActive(active: Boolean) {
-        if (recorder.key?.startsWith("listen:") != true) return
-        if (activeOwner != liveOwner()) { endLocked(); return }
-        val now = now()
-        if (active && recorder.inactiveForMs(now) > LISTEN_IDLE_CLOSE_MS) {
-            // Paused a long while: close it; the next onListening call opens a fresh session.
-            endLocked()
-            return
-        }
-        recorder.setActive(active, now)
+    fun setListeningActive(active: Boolean, expectedOwner: SessionOwner? = liveOwner()) {
+        if (expectedOwner != null && expectedOwner == liveOwner()) activities.audioPlaying(expectedOwner, active)
+        applyActivity()
         if (!active) checkpointLocked()
     }
+
+    @Synchronized
+    fun endListening(expectedOwner: SessionOwner? = liveOwner()) {
+        expectedOwner?.let(activities::closeAudio)
+        applyActivity()
+    }
+
+    @Synchronized
+    fun beginNarration(fileId: Int, owner: SessionOwner): NarrationHandle? {
+        if (owner != liveOwner()) { applyActivity(); return null }
+        val handle = activities.openNarration(owner, fileId)
+        applyActivity()
+        return handle
+    }
+
+    @Synchronized
+    fun setNarrationActive(handle: NarrationHandle, active: Boolean) {
+        if (handle.owner == liveOwner()) activities.narrationPlaying(handle, active)
+        applyActivity()
+        if (!active) checkpointLocked()
+    }
+
+    @Synchronized
+    fun endNarration(handle: NarrationHandle) { activities.closeNarration(handle); applyActivity() }
 
     // --- shared ---
 
     /** Close the open session (if any) and queue it. */
     @Synchronized
-    fun end() = endLocked()
+    fun end() { activities.clear(); endLocked() }
 
     /**
      * Send the signed-in account's queued sessions. Returns true if any of them remain (so the sync
@@ -139,12 +146,26 @@ class ReadingSessionTracker internal constructor(
     private suspend fun mine(user: Int) = dao.all().filter { it.userId == null || it.userId == user }
 
     @Synchronized
-    private fun onForeground(foreground: Boolean) {
-        // Only reading follows the app's visibility; audio keeps playing in the background.
-        if (recorder.key?.startsWith("read:") != true) return
-        if (activeOwner != liveOwner()) { endLocked(); return }
-        recorder.setActive(foreground, now())
+    internal fun onForeground(foreground: Boolean) {
+        this.foreground = foreground
+        applyActivity()
         if (!foreground) checkpointLocked()
+    }
+
+    private fun applyActivity() {
+        val choice = activities.choose(liveOwner(), foreground) ?: run { endLocked(); return }
+        val now = now()
+        val expiredPause = choice.type == SessionType.LISTEN && choice.active && recorder.key == choice.key &&
+            recorder.inactiveForMs(now) > LISTEN_IDLE_CLOSE_MS
+        if (recorder.key != choice.key || activeOwner != choice.owner || expiredPause) {
+            endLocked()
+            activeOwner = choice.owner
+            recorder.begin(choice.key, choice.fileId, choice.type, choice.percent, now)
+            lastCheckpointMs = now
+        }
+        recorder.setActive(choice.active, now)
+        choice.percent?.takeIf { it.isFinite() }?.let { recorder.progress(it, now) }
+        checkpointIfDue()
     }
 
     private fun endLocked() {

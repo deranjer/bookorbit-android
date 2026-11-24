@@ -216,12 +216,12 @@ private fun BookDetailContent(
     var guideVisible by rememberSaveable(book.id) { mutableStateOf(false) }
     val readableFiles = book.files.filter { BookFiles.readingTarget(book, it.id) != BookFiles.ReadingTarget.None }
     val openFile: (Int) -> Unit = { fileId ->
-        when (BookFiles.readingTarget(book, fileId)) {
+        vm.openReadingEdition(fileId) { when (BookFiles.readingTarget(book, fileId)) {
             is BookFiles.ReadingTarget.Foliate -> onRead(book.id, fileId)
             is BookFiles.ReadingTarget.Pdf -> onReadPdf(book.id, fileId)
             is BookFiles.ReadingTarget.Comic -> onReadComic(book.id, fileId)
             BookFiles.ReadingTarget.None -> Unit
-        }
+        } }
     }
     if (chooseReadingFile) {
         ReadingFileDialog(book, offlineIds, onSelect = {
@@ -238,16 +238,10 @@ private fun BookDetailContent(
         Column(modifier = Modifier.padding(horizontal = 20.dp).padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 if (canRead) {
-                    Button(
-                        onClick = {
-                            if (readableFiles.size == 1) openFile(readableFiles.single().id)
-                            else chooseReadingFile = true
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Icon(Icons.Filled.Book, contentDescription = null)
-                        Text(stringResource(R.string.read), modifier = Modifier.padding(start = 8.dp))
-                    }
+                    ReadEditionButton(onRead = {
+                        com.bookorbit.feature.reader.preferredReadingFileId(book, ui.lastReadingFileId)?.let(openFile)
+                    }, onChooseEdition = { chooseReadingFile = true }, hasAlternatives = readableFiles.size > 1,
+                        modifier = Modifier.weight(1f))
                 }
                 if (canListen) {
                     if (canRead) {

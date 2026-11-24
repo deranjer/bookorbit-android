@@ -65,10 +65,10 @@ class CastQueueReplacementTest {
                 wrapper = BookAggregatingPlayer(delayed, MutableStateFlow(AudioSettings()))
                 session = MediaSession.Builder(context, wrapper).setId("queue-switch-${System.nanoTime()}")
                     .setCallback(object : MediaSession.Callback {
-                        override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
-                            val base = super.onConnect(session, controller)
-                            return MediaSession.ConnectionResult.accept(
-                                base.availableSessionCommands.buildUpon().add(BookQueueCommand.command).build(), base.availablePlayerCommands)
+                        override fun onConnectAsync(session: MediaSession, controller: MediaSession.ControllerInfo): ListenableFuture<MediaSession.ConnectionResult> {
+                            val base = MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller).build()
+                            return Futures.immediateFuture(MediaSession.ConnectionResult.accept(
+                                base.availableSessionCommands.buildUpon().add(BookQueueCommand.command).build(), base.availablePlayerCommands))
                         }
                         override fun onCustomCommand(session: MediaSession, controller: MediaSession.ControllerInfo,
                             command: SessionCommand, args: Bundle): ListenableFuture<SessionResult> {

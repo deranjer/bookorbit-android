@@ -467,13 +467,13 @@
     <string name="settings_nav_add">Add %1$s to the bar</string>
     <string name="settings_reading">Reading</string>
     <string name="settings_reader_interface">Reader interface</string>
-    <string name="settings_reader_interface_desc">Cached mode fetches the complete temporary file. Online EPUB loads chapters and resources on demand without fetching the whole archive; it requires a compatible server. Explicitly downloaded editions always open locally. PDF and other formats still need a complete file. Server web uses your server’s interface. Applies on the next book opening.</string>
+    <string name="settings_reader_interface_desc">Choose how to open books.</string>
     <string name="reader_interface_app">App · cached file (default)</string>
     <string name="reader_interface_streaming">App · online EPUB</string>
     <string name="reader_streaming_progress">Online EPUB · %1$d%%</string>
     <string name="reader_interface_web">Server web reader</string>
     <string name="settings_reading_fullscreen">Full-screen reading</string>
-    <string name="settings_reading_fullscreen_desc">Hide the status and navigation bars in ebooks, PDFs, and comics. Swipe from the screen edge to reveal them.</string>
+    <string name="settings_reading_fullscreen_desc">Read edge to edge.</string>
     <string name="reader_web_unavailable">The server web reader could not be opened. Check your connection or open this book in the app.</string>
     <string name="reader_renderer_unavailable">The reader stopped unexpectedly. You can try opening it again.</string>
     <string name="reader_open_app">Open in App</string>

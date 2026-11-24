@@ -6,6 +6,7 @@ const root = new URL('../../app/src/main/assets/reader/', import.meta.url);
 const controllerSource = await readFile(new URL('read-along.js', root), 'utf8');
 const { ReadAlongController } = await import(`data:text/javascript;base64,${Buffer.from(controllerSource).toString('base64')}`);
 class DetailEvent extends Event { constructor(type, detail) { super(type); this.detail = detail; } }
+globalThis.CustomEvent ??= class extends DetailEvent { constructor(type, options) { super(type, options?.detail); } };
 class Overlay extends EventTarget {
   calls = [];
   state(value) { this.dispatchEvent(new DetailEvent('state', value)); }
@@ -17,6 +18,21 @@ class Overlay extends EventTarget {
   setRate(value) { this.calls.push(['rate', value]); }
   async restore(position) { this.calls.push(['restore', position]); this.state('playing'); }
 }
+
+test('native following highlights exact fragments without starting web audio or repeating navigation', () => {
+  const overlay = new Overlay(), highlights = [];
+  overlay.addEventListener('highlight', e => highlights.push(e.detail.text));
+  const ctl = new ReadAlongController(() => {});
+  ctl.attach({ mediaOverlay: overlay });
+  ctl.followNative(null);
+  assert.deepEqual(overlay.calls, []);
+  ctl.followNative({ fragment: 'OPS/chapter.xhtml#one' });
+  ctl.followNative({ fragment: 'OPS/chapter.xhtml#one', audioSeconds: 2 });
+  assert.deepEqual(highlights, ['OPS/chapter.xhtml#one']);
+  assert.ok(overlay.calls.every(value => value === 'pause'));
+  ctl.followNative({ fragment: 'OPS/chapter.xhtml#two' });
+  assert.equal(highlights.at(-1), 'OPS/chapter.xhtml#two');
+});
 
 test('overlay detection never autoplays and absent overlays remain unavailable', () => {
   const events = [];

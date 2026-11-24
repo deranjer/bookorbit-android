@@ -1,3 +1,5 @@
+import { PAGE_TURN_MS, pageTurnEase as easeOutQuad, pageTurnDelta } from '../paging.js'
+
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 const debounce = (f, wait, immediate) => {
@@ -15,7 +17,6 @@ const debounce = (f, wait, immediate) => {
 }
 
 const lerp = (min, max, x) => x * (max - min) + min
-const easeOutQuad = (x) => 1 - (1 - x) * (1 - x)
 const animate = (a, b, duration, ease, render) =>
   new Promise((resolve) => {
     let start
@@ -809,11 +810,14 @@ export class Paginator extends HTMLElement {
   snap(vx, vy) {
     const velocity = this.#vertical ? vy : vx
     const [offset, a, b] = this.#scrollBounds
-    const { start, end, pages, size } = this
+    const { start, pages, size } = this
+    if (!Number.isFinite(size) || size <= 0) return
     const min = Math.abs(offset) - a
     const max = Math.abs(offset) + b
-    const d = velocity * (this.#rtl ? -size : size)
-    const page = Math.floor(Math.max(min, Math.min(max, (start + end) / 2 + (isNaN(d) ? 0 : d))) / size)
+    const origin = Math.round(Math.abs(offset) / size)
+    const drag = (start - Math.abs(offset)) / size
+    const delta = pageTurnDelta(drag, velocity * (this.#rtl ? -1000 : 1000))
+    const page = Math.max(Math.ceil(min / size), Math.min(Math.floor(max / size), origin + delta))
 
     this.#scrollToPage(page, 'snap').then(() => {
       const dir = page <= 0 ? -1 : page >= pages - 1 ? 1 : null
@@ -911,7 +915,7 @@ export class Paginator extends HTMLElement {
     // FIXME: vertical-rl only, not -lr
     if (this.scrolled && this.#vertical) offset = -offset
     if ((reason === 'snap' || smooth) && this.hasAttribute('animated'))
-      return animate(element[scrollProp], offset, 300, easeOutQuad, (x) => (element[scrollProp] = x)).then(() => {
+      return animate(element[scrollProp], offset, PAGE_TURN_MS, easeOutQuad, (x) => (element[scrollProp] = x)).then(() => {
         this.#scrollBounds = [offset, this.atStart ? 0 : size, this.atEnd ? 0 : size]
         this.#afterScroll(reason)
       })
