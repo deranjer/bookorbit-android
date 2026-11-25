@@ -443,3 +443,51 @@ Python checks. Final installed-fdroid regressions:
 The manual background/return sample above preceded the last handover guards and
 subtitle update; those last changes have build/unit/regression evidence but not
 a repeated manual background sample yet. No new stable release is claimed.
+
+## 0.9.12 bundled software audio decoding (2026-11-25)
+
+Both full/fdroid APKs and lints pass, with **544 JVM tests per flavor**, 27 reader
+Node and 14 Android-tool Python tests. The four new Python cases cover verified
+source caching, corrupt downloads, size bounds and tar traversal/link refusal.
+The working APKs are archived separately at `.local/apks/working-0.9.12-20261125/`;
+`build-info.json` records SHA-256s, certificate and acceptance boundaries. The
+archived 0.9.11 APKs are untouched. No public release/push was performed.
+
+The new `software-audio` module builds official Media3 1.11.1 JNI/Java sources
+against FFmpeg 8.1.3. Downloads are hash-pinned; the release PGP signature is
+verified. No opaque third-party codec AAR, encoder, CLI, FFmpeg network protocol,
+GPL-only or nonfree component is included. Generated APK assets include license
+texts and provenance. Build/relink instructions are in `software-audio/README.md`.
+
+`SoftwareAudioTest` instrumentation passes four cases **twice** in
+`.local/instrumentation/20261125T092622305464Z/`:
+
+1. The real JNI library loads and reports all declared audio decoders available.
+2. ALAC produces PCM using the bundled decoder through the production factory;
+   seek/second-track selection retain source URI and queue identity.
+3. AC3 produces PCM and supports seek. This case explicitly prefers FFmpeg:
+   a device's AC3 passthrough must not count as software-decoding evidence.
+4. AAC first uses the platform decoder. An injected initialization failure then
+   selects FFmpeg once at the same source time; the next track restores platform
+   preference. This is deliberate fault injection, not a natural device failure.
+
+The initial disabling-only retry failed this test: MappingTrackSelector still
+mapped the group to the disabled renderer. The final implementation invalidates
+platform format capabilities for that MIME/item so the group re-maps to FFmpeg.
+Network/source/HTTP and DRM failures cannot trigger this codec retry.
+
+`tools/android/check-software-audio-apk.py` verifies the real ELF class/machine
+for armeabi-v7a, arm64-v8a, x86 and x86_64, all LOAD segments and uncompressed ZIP
+entries aligned to 16 KiB, and license/source assets in both APKs. Results:
+`.local/contracts/software-audio-package-{fdroid,full}.json`.
+
+Auto regression passes in `.local/instrumentation/20261125T092709565563Z/` and
+native narration clip/session transport in `20261125T092717592417Z/`. The actual
+streamed `Read Along Chapters` also survives Home with the shared service still
+PLAYING, transitioning from SMIL item 2 at 5876ms to item 3 at 4ms. Evidence:
+`.local/contracts/software-audio-readalong-background.json` and
+`software-audio-readalong-return.png`.
+
+Original fixtures are silent. Audible output, physical ABI execution, performance,
+battery, decoding every declared codec, release shrinking, offline native
+narration and producing a Cast-compatible encoded stream remain unverified.

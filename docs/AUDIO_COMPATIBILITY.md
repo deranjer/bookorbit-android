@@ -46,6 +46,44 @@ Local decoding does not establish Cast receiver compatibility. Actual on-device
 transcoding is not implemented yet; installed-decoder fallback alone must not be
 advertised as the requested full compatibility feature.
 
+## Software decoder implementation in progress (2026-11-25)
+
+`software-audio/` now builds the official Media3 1.11.1 FFmpeg JNI/Java extension
+against FFmpeg 8.1.3 from source. Raw upstream files and the release tarball are
+hash-pinned; the FFmpeg PGP signature is checked against a pinned fingerprint.
+The build deliberately does not consume an unofficial prebuilt decoder AAR.
+The first build needs Python 3, GnuPG, make, NDK 28.2.13676358, CMake 3.30.5 and
+network access for verified sources; cached source builds can run offline.
+
+The recipe enables AAC, MP3, AC3/EAC3, DTS, TrueHD/MLP, Vorbis, Opus, FLAC,
+ALAC, AMR-NB/WB and G.711 decoders, with no encoders, external codec libraries,
+FFmpeg executables, network protocols, GPL-only/nonfree/version3 components.
+The resulting FFmpeg configuration reports LGPL-2.1-or-later. Its license and
+Media3's Apache license, provenance lock and relinking recipe notice are APK
+assets. All four Android ABIs and 16 KiB JNI alignment are intended build targets.
+Do not interpret intended coverage as tested decoding for every codec/device.
+
+The shared ExoPlayer uses extension mode ON: prefer normal direct/platform
+decoding, use FFmpeg when the input format lacks platform support. If a platform
+audio decoder advertises support but fails, `SoftwareAudioFallback` marks that
+input MIME unsupported by the platform renderer and invalidates its capabilities
+for one retry on the same media item and source time. Simply disabling a renderer
+does not re-map its track group in Media3 and was rejected by the injected-fault
+test. Source/HTTP/network and DRM errors are not converted to codec retries.
+Another media item restores normal renderer preference. Cast still requires a compatible receiver stream;
+this is not an encoder or a replacement for a server-transcoding API.
+
+Real JNI decoding and seek/queue checks passed on the x86_64 emulator. ALAC uses
+the normal production factory; AC3 explicitly prefers the software renderer in
+its test because a device can expose AC3 passthrough without a software decoder.
+AAC fault injection proves platform preference, software retry at the same time,
+and restored platform preference on the next item. Four tests passed twice in
+`.local/instrumentation/20261125T092622305464Z/`. All declared MIME decoders are
+present according to the loaded JNI library; actual media decoding has not been
+tested for every declared codec. Four-ABI JNI presence, license assets and 16 KiB
+LOAD/ZIP alignment checks also pass for the fdroid APK. Physical-device audible
+output, performance/battery, release shrinking and Cast encoding remain unverified.
+
 ## Related annotation audit
 
 `modules/annotation/dto/create-annotation.dto.ts` accepts exactly one of `cfi` or

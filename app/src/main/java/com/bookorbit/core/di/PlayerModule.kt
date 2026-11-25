@@ -10,7 +10,9 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import com.bookorbit.core.network.UserCaTrust
 import okhttp3.OkHttpClient
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import com.bookorbit.feature.player.audioRenderersFactory
+import com.bookorbit.feature.player.SoftwareAudioFallback
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
 import com.bookorbit.core.auth.SessionManager
@@ -63,18 +65,24 @@ object PlayerModule {
     fun provideExoPlayer(
         @ApplicationContext context: Context,
         mediaSourceFactory: MediaSource.Factory,
-    ): ExoPlayer = ExoPlayer.Builder(context, DefaultRenderersFactory(context).setEnableDecoderFallback(true))
-        .setMediaSourceFactory(mediaSourceFactory)
-        // Android Auto's standard rewind/fast-forward buttons use these increments.
-        .setSeekBackIncrementMs(DEFAULT_SKIP_BACK * 1000L)
-        .setSeekForwardIncrementMs(DEFAULT_SKIP_FORWARD * 1000L)
-        .setAudioAttributes(
-            AudioAttributes.Builder()
-                .setUsage(C.USAGE_MEDIA)
-                .setContentType(C.AUDIO_CONTENT_TYPE_SPEECH)
-                .build(),
-            /* handleAudioFocus = */ true,
-        )
-        .setHandleAudioBecomingNoisy(true)
-        .build()
+    ): ExoPlayer {
+        val selector = DefaultTrackSelector(context)
+        val renderers = audioRenderersFactory(context)
+        return ExoPlayer.Builder(context, renderers)
+            .setTrackSelector(selector)
+            .setMediaSourceFactory(mediaSourceFactory)
+            // Android Auto's standard rewind/fast-forward buttons use these increments.
+            .setSeekBackIncrementMs(DEFAULT_SKIP_BACK * 1000L)
+            .setSeekForwardIncrementMs(DEFAULT_SKIP_FORWARD * 1000L)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_SPEECH)
+                    .build(),
+                /* handleAudioFocus = */ true,
+            )
+            .setHandleAudioBecomingNoisy(true)
+            .build()
+            .also { it.addListener(SoftwareAudioFallback(it, selector, renderers)) }
+    }
 }

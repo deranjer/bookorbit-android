@@ -52,8 +52,8 @@ android {
         // .github/workflows/release-please.yml (release-please's own generic-file updater is
         // unreliable for this -- see the commit that introduced this comment). Both must stay
         // plain literals so F-Droid's static manifest parser can find them too.
-        versionCode = 911
-        versionName = "0.9.11"
+        versionCode = 912
+        versionName = "0.9.12"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -135,6 +135,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":software-audio"))
     // Core / lifecycle / activity
     implementation(libs.androidx.core.ktx)
     // Theme.BookOrbit (themes.xml) needs an AppCompat parent theme. Previously this arrived only

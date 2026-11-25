@@ -23,3 +23,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "BookOrbit"
 include(":app")
+include(":software-audio")
