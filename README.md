@@ -25,10 +25,10 @@
 ## What it does
 
 <div align="center">
-  <img src="docs/images/library.png" width="260" alt="Library with synthetic text and comic editions">
+  <img src="docs/images/library-en.png" width="260" alt="English library screen with book covers from a self-hosted server">
   &nbsp;&nbsp;
-  <img src="docs/images/book-details.png" width="260" alt="Book details with the Story Guide entry and retained offline edition">
-  <p><sub>0.9.22 development UI · Russian locale · synthetic fixture books, not a user's library.</sub></p>
+  <img src="docs/images/book-details-en.png" width="260" alt="English book details with the Story Guide entry">
+  <p><sub>0.9.23 · English UI · self-hosted library, shown with the server owner's permission. Covers belong to their respective rights holders.</sub></p>
 </div>
 
 | | Features |
@@ -56,6 +56,10 @@ This is not complete feature parity or physical-device acceptance; see the
 - **Direct AI currently means selected-text help only.** It does not enable photo
   search or direct Story Guide generation. Ollama runs wherever your configured
   endpoint lives; `127.0.0.1` means the phone, not your computer.
+- **Story Guide is not available offline yet.** Content is fetched from the server
+  when the panel opens; there is no persistent local graph cache. A visible entry
+  does not establish server access: the real-server screenshot session confirmed
+  library/book browsing, but Story Guide returned an access restriction.
 - **A decoder is not a transcoding server.** Local software fallback does not make
   Cast receivers support every format. The audited stock server has no playback
   transcoding contract.
