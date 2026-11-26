@@ -1,5 +1,40 @@
 # Proposed opt-in Android attestation policy (BookOrbit 3.9.0)
 
+## Minimal hardcoded policy experiment (2026-11-26)
+
+The user requested testing the smaller alternative: add one exact identity directly
+to `androidKeyAttestPolicy().apps`, with no environment parser or verifier changes.
+`minimal-debug-apk-policy.patch` does this for the archived 0.9.21 debug APK only:
+package `io.github.monkecode.bookorbitclient.debug`, signing certificate SHA-256
+`9f8472c84b54b5033314fb3cd26ac949a2b7d818a78530263c3e8dc955c64f0d`.
+This is a public certificate fingerprint, not a phone key or provider token.
+Do not add the digest to the official package's list or set development/unsigned
+acceptance. A different build/signing certificate requires checking its own pair.
+
+Tested in a fresh isolated checkout of v3.9.0 at
+`c1dd6b4f1947ff50843a155e12e70f1e7d15f0c7`. The initial upstream policy test
+failed because it asserts exactly one allowed app; its expected array was extended
+with the same exact identity, without removing existing assertions.
+All **109 tests** then passed (100 upstream plus 9 in
+`minimal-android-policy.test.ts`). Targeted ESLint and `nest build` passed
+(1785 files compiled, zero type-check issues).
+
+Tests prove: absent entry rejects the identity; the added entry permits synthetic
+attestation and registration, followed by verification of a signed request with the
+vision-scan path. Wrong package/digest, software keys, unverified boot, wrong challenge,
+untrusted roots, request replay, changed body and another user remain rejected.
+The test trusts a synthetic certificate root only inside its fixture; production
+roots and hardware checks are not changed. This is **not** an HTTP photo scan,
+real Google-rooted hardware enrollment, or successful inference test. No live
+server, database, books, provider or physical phone was used or changed.
+
+Evidence: `.local/attestation-minimal-test-20261126/{attestation-results.json,evidence.json,minimal-policy.patch}`.
+The code path works under tested prerequisites. Actual phone acceptance still
+requires separately approved deployment on the matching server version and
+explicit device registration. No deployment was performed.
+
+## Configurable companion alternative
+
 **Not deployed. No production server was changed.** This is a companion patch,
 not a way to impersonate the official app or make unsigned production requests.
 It must be reviewed and separately approved before any production deployment.

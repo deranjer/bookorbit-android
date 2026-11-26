@@ -1,0 +1,15 @@
+diff --git a/server/src/modules/app-attest/app-attest.policy.ts b/server/src/modules/app-attest/app-attest.policy.ts
+--- a/server/src/modules/app-attest/app-attest.policy.ts
++++ b/server/src/modules/app-attest/app-attest.policy.ts
+@@ -33,6 +33,11 @@ export function androidKeyAttestPolicy(nodeEnv: string): AndroidAttestationPolicy {
+   return {
+     apps: [
+       { packageName: BOOKORBIT_ANDROID_PACKAGE, signatureDigests: BOOKORBIT_ANDROID_RELEASE_DIGESTS, development: false },
++      {
++        packageName: 'io.github.monkecode.bookorbitclient.debug',
++        signatureDigests: ['9f8472c84b54b5033314fb3cd26ac949a2b7d818a78530263c3e8dc955c64f0d'],
++        development: false,
++      },
+       // Any machine's debug build, and the emulator: forgeable, so never on a production server.
+       ...(production ? [] : [{ packageName: BOOKORBIT_ANDROID_DEBUG_PACKAGE, signatureDigests: 'any' as const, development: true }]),
+     ],
