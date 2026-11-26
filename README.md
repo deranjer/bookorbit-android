@@ -312,7 +312,14 @@ repository build scripts. A failed release stays a draft; assets are not overwri
 The persistent development keystore is an **environment secret**, available only
 to main deployments in that release environment, not a repository secret. The stable
 release/Play workflows use the separate `stable-release` environment and are not
-triggered by normal pushes. Administrators can change these protections; branch
+triggered by normal pushes. Both release environments require manual approval by
+the repository owner before their jobs can access secrets; administrator bypass of
+the approval gate is disabled. The owner may approve a release they initiated, so
+this is a manual checkpoint, not independent two-person review. Independent PR
+approval is not currently required because there is no second repository reviewer.
+Before approving, inspect the release commit, workflow changes and pending job;
+do not approve an unexpected environment request from an ordinary build.
+Administrators can change these protections; branch
 protection alone cannot prohibit an administrator creating a release manually.
 
 ```sh
