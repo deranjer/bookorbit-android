@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -187,7 +189,7 @@ private fun BarChart(values: List<Long>, modifier: Modifier) {
 
 /** Twelve weeks as columns of seven days (Monday on top), shaded by how long you read that day. */
 @Composable
-private fun Heatmap(daily: Map<LocalDate, Long>, modifier: Modifier) {
+internal fun Heatmap(daily: Map<LocalDate, Long>, modifier: Modifier = Modifier) {
     val days = daily.keys.sorted()
     if (days.isEmpty()) return
     // Pad the front so the first column starts on a Monday.
@@ -197,16 +199,16 @@ private fun Heatmap(daily: Map<LocalDate, Long>, modifier: Modifier) {
     val base = MaterialTheme.colorScheme.primary
     val none = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
 
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    Row(modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).testTag("reading-heatmap"), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         weeks.forEach { week ->
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 for (row in 0 until 7) {
                     val date = week.getOrNull(row)
                     val secs = date?.let { daily[it] } ?: 0L
                     Box(
                         Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
+                            .size(18.dp)
+                            .testTag("reading-day-${date ?: "padding"}")
                             .clip(RoundedCornerShape(3.dp))
                             .background(if (date == null) Color.Transparent else shade(secs, base, none)),
                     )

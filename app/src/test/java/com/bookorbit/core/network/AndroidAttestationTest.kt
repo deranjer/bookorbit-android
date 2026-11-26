@@ -27,8 +27,10 @@ class AndroidAttestationTest {
         val pair = KeyPairGenerator.getInstance("EC").apply { initialize(ECGenParameterSpec("secp256r1")) }.generateKeyPair()
         var challenge: String? = null
         var generated: String? = null
+        var generationFailure: Exception? = null
         val deleted = mutableListOf<String>()
         override fun generate(alias: String, challenge: String): AttestedKey {
+            generationFailure?.let { throw it }
             this.challenge = challenge; generated = alias
             return AttestedKey(AndroidAttestProtocol.keyId(pair.public as ECPublicKey), listOf("synthetic-leaf", "synthetic-root"))
         }
@@ -44,6 +46,8 @@ class AndroidAttestationTest {
         var registrationCode = 200
         var receiptId: String? = null
         var environment = "production"
+        var errorBody = "{}"
+        var challengeCode = 200
         var afterChallenge: () -> Unit = {}
         val challenge = "synthetic-challenge-abcdefghijklmnop"
         val session = mockk<SessionManager>().also { session ->
@@ -54,11 +58,12 @@ class AndroidAttestationTest {
         val client = OkHttpClient.Builder().addInterceptor { chain ->
             val request = chain.request(); requests.add(request)
             val challengeRequest = request.url.encodedPath.endsWith("/challenges")
-            val body = if (challengeRequest) {
+            val status = if (challengeRequest) challengeCode else registrationCode
+            val body = if (status !in 200..299) errorBody else if (challengeRequest) {
                 afterChallenge()
                 """{"challenge":"$challenge","expiresAt":"2099-01-01T00:00:00Z"}"""
             } else """{"keyId":"${receiptId ?: AndroidAttestProtocol.keyId(keys.pair.public as ECPublicKey)}","environment":"$environment"}"""
-            Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(if (challengeRequest) 200 else registrationCode)
+            Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(status)
                 .message("Test response").body(body.toResponseBody("application/json".toMediaType())).build()
         }.build()
         val attest = AndroidAttestation(session, keys, Json { ignoreUnknownKeys = true }, client,
@@ -91,6 +96,54 @@ class AndroidAttestationTest {
             verify(Base64.getDecoder().decode(signed.header("X-BookOrbit-Attest-Assertion"))) })
         assertNotEquals(signed.header("X-BookOrbit-Attest-Nonce"), h.attest.sign(original).header("X-BookOrbit-Attest-Nonce"))
         assertEquals(2, h.requests.size) // Signing never enrolls or calls a provider.
+    }
+
+    @Test fun `registration diagnostics preserve stage HTTP and bounded protocol code but no server text`() = runBlocking {
+        val h = Harness(); h.registrationCode = 403
+        h.errorBody = """{"errorCode":"APP_ATTEST_INVALID","message":"secret-bearer-and-certificate"}"""
+        val error = runCatching { h.attest.enroll() }.exceptionOrNull() as AttestationFailure
+        assertEquals(AttestationStage.REGISTRATION, error.stage)
+        assertEquals(AttestationProblem.SERVER, error.problem)
+        assertEquals(403, error.httpStatus)
+        assertEquals("APP_ATTEST_INVALID", error.serverCode)
+        assertFalse(error.toString().contains("secret"))
+        assertFalse(h.attest.isEnrolled()); assertEquals(2, h.requests.size)
+        assertEquals(listOf(h.keys.generated), h.keys.deleted)
+    }
+
+    @Test fun `challenge refusal is not misdiagnosed as device or application certificate failure`() = runBlocking {
+        val h = Harness(); h.challengeCode = 401
+        val error = runCatching { h.attest.enroll() }.exceptionOrNull() as AttestationFailure
+        assertEquals(AttestationStage.CHALLENGE, error.stage)
+        assertEquals(401, error.httpStatus)
+        assertNull(h.keys.generated); assertEquals(1, h.requests.size)
+    }
+
+    @Test fun `hardware key creation failure is reported without retry or leaking exception text`() = runBlocking {
+        val h = Harness(); h.keys.generationFailure = IllegalStateException("private-device-identifiers")
+        val error = runCatching { h.attest.enroll() }.exceptionOrNull() as AttestationFailure
+        assertEquals(AttestationStage.KEY, error.stage)
+        assertEquals(AttestationProblem.DEVICE_KEY, error.problem)
+        assertEquals(1, h.requests.size); assertEquals(1, h.keys.deleted.size)
+        assertFalse(h.attest.isEnrolled()); assertFalse(error.toString().contains("private"))
+    }
+
+    @Test fun `oversized server error body preserves HTTP but does not expose or parse private body`() = runBlocking {
+        val h = Harness(); h.registrationCode = 403
+        h.errorBody = """{"errorCode":"APP_ATTEST_INVALID","message":"${"x".repeat(70_000)}"}"""
+        val error = runCatching { h.attest.enroll() }.exceptionOrNull() as AttestationFailure
+        assertEquals(403, error.httpStatus); assertNull(error.serverCode)
+        assertFalse(h.attest.isEnrolled()); assertEquals(2, h.requests.size)
+    }
+
+    @Test fun `invalid receipt and HTTP prerequisites have specific stages without exposing response`() = runBlocking {
+        val h = Harness(); h.environment = "development"
+        val receipt = runCatching { h.attest.enroll() }.exceptionOrNull() as AttestationFailure
+        assertEquals(AttestationStage.RECEIPT, receipt.stage)
+        assertEquals(AttestationProblem.RESPONSE, receipt.problem)
+        h.server = "http://books.test"
+        val connection = runCatching { h.attest.enroll() }.exceptionOrNull() as AttestationFailure
+        assertEquals(AttestationProblem.HTTPS, connection.problem)
     }
 
     @Test fun `HTTP enrollment is refused before certificate generation or any request`() = runBlocking {

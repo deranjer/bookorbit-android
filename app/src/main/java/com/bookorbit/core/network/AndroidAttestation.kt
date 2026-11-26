@@ -57,7 +57,7 @@ class AndroidAttestation internal constructor(
         val server = session.serverUrl?.trimEnd('/') ?: throw IOException("Not signed in")
         val url = server.toHttpUrl()
         if (!url.isHttps || url.username.isNotEmpty() || url.password.isNotEmpty() || url.query != null || url.fragment != null)
-            throw IOException("Attestation requires HTTPS")
+            throw AttestationFailure(AttestationStage.CONNECTION, AttestationProblem.HTTPS)
         return Owner(server, session.currentUser?.id ?: throw IOException("Not signed in"))
     }
     private fun requireOwner(expected: Owner) {
@@ -70,7 +70,10 @@ class AndroidAttestation internal constructor(
 
     suspend fun enroll() = mutation.withLock {
         withContext(Dispatchers.IO) {
+          var stage = AttestationStage.CONNECTION
+          try {
             val owner = owner()
+            stage = AttestationStage.CHALLENGE
             val challenge = json.decodeFromString<AttestChallenge>(post(owner, "challenges", "{}"))
             require(challenge.challenge.matches(Regex("[A-Za-z0-9_-]{16,256}")))
             check(Instant.parse(challenge.expiresAt).isAfter(Instant.now())) { "Attestation challenge expired" }
@@ -78,19 +81,26 @@ class AndroidAttestation internal constructor(
             var installed = false
             try {
                 requireOwner(owner)
+                stage = AttestationStage.KEY
                 val key = keys.generate(alias, challenge.challenge)
                 requireOwner(owner)
                 check(Instant.parse(challenge.expiresAt).isAfter(Instant.now())) { "Attestation challenge expired" }
-                val receipt = json.decodeFromString<AttestReceipt>(post(owner, "android-keys",
-                    json.encodeToString(AttestEnrollment.serializer(), AttestEnrollment(key.keyId, key.certificateChain, challenge.challenge))))
+                stage = AttestationStage.REGISTRATION
+                val receiptBody = post(owner, "android-keys",
+                    json.encodeToString(AttestEnrollment.serializer(), AttestEnrollment(key.keyId, key.certificateChain, challenge.challenge)))
+                stage = AttestationStage.RECEIPT
+                val receipt = json.decodeFromString<AttestReceipt>(receiptBody)
                 requireOwner(owner)
                 check(receipt.keyId == key.keyId && receipt.environment == "production") { "Unexpected attestation registration" }
                 currentCoroutineContext().ensureActive()
                 val previous = registration(owner)
+                stage = AttestationStage.STORAGE
                 write(owner.storageKey, json.encodeToString(AttestRegistration.serializer(), AttestRegistration(alias, key.keyId)))
                 installed = true
                 previous?.let { runCatching { keys.delete(it.alias) } }
             } finally { if (!installed) runCatching { keys.delete(alias) } }
+          } catch (error: kotlinx.coroutines.CancellationException) { throw error }
+          catch (error: Exception) { throw attestationFailure(stage, error) }
         }
     }
 
@@ -142,7 +152,13 @@ class AndroidAttestation internal constructor(
                     try {
                         val result = response.use {
                             requireOwner(owner)
-                            if (!it.isSuccessful) throw IOException("Attestation registration refused (HTTP ${it.code})")
+                            if (!it.isSuccessful) {
+                                val source = it.body?.source()
+                                source?.request(65_537)
+                                val code = if (source != null && source.buffer.size <= 65_536) attestationServerCode(source.readUtf8()) else null
+                                throw AttestationFailure(if (path == "challenges") AttestationStage.CHALLENGE else AttestationStage.REGISTRATION,
+                                    AttestationProblem.SERVER, it.code, code)
+                            }
                             val source = it.body?.source() ?: throw IOException("Missing attestation response")
                             source.request(65_537)
                             if (source.buffer.size > 65_536) throw IOException("Attestation response too large")

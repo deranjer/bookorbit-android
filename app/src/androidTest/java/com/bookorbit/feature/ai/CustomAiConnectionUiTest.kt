@@ -49,13 +49,16 @@ class CustomAiConnectionUiTest {
                     else ReadingHelpSheet(42, "Only selected custom-server passage", repository, {})
                 } }
                 compose.onNodeWithText(context.getString(R.string.ai_route_direct)).performScrollTo().performClick()
+                compose.onNodeWithText(AiProvider.OPENAI.displayName).performScrollTo().performClick()
                 compose.onNodeWithText(provider.displayName).performScrollTo().performClick()
                 compose.onNodeWithText(context.getString(R.string.ai_base_url)).performScrollTo().performTextReplacement(base)
                 compose.onNodeWithText(context.getString(R.string.ai_help_model)).performScrollTo().performTextInput("org/model:fixture")
                 compose.onNodeWithText(context.getString(R.string.ai_save)).assertIsNotEnabled()
+                androidx.test.espresso.Espresso.closeSoftKeyboard()
                 compose.onNode(isToggleable()).performScrollTo().performClick()
                 assertEquals(0, endpoint.requestCount); assertEquals(0, bookorbit.requestCount)
                 compose.onNodeWithText(context.getString(R.string.ai_save)).performClick()
+                compose.runOnIdle { assertFalse("Saving must close settings", settings); assertEquals(AiRoute.DIRECT, store.connection(session.owner()!!).route) }
                 val ask = context.getString(R.string.help_ask)
                 compose.waitUntil(10_000) { compose.onAllNodesWithText(ask).fetchSemanticsNodes().isNotEmpty() }
                 compose.onNodeWithText(ask).performScrollTo().performClick()

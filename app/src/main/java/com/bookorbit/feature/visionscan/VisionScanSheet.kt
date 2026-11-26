@@ -39,7 +39,8 @@ fun VisionScanSheet(repository: VisionScanRepository, onBookClick: (Int) -> Unit
     var confirm by remember { mutableStateOf(false) }
     var cancelled by remember { mutableStateOf(false) }
     var job by remember { mutableStateOf<Job?>(null) }
-    LaunchedEffect(repository) { access = repository.access() }
+    var refresh by remember { mutableIntStateOf(0) }
+    LaunchedEffect(repository, refresh) { access = null; access = repository.access() }
     DisposableEffect(lifecycle) {
         val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_STOP) job?.cancel() }
         lifecycle.addObserver(observer)
@@ -70,9 +71,12 @@ fun VisionScanSheet(repository: VisionScanRepository, onBookClick: (Int) -> Unit
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(stringResource(R.string.vision_title), style = MaterialTheme.typography.headlineMedium)
             Text(stringResource(R.string.vision_description), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.vision_server_route), style = MaterialTheme.typography.bodySmall)
             if (access == null) CircularProgressIndicator()
             access?.problem?.let { Text(stringResource(visionProblemString(it)), color = MaterialTheme.colorScheme.error) }
-            if (access?.enabled == true) {
+            if (access?.problem != null) TextButton(onClick = { refresh++ }) { Text(stringResource(R.string.retry)) }
+            if (access?.problem == VisionScanRepository.Problem.RESTRICTED) Text(stringResource(R.string.vision_device_help), style = MaterialTheme.typography.bodySmall)
+            run {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(selected = kind == "cover", onClick = { kind = "cover"; result = null }, enabled = !working, label = { Text(stringResource(R.string.vision_cover)) })
                     FilterChip(selected = kind == "shelf", onClick = { kind = "shelf"; result = null }, enabled = !working, label = { Text(stringResource(R.string.vision_shelf)) })
@@ -88,7 +92,7 @@ fun VisionScanSheet(repository: VisionScanRepository, onBookClick: (Int) -> Unit
                 if (working) {
                     LinearProgressIndicator(Modifier.fillMaxWidth())
                     TextButton(onClick = { job?.cancel() }) { Text(stringResource(R.string.cancel)) }
-                } else Button(onClick = { confirm = true }, enabled = image != null, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.vision_scan)) }
+                } else Button(onClick = { confirm = true }, enabled = image != null && access?.enabled == true, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.vision_scan)) }
             }
             if (cancelled) Text(stringResource(R.string.vision_cancelled))
             problem?.let { Text(stringResource(visionProblemString(it)), color = MaterialTheme.colorScheme.error) }

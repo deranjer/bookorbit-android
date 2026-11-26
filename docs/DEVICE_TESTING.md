@@ -697,6 +697,45 @@ narration and producing a Cast-compatible encoded stream remain unverified.
   streaming, Auto, AI, dictionary, stats и OCR overlay regressions прошли.
   Архив `.local/apks/working-0.9.20-20261126/`, подпись прежняя, zipalign 16KiB
   проверен. Schema 11, retained data не очищены. Production не изменялся.
+# 0.9.22: настройки ИИ, календарь и диагностика регистрации (2026-11-26)
+
+- Fullscreen AI settings сохраняют FLAG_SECURE, не раскрывают сохранённый токен,
+  не отправляют данные при открытии/сохранении. Dropdown пяти провайдеров,
+  закреплённые Save/Cancel и отдельные поля проверены с настоящим Android Keystore
+  и локальными HTTP mock-ответами. Direct scope остаётся selected-text help.
+- Security/server-route: 2 × 5 (`20261126T184935467749Z`), custom Ollama/compatible
+  HTTP consent + optional token + one confirmed POST: 2 × 2 (`20261126T185017700172Z`).
+  Дополнительно обе группы 2 × 2 на каждом 1080×1920 и 1920×1080; evidence
+  `.local/contracts/ai-settings-responsive-0922.json`. В тестах IME закрывается
+  явно перед действиями, чтобы не кликать в координаты во время движения клавиатуры.
+  Исходный экран 1080×2400 восстановлен.
+- Heatmap имеет клетки 18 dp, семь строк высотой 150 dp, без растягивания от
+  числа недель. Stats UI: 3 × 2 (`20261126T185037358610Z`), включая 7/30/84 дней,
+  ширину 180/320 dp и прокрутку к последнему дню. Retained screenshot:
+  `statistics-0922-seven-day-heatmap.png`.
+- Photo access UI: 1 × 2 (`20261126T185050332559Z`), refusal → explicit retry →
+  access allowed, без изображения/оплаты. Picker доступен и при отказе, submit
+  остаётся disabled. Нельзя считать это реальным распознаванием фото или снятием
+  server attestation. `photo-search-0922-restricted.png` фиксирует реальный отказ
+  неизменённого fixture-сервера.
+- Device error panel: 1 × 2 (`20261126T185056859140Z`), persistent stage + HTTP 403 +
+  bounded APP_ATTEST_INVALID, без автоматического повтора. JVM различают HTTPS,
+  TLS, challenge, hardware-key creation, registration, receipt и oversized body;
+  исходные credentials/certificate/server-message не показываются. Регистрация
+  физического телефона пользователя не проверена.
+- Story Guide entry: 1 × 2 (`20261126T185102259994Z`), плюс прежний server/mock flow.
+  Retained `story-guide-entry-0922.png` показывает заметную карточку сразу после
+  Read/Listen; открытие не запускает генерацию. `story-guide-panel-0922-restricted.png`
+  показывает ограничения stock fixture, не успешную генерацию.
+- Оба APK/lint, 622 JVM-теста/flavor, 31 Node и 14 Python прошли. Regression
+  OpenAI consent/catalog/selection/narration/streaming/annotations прошли;
+  полные evidence и SHA-256 в `.local/apks/working-0.9.22-20261126/build-info.json`.
+  Подпись прежняя, 16KiB zipalign проверен, Room schema не менялась.
+- `.local/contracts/client-polish-0922.json`: retained настройки/словари/скачивания
+  не очищались; токен не вводился, ИИ-конфигурация не сохранялась, регистрация
+  не отправлялась. Снимки AI формы чёрные из-за FLAG_SECURE, её геометрия проверена
+  UI hierarchy/tests без отключения защиты. Production не изменялся, пуша нет.
+
 # 0.9.21: каталог языков и расширяемые подключения ИИ (2026-11-26)
 
 - В APK только metadata FreeDict: 305 пар, включая версии с `+fd1`. Выбор

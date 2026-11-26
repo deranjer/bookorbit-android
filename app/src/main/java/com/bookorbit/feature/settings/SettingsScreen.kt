@@ -102,12 +102,14 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val appInfo by vm.appInfo.collectAsStateWithLifecycle()
     val attestEnrolled by vm.attestEnrolled.collectAsStateWithLifecycle()
     val attestBusy by vm.attestBusy.collectAsStateWithLifecycle()
+    val attestError by vm.attestError.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmClearDownloads by remember { mutableStateOf(false) }
     var confirmAttestation by remember { mutableStateOf(false) }
     var showDictionaries by remember { mutableStateOf(false) }
     var showAiConnection by remember { mutableStateOf(false) }
+    var showDeviceVerification by remember { mutableStateOf(false) }
     val aiOwner by vm.aiOwners.collectAsStateWithLifecycle()
     val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) vm.setDownloadLocation(uri)
@@ -120,7 +122,15 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
         }
     }
 
-    if (showAiConnection) com.bookorbit.feature.ai.AiConnectionDialog(vm.aiConnections, aiOwner) { showAiConnection = false }
+    if (showAiConnection) com.bookorbit.feature.ai.AiConnectionDialog(vm.aiConnections, aiOwner,
+        onDeviceVerification = { showAiConnection = false; showDeviceVerification = true }) { showAiConnection = false }
+    if (showDeviceVerification) androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showDeviceVerification = false },
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding()) {
+            Text(stringResource(R.string.attest_title), Modifier.padding(16.dp), style = MaterialTheme.typography.headlineSmall)
+            DeviceVerificationPanel(attestEnrolled, attestBusy, attestError, { confirmAttestation = true }, vm::disableAttestation)
+        }
+    }
     if (showDictionaries) androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showDictionaries = false },
         sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -402,18 +412,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             item { HorizontalDivider() }
             item { SectionHeader(stringResource(R.string.attest_title)) }
             item {
-                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    Text(stringResource(if (attestEnrolled) R.string.attest_status_registered else R.string.attest_status_off),
-                        style = MaterialTheme.typography.titleSmall)
-                    Text(stringResource(R.string.attest_description), style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    TextButton(onClick = { confirmAttestation = true }, enabled = !attestBusy) {
-                        Text(stringResource(if (attestBusy) R.string.attest_busy else R.string.attest_register))
-                    }
-                    if (attestEnrolled) TextButton(onClick = vm::disableAttestation, enabled = !attestBusy) {
-                        Text(stringResource(R.string.attest_disable))
-                    }
-                }
+                DeviceVerificationPanel(attestEnrolled, attestBusy, attestError, { confirmAttestation = true }, vm::disableAttestation)
             }
             item { HorizontalDivider() }
             item { SectionHeader(stringResource(R.string.about)) }

@@ -62,18 +62,21 @@ class SettingsViewModel @Inject constructor(
     val attestEnrolled = _attestEnrolled.asStateFlow()
     private val _attestBusy = MutableStateFlow(false)
     val attestBusy = _attestBusy.asStateFlow()
+    private val _attestError = MutableStateFlow<UiText?>(null)
+    val attestError = _attestError.asStateFlow()
 
     fun enrollAttestation() = changeAttestation(true)
     fun disableAttestation() = changeAttestation(false)
     private fun changeAttestation(enroll: Boolean) {
         if (_attestBusy.value) return
         _attestBusy.value = true
+        _attestError.value = null
         viewModelScope.launch {
             try {
                 if (enroll) attestation.enroll() else attestation.disable()
                 _message.value = UiText.of(if (enroll) R.string.attest_registered else R.string.attest_disabled)
             } catch (e: kotlinx.coroutines.CancellationException) { throw e }
-            catch (_: Exception) { _message.value = UiText.of(R.string.attest_failed) }
+            catch (error: Exception) { _attestError.value = attestationErrorText(error) }
             finally { _attestBusy.value = false; _attestEnrolled.value = attestation.isEnrolled() }
         }
     }

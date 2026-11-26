@@ -257,14 +257,12 @@ private fun BookDetailContent(
                     }
                 }
             }
+            StoryGuideEntry(onClick = { guideVisible = true })
             DownloadControl(download, onStartDownload = onStartDownload, onRetry = vm::retryDownload, onRemove = vm::removeDownload,
                 canAddFiles = BookFiles.downloadCandidates(book).any { it.id !in offlineIds })
             if (ui.downloadActionFailed) {
                 Text(stringResource(R.string.offline_action_failed), color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall)
-            }
-            androidx.compose.material3.TextButton(onClick = { guideVisible = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.guide_title))
             }
         }
 
