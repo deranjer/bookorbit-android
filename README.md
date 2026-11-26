@@ -19,8 +19,8 @@
 
 > **Independent fork, not the official BookOrbit app.** Based on
 > [deranjer/bookorbit-android](https://github.com/deranjer/bookorbit-android), with
-> upstream attribution and the AGPL license preserved. No client-side Premium gate,
-> download quota, or automatic whole-library download is added.
+> upstream attribution and the AGPL license preserved. No client-side Premium gate and
+> download quota.
 
 ## What it does
 
@@ -36,7 +36,7 @@
 | **Read** | Native EPUB-family, PDF and comic readers; text settings, themes, bookmarks, highlights and notes. Opt-in on-demand EPUB chapters/resources. |
 | **Listen** | Media3 background audiobooks, HTTP Range streaming, multi-track queues, sleep timer and Android media controls. Source-built software audio decoding with platform-first fallback. |
 | **Read along** | Embedded EPUB/SMIL narration through the shared playback service, online or explicitly offline. Exact fragment highlighting, audio checkpoints and **Listen from here** in selection → ⋮. |
-| **Keep offline** | Download text, audio or both. A 75-track audiobook is one edition/action; adding another edition keeps existing downloads and positions. |
+| **Keep offline** | Download text, audio or both.|
 | **Look up words** | Downloadable FreeDict dictionaries: **305 catalog pairs**, searchable language chooser and private offline indexes. Dictionaries download only when requested. |
 | **Use AI** | Server Reading Help, photo search and Story Guide clients. Direct selected-text help with OpenAI, Gemini, OpenRouter, Ollama and OpenAI-compatible endpoints. |
 | **Track reading** | 7/30/90/365-day periods, previous-period comparison, compact calendar and weekly session history without inventing READ/LISTEN distinctions. |
@@ -54,8 +54,7 @@ This is not complete feature parity or physical-device acceptance; see the
 - **Server trust is separate from login.** Stock BookOrbit restricts selected API
   routes to approved applications. HTTPS and a valid account do not bypass that.
 - **Direct AI currently means selected-text help only.** It does not enable photo
-  search or direct Story Guide generation. Ollama runs wherever your configured
-  endpoint lives; `127.0.0.1` means the phone, not your computer.
+  search or direct Story Guide generation.
 - **A decoder is not a transcoding server.** Local software fallback does not make
   Cast receivers support every format. The audited stock server has no playback
   transcoding contract.
