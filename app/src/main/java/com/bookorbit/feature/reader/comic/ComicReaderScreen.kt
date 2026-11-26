@@ -135,7 +135,7 @@ fun ComicReaderScreen(
         }
         if (zonesHelpVisible) ReaderTapZonesHelp(rightToLeft = rtl, comic = true, onDismiss = { zonesHelpVisible = false })
     }
-    readingTool?.let { (tool, text) -> ReadingToolsSheet(text, tool, vm.readingTools, onDismiss = { readingTool = null }) }
+    readingTool?.let { (tool, text) -> ReadingToolsSheet(text, tool, vm.readingTools, onDismiss = { readingTool = null }, dictionaries = vm.dictionaries) }
 }
 
 @Composable

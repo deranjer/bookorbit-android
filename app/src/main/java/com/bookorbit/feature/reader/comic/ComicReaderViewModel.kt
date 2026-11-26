@@ -47,6 +47,7 @@ class ComicReaderViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     val ocr: com.bookorbit.feature.reader.ComicOcr,
     val readingTools: com.bookorbit.feature.reader.ReadingToolsRepository,
+    val dictionaries: com.bookorbit.feature.dictionary.DictionaryRepository,
     readerSettings: com.bookorbit.feature.reader.ReaderSettingsStore,
     private val lastEditions: com.bookorbit.feature.reader.LastReadEditionStore,
 ) : ViewModel() {

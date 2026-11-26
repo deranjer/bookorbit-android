@@ -22,7 +22,8 @@ enum class ReadingTool { TRANSLATE, DICTIONARY }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReadingToolsSheet(text: String, initialTool: ReadingTool, repository: ReadingToolsRepository, onDismiss: () -> Unit) {
+fun ReadingToolsSheet(text: String, initialTool: ReadingTool, repository: ReadingToolsRepository, onDismiss: () -> Unit,
+    dictionaries: com.bookorbit.feature.dictionary.DictionaryRepository? = null) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val preferences = remember { context.getSharedPreferences("reading_tools", android.content.Context.MODE_PRIVATE) }
@@ -35,6 +36,7 @@ fun ReadingToolsSheet(text: String, initialTool: ReadingTool, repository: Readin
     var failed by remember { mutableStateOf(false) }
     var job by remember { mutableStateOf<Job?>(null) }
     var generation by remember { mutableIntStateOf(0) }
+    var offline by rememberSaveable { mutableStateOf(preferences.getBoolean("dictionary_offline", false)) }
     val scope = rememberCoroutineScope()
     val title = stringResource(if (initialTool == ReadingTool.TRANSLATE) R.string.reader_translate else R.string.reader_dictionary)
     val limit = if (initialTool == ReadingTool.TRANSLATE) 5000 else 120
@@ -48,6 +50,17 @@ fun ReadingToolsSheet(text: String, initialTool: ReadingTool, repository: Readin
             }
             OutlinedTextField(input, onValueChange = { invalidate(); input = it }, modifier = Modifier.fillMaxWidth(),
                 label = { Text(stringResource(R.string.reader_lookup_text)) }, minLines = 1, maxLines = 5)
+            if (initialTool == ReadingTool.DICTIONARY && dictionaries != null) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = !offline, onClick = { invalidate(); offline = false; preferences.edit().putBoolean("dictionary_offline", false).apply() },
+                        label = { Text(stringResource(R.string.dictionary_online)) })
+                    FilterChip(selected = offline, onClick = { invalidate(); offline = true; preferences.edit().putBoolean("dictionary_offline", true).apply() },
+                        label = { Text(stringResource(R.string.dictionary_offline)) })
+                }
+            }
+            if (initialTool == ReadingTool.DICTIONARY && offline && dictionaries != null) {
+                com.bookorbit.feature.dictionary.OfflineDictionaryPanel(input, dictionaries)
+            } else {
             Box {
                 OutlinedButton(onClick = { menu = true }) { Text(ReadingToolsRepository.LANGUAGES[language].orEmpty()) }
                 DropdownMenu(menu, onDismissRequest = { menu = false }) {
@@ -81,6 +94,7 @@ fun ReadingToolsSheet(text: String, initialTool: ReadingTool, repository: Readin
             result?.let { value ->
                 SelectionContainer { Text(if (initialTool == ReadingTool.DICTIONARY) HtmlCompat.fromHtml(value.text, HtmlCompat.FROM_HTML_MODE_LEGACY).toString() else value.text) }
                 TextButton(onClick = { uriHandler.openUri(value.sourceUrl) }) { Text(value.source) }
+            }
             }
         }
     }

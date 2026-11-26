@@ -38,6 +38,7 @@ class ReaderViewModel @Inject constructor(
     private val player: PlayerManager,
     val readingHelp: com.bookorbit.feature.readinghelp.ReadingHelpRepository,
     val readingTools: ReadingToolsRepository,
+    val dictionaries: com.bookorbit.feature.dictionary.DictionaryRepository,
     private val lastEditions: LastReadEditionStore,
     private val readAlongPositions: ReadAlongPositionStore,
     private val session: com.bookorbit.core.auth.SessionManager,

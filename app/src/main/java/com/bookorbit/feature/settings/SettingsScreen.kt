@@ -7,6 +7,9 @@ import com.bookorbit.R
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -103,6 +106,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmClearDownloads by remember { mutableStateOf(false) }
     var confirmAttestation by remember { mutableStateOf(false) }
+    var showDictionaries by remember { mutableStateOf(false) }
     val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) vm.setDownloadLocation(uri)
     }
@@ -114,6 +118,14 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
         }
     }
 
+    if (showDictionaries) androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showDictionaries = false },
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.dictionary_manage), style = MaterialTheme.typography.titleLarge)
+            com.bookorbit.feature.dictionary.OfflineDictionaryPanel("", vm.dictionaries, showLookup = false)
+            TextButton(onClick = { showDictionaries = false }) { Text(stringResource(R.string.reader_settings_done)) }
+        }
+    }
     if (confirmAttestation) AlertDialog(
         onDismissRequest = { confirmAttestation = false },
         title = { Text(stringResource(R.string.attest_title)) },
@@ -153,6 +165,9 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             item { HorizontalDivider() }
 
             item { SectionHeader(stringResource(R.string.settings_reading)) }
+            item { TextButton(onClick = { showDictionaries = true }, modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(stringResource(R.string.dictionary_manage))
+            } }
             item {
                 SettingsRow(
                     title = stringResource(R.string.settings_reader_interface),

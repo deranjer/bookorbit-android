@@ -1,0 +1,23 @@
+<resources>
+    <string name="dictionary_attribution">Karl Bartel · Wiktionary / DBnary</string>
+    <string name="dictionary_manage">Offline dictionaries</string>
+    <string name="dictionary_online">Wiktionary · online</string>
+    <string name="dictionary_offline">FreeDict · offline</string>
+    <string name="dictionary_offline_notice">Download a dictionary explicitly, then search without a network connection. Words are not sent anywhere. No automatic online fallback.</string>
+    <string name="dictionary_eng_rus">English → Russian</string>
+    <string name="dictionary_rus_eng">Russian → English</string>
+    <string name="dictionary_size">Download: %1$d KiB · %2$d headwords. The on-device index is larger.</string>
+    <string name="dictionary_license">CC BY-SA 3.0 license</string>
+    <string name="dictionary_source_notice">Source and full license</string>
+    <string name="dictionary_installed">Installed: %1$s · %2$d KiB on device</string>
+    <string name="dictionary_download">Download dictionary</string>
+    <string name="dictionary_update">Update / reinstall</string>
+    <string name="dictionary_remove">Remove dictionary</string>
+    <string name="dictionary_catalog_refresh">Check catalog</string>
+    <string name="dictionary_progress">Downloading: %1$d / %2$d KiB</string>
+    <string name="dictionary_indexing">Download verified next; building offline index…</string>
+    <string name="dictionary_cancel">Cancel</string>
+    <string name="dictionary_find_offline">Find offline</string>
+    <string name="dictionary_not_found">No exact entry in this dictionary. Try the base form of the word. No online request was made.</string>
+    <string name="dictionary_failed">Dictionary operation failed. Check your connection or free space. A previously installed dictionary is kept if an update fails.</string>
+</resources>

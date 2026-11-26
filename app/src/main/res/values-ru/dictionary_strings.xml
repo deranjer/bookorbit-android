@@ -1,0 +1,23 @@
+<resources>
+    <string name="dictionary_attribution">Karl Bartel · Wiktionary / DBnary</string>
+    <string name="dictionary_manage">Офлайн-словари</string>
+    <string name="dictionary_online">Wiktionary · онлайн</string>
+    <string name="dictionary_offline">FreeDict · офлайн</string>
+    <string name="dictionary_offline_notice">Скачайте словарь явно, затем ищите без сети. Слова никуда не отправляются. Автоматического перехода к онлайн-поиску нет.</string>
+    <string name="dictionary_eng_rus">Английский → русский</string>
+    <string name="dictionary_rus_eng">Русский → английский</string>
+    <string name="dictionary_size">Загрузка: %1$d КиБ · статей: %2$d. Индекс на устройстве занимает больше места.</string>
+    <string name="dictionary_license">Лицензия CC BY-SA 3.0</string>
+    <string name="dictionary_source_notice">Источник и полный текст лицензии</string>
+    <string name="dictionary_installed">Установлен: %1$s · %2$d КиБ на устройстве</string>
+    <string name="dictionary_download">Скачать словарь</string>
+    <string name="dictionary_update">Обновить / переустановить</string>
+    <string name="dictionary_remove">Удалить словарь</string>
+    <string name="dictionary_catalog_refresh">Проверить каталог</string>
+    <string name="dictionary_progress">Загрузка: %1$d / %2$d КиБ</string>
+    <string name="dictionary_indexing">Загрузка завершена; проверка и создание офлайн-индекса…</string>
+    <string name="dictionary_cancel">Отмена</string>
+    <string name="dictionary_find_offline">Найти офлайн</string>
+    <string name="dictionary_not_found">Точной статьи в словаре нет. Попробуйте начальную форму слова. Онлайн-запрос не выполнялся.</string>
+    <string name="dictionary_failed">Не удалось выполнить действие. Проверьте сеть и свободное место. При неудачном обновлении прежний словарь сохраняется.</string>
+</resources>

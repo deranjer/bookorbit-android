@@ -325,7 +325,7 @@ fun ReaderScreen(
             com.bookorbit.feature.readinghelp.ReadingHelpSheet(fileId, passage, vm.readingHelp, onDismiss = { helpPassage = null })
         }
     }
-    readingTool?.let { (tool, text) -> ReadingToolsSheet(text, tool, vm.readingTools, onDismiss = { readingTool = null }) }
+    readingTool?.let { (tool, text) -> ReadingToolsSheet(text, tool, vm.readingTools, onDismiss = { readingTool = null }, dictionaries = vm.dictionaries) }
     noteDialog?.let { initial ->
         NoteDialog(
             initial = initial,

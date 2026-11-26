@@ -51,6 +51,7 @@ class SettingsViewModel @Inject constructor(
     private val session: SessionManager,
     private val userCaSettings: UserCaSettings,
     private val attestation: com.bookorbit.core.network.AndroidAttestation,
+    val dictionaries: com.bookorbit.feature.dictionary.DictionaryRepository,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
     val appInfo: StateFlow<AppInfo?> = appInfoRepository.appInfo
