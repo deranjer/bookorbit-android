@@ -6,6 +6,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
+import androidx.media3.common.FlagSet
 import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.flow.StateFlow
 import java.util.concurrent.CopyOnWriteArraySet
@@ -70,6 +71,18 @@ class BookAggregatingPlayer(
     }
 
     private val realPlayerListener = object : Player.Listener {
+        override fun onAvailableCommandsChanged(availableCommands: Player.Commands) {
+            // Like metadata below, correct the raw event after the session has consumed it.
+            // Preserve ForwardingPlayer's complete listener forwarding (including Java defaults).
+            handler.post {
+                if (!released) {
+                    val commands = this@BookAggregatingPlayer.availableCommands
+                    val events = Player.Events(FlagSet.Builder().add(Player.EVENT_AVAILABLE_COMMANDS_CHANGED).build())
+                    sessionListeners.forEach { it.onAvailableCommandsChanged(commands) }
+                    sessionListeners.forEach { it.onEvents(this@BookAggregatingPlayer, events) }
+                }
+            }
+        }
         // Post so the re-emit lands after the session has consumed the real event (it stores the
         // callback argument, which lacks our chapter subtitle and chapter duration).
         override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {

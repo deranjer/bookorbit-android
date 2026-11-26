@@ -4,6 +4,65 @@ Record phone model, Android version and the app version shown in Settings. Debug
 builds are development artifacts, not a promise of a stable release. Prefer the
 isolated synthetic fixture server; do not delete production books or history.
 
+## 0.9.14 streaming seek authorization (2026-11-26)
+
+Phone report: streamed audiobook, screen off, headset skip-back by 10 seconds
+raises an approximate “connection to server” error; retries with screen on may
+work. This is not the local-file case and is not yet physical-device acceptance.
+
+The previous ordinary-audiobook HTTP factory captured a bearer token at DataSource
+creation and did not install AuthInterceptor/TokenAuthenticator. A reused source
+could send an expired header after seek and could not refresh after 401. The new
+factory retains configured TLS/CA trust and existing single-flight refresh, reads
+live authorization for each request and preserves Range/source URL on the one
+authorization retry. Absolute media URLs bypass BaseUrlInterceptor. Account leases,
+server prefix and known modern/legacy audiobook routes are checked; redirects
+are not followed. No playback restart, source replacement, download or extra
+statistics session is used to conceal an HTTP failure.
+
+Repeated instrumentation also exposed a separate command-advertising defect:
+BookAggregatingPlayer added synthetic previous/skip-back commands in its getter
+but forwarded raw ExoPlayer available-command events without them. A single-item
+stream could therefore lose its previous command after state changes. After the
+raw event, the wrapper now publishes its corrected command set and corresponding
+onEvents, matching its existing posted metadata-correction pattern and preserving
+standard ForwardingPlayer forwarding. A deterministic upstream-event/removal regression complements the
+end-to-end seek test. The failed repeat in `20261126T104626410340Z` is retained
+as failure evidence, not counted as a pass.
+An intermediate Kotlin listener-delegation adapter was rejected: Java default
+callbacks were not delegated, leaving the controller BUFFERING while the raw
+player was PLAYING (`20261126T105220838283Z`). It is not in the final source.
+
+Four JVM cases cover modern/legacy URLs under a reverse-proxy prefix, live tokens,
+401 refresh preserving Range, account/destination refusal and redirect/503 bounds.
+`StreamingSeekTest` uses actual HTTP Range WAV playback, the production HTTP
+factory, BookAggregatingPlayer, a MediaSession and MediaController:
+
+- Start a 180-second synthetic stream at 60 seconds, turn the emulator screen off
+  and assert `PowerManager.isInteractive == false`.
+- Expire the accepted server credential, invoke `seekBack()`, require a new Range
+  request, one 401/refresh/retry with the exact same Range, and continued playback
+  around 50 seconds with the screen still off. Queue/media ID/URI stay unchanged.
+- Invoke previous-item with SKIP_BACK configured and verify another 10-second
+  rewind without a second refresh.
+- Separately reuse one DataSource across open/close after a token update and
+  reject a subsequent account switch.
+
+First run: two cases passed in
+`.local/instrumentation/20261126T104317713682Z/`; final versioned reruns are recorded
+in `docs/CLIENT_PLAN.md`. This is a controlled standalone session, not a physical
+Bluetooth stack, OEM battery-management/Doze or production-server test. Synthetic
+PCM is silent. No audible-output claim is made.
+
+Final series: **three cases, five consecutive passes** in
+`.local/instrumentation/20261126T105520838194Z/`. Auto, local narration, online
+native clips and software decoder regressions pass in `20261126T105545403180Z`,
+`20261126T105552288937Z`, `20261126T105557614949Z`, `20261126T105602446218Z`.
+
+Media3 1.11.1 already defaults to WAKE_MODE_LOCAL with the current player settings;
+the absence of an explicit setWakeMode call was not evidence of a missing CPU
+lock. No speculative network/Wi-Fi lock or broad automatic retry was added.
+
 ## 0.9.13 local native narration (2026-11-26)
 
 Both APKs/lints pass, with 551 JVM tests per flavor, 27 reader Node and 14 Python
