@@ -41,6 +41,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: read
+      actions: read
     env:
       GH_TOKEN: ${{ github.token }}
       EXPECTED_CERT: 9f8472c84b54b5033314fb3cd26ac949a2b7d818a78530263c3e8dc955c64f0d
