@@ -7,18 +7,15 @@ name: Android Build
 # the flavor comment in app/build.gradle.kts. Lint/test/assemble run for both so a regression in
 # either flavor's flavor-specific sources (app/src/{full,fdroid}/) fails CI.
 #
-# The signed release AAB step below only runs when RELEASE_KEYSTORE_BASE64 is configured as a
-# repo secret (see app/keystore.properties.example for the expected values); it builds the "full"
-# flavor (matching what actually ships to Play Store) and produces a downloadable artifact,
-# mainly useful for testing a Play Console upload by hand outside the normal release flow. The
-# actual automated Play Store publish (internal track only; promoting to production stays
-# manual) happens in play-publish.yml, invoked from release-please.yml.
+# No persistent signing secrets or release environments are available to this workflow.
+# CI artifacts use an ephemeral runner key and are NOT upgrade-compatible release APKs.
 
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -27,12 +24,12 @@ jobs:
   build:
     name: Lint, test, assemble
     runs-on: ubuntu-latest
-    env:
-      HAS_RELEASE_SIGNING: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 21
         uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
@@ -51,6 +48,9 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
+
+      - name: Install pinned Android build tools
+        run: sdkmanager 'platforms;android-36' 'platforms;android-37.2' 'build-tools;36.0.0' 'ndk;28.2.13676358' 'cmake;3.30.5'
 
       - name: Pre-create the debug keystore
         # AGP lazily auto-generates ~/.android/debug.keystore on first use. With
@@ -71,6 +71,21 @@ jobs:
       - name: Unit tests
         run: ./gradlew :app:testFullDebugUnitTest :app:testFdroidDebugUnitTest --no-daemon
 
+      - name: Download migration and generation-guard SQL
+        run: python3 tools/android/test_storage_sql.py
+
+      - name: Reader appearance and EPUB SMIL engine checks
+        run: node --test tools/android/test_reader_appearance.mjs tools/android/test_read_along.mjs tools/android/test_epub_streaming.mjs
+
+      - name: Russian localization coverage and format arguments
+        run: python3 tools/android/test_localization.py
+
+      - name: Instrumentation result parsing
+        run: python3 tools/android/test_instrumentation_runner.py
+
+      - name: Release provenance and signing isolation policy
+        run: python3 tools/android/test_release_policy.py
+
       - name: Assemble debug APKs
         run: ./gradlew :app:assembleFullDebug :app:assembleFdroidDebug --no-daemon
 
@@ -86,32 +101,4 @@ jobs:
         with:
           name: app-fdroid-debug
           path: app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk
-          if-no-files-found: error
-
-      - name: Set up release signing
-        if: ${{ github.event_name != 'pull_request' && env.HAS_RELEASE_SIGNING == 'true' }}
-        env:
-          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
-          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: |
-          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
-          cat > app/keystore.properties <<EOF
-          storeFile=$RUNNER_TEMP/release.jks
-          storePassword=$RELEASE_KEYSTORE_PASSWORD
-          keyAlias=$RELEASE_KEY_ALIAS
-          keyPassword=$RELEASE_KEY_PASSWORD
-          EOF
-
-      - name: Bundle signed release AAB
-        if: ${{ github.event_name != 'pull_request' && env.HAS_RELEASE_SIGNING == 'true' }}
-        run: ./gradlew :app:bundleFullRelease --no-daemon
-
-      - name: Upload release AAB
-        if: ${{ github.event_name != 'pull_request' && env.HAS_RELEASE_SIGNING == 'true' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: app-release
-          path: app/build/outputs/bundle/fullRelease/app-full-release.aab
           if-no-files-found: error

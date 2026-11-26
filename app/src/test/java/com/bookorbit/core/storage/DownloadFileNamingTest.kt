@@ -7,6 +7,21 @@ import org.junit.Test
 
 class DownloadFileNamingTest {
 
+    @Test
+    fun `same server filename cannot collide across file IDs`() {
+        val first = BookFileRef(11, "epub", "primary", filename = "book.epub")
+        val second = first.copy(id = 12)
+        assertEquals("11-book.epub", DownloadFileNaming.uniqueFileName(first, book()))
+        assertEquals("12-book.epub", DownloadFileNaming.uniqueFileName(second, book()))
+    }
+
+    @Test
+    fun `unnamed files keep an ID-based name independent of title and ordering`() {
+        val ref = BookFileRef(11, "mp3", "primary")
+        assertEquals("11.mp3", DownloadFileNaming.uniqueFileName(ref, book()))
+        assertEquals("11.mp3", DownloadFileNaming.uniqueFileName(ref, book("Changed title")))
+    }
+
     private fun book(title: String? = "Sea of Tranquility") = BookDetail(
         id = 482,
         libraryId = 1,

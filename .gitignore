@@ -15,3 +15,5 @@ captures/
 *.jks
 keystore.properties
 play-service-account.json
+.local/
+__pycache__/

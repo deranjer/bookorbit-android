@@ -21,6 +21,7 @@ data class AudiobookManifestAsset(
     val format: String,
     val durationMs: Long? = null,
     val sizeBytes: Long? = null,
+    val fileId: Int? = null,
 )
 
 /** `GET/PUT /audiobooks/{bookId}/playback-state` response. [capturedAt] is the writer's clock. */
@@ -49,11 +50,8 @@ data class PutAudiobookPlaybackState(
 
 object AudiobookAssets {
     /**
-     * Maps each audio [BookFileRef] id to its manifest assetId. The manifest keys assets by the
-     * file's publicId, which book detail doesn't expose, so files are matched on format + size
-     * first (unique pairs only), then any leftovers are paired in order - the server sorts assets
-     * by sortOrder/filename, which may differ from book-detail order, hence size wins when it can.
-     * Files with no match are simply absent from the result.
+     * Exact server file IDs win. Older manifests without IDs may use unique format/size pairs,
+     * but ambiguous tracks must never be guessed from their order.
      */
     fun match(files: List<BookFileRef>, assets: List<AudiobookManifestAsset>): Map<Int, String> {
         val result = linkedMapOf<Int, String>()
@@ -62,6 +60,17 @@ object AudiobookAssets {
 
         fun sameFormat(file: BookFileRef, asset: AudiobookManifestAsset) =
             file.format?.lowercase() == asset.format.lowercase()
+
+        for (asset in remainingAssets.toList()) {
+            val id = asset.fileId ?: continue
+            val file = remainingFiles.singleOrNull { it.id == id && sameFormat(it, asset) }
+            if (file != null && assets.count { it.fileId == id } == 1) {
+                result[file.id] = asset.assetId
+                remainingFiles.remove(file)
+            }
+            // A supplied ID is authoritative, even when it is outside the requested set.
+            remainingAssets.remove(asset)
+        }
 
         for (asset in remainingAssets.toList()) {
             val size = asset.sizeBytes?.takeIf { it > 0 } ?: continue
@@ -73,7 +82,12 @@ object AudiobookAssets {
                 remainingAssets.remove(asset)
             }
         }
-        remainingFiles.zip(remainingAssets).forEach { (file, asset) -> result[file.id] = asset.assetId }
+        for (asset in remainingAssets) {
+            val candidates = remainingFiles.filter { sameFormat(it, asset) }
+            if (candidates.size == 1 && remainingAssets.count { it.format.equals(asset.format, true) } == 1) {
+                result[candidates.single().id] = asset.assetId
+            }
+        }
         return result
     }
 }

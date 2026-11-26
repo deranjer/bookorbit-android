@@ -1,0 +1,14 @@
+<resources>
+    <string name="diagnostics_switch">Отладочное логирование</string>
+    <string name="diagnostics_description">Записывать приватные события приложения для диагностики ошибок.</string>
+    <string name="diagnostics_consent">Включить запись на этом устройстве? В лог попадут время, версии приложения/Android, категории запросов, HTTP-статусы, этапы аттестации и коды ошибок плеера. Без URL, токенов, паролей, сертификатов, текста книг, фото и тел запросов. Настройка сохраняется до выключения и не меняет защиту сервера.</string>
+    <string name="diagnostics_enable">Включить запись</string>
+    <string name="diagnostics_retention">По умолчанию выключено. До 512 КиБ хранится только на устройстве, без резервного копирования. Выключение останавливает запись; очистка удаляет прежние события. Это не полный дамп Android logcat.</string>
+    <string name="diagnostics_export">Сохранить логи</string>
+    <string name="diagnostics_clear">Очистить логи</string>
+    <string name="diagnostics_export_notice">Выберите место для текстового файла. В нём есть время активности и техническая диагностика. Проверьте содержимое перед передачей. Автоматической отправки нет.</string>
+    <string name="diagnostics_cleared">Диагностические логи очищены</string>
+    <string name="diagnostics_exported">Диагностические логи сохранены</string>
+    <string name="diagnostics_failed">Не удалось изменить или сохранить диагностические логи</string>
+    <string name="diagnostics_dropped">Часть событий не записана. Проверьте свободное место или очистите лог.</string>
+</resources>

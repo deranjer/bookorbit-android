@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -33,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -49,9 +49,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -63,6 +67,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
+import com.bookorbit.feature.reader.ReaderPager
+import com.bookorbit.feature.reader.ReaderTapAction
+import com.bookorbit.feature.reader.ReaderTapZonesHelp
+import com.bookorbit.feature.reader.readerTapAction
+import com.bookorbit.feature.reader.readerPageAnimation
 
 private val PDF_BACKDROP = Color(0xFF20242A)
 
@@ -72,12 +81,17 @@ fun PdfReaderScreen(
     vm: PdfReaderViewModel = hiltViewModel(),
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
+    val motion by vm.readerSettings.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val noTextMessage = stringResource(R.string.pdf_no_text)
+    val clipLabel = stringResource(R.string.pdf_clip_label)
+    val copiedMessage = stringResource(R.string.pdf_text_copied)
     val scope = rememberCoroutineScope()
     var chromeVisible by remember { mutableStateOf(true) }
     var settingsVisible by remember { mutableStateOf(false) }
     var searchVisible by remember { mutableStateOf(false) }
     var jumpVisible by remember { mutableStateOf(false) }
+    var zonesVisible by remember { mutableStateOf(false) }
 
     val view = LocalView.current
     DisposableEffect(Unit) {
@@ -88,10 +102,17 @@ fun PdfReaderScreen(
     val core = ui.core
     Box(modifier = Modifier.fillMaxSize().background(PDF_BACKDROP)) {
         if (core != null && ui.pageCount > 0) {
-            PdfContent(
+            PdfReaderContent(
                 core = core,
                 ui = ui,
-                vm = vm,
+                onPageChanged = vm::onPageChanged,
+                animated = motion.animatePageTurns,
+                onNavigationApplied = vm::onNavigationApplied,
+                onToggleZoom = {
+                    val settings = vm.ui.value.settings
+                    vm.updateSettings(if (settings.zoomMode == PdfReaderSettings.ZoomMode.CUSTOM)
+                        settings.copy(zoomMode = PdfReaderSettings.ZoomMode.FIT_WIDTH) else settings.withCustomScale(2.0))
+                },
                 onToggleChrome = { chromeVisible = !chromeVisible },
                 onLink = { link -> handleLink(context, vm, link) },
                 onCopyText = { page ->
@@ -99,11 +120,11 @@ fun PdfReaderScreen(
                         scope.launch {
                             val text = core.pageText(page)
                             if (text.isBlank()) {
-                                Toast.makeText(context, context.getString(R.string.pdf_no_text), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, noTextMessage, Toast.LENGTH_SHORT).show()
                             } else {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(ClipData.newPlainText(context.getString(R.string.pdf_clip_label), text))
-                                Toast.makeText(context, context.getString(R.string.pdf_text_copied), Toast.LENGTH_SHORT).show()
+                                clipboard.setPrimaryClip(ClipData.newPlainText(clipLabel, text))
+                                Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
@@ -150,6 +171,9 @@ fun PdfReaderScreen(
                 IconButton(onClick = { settingsVisible = true }) {
                     Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings), tint = Color.White)
                 }
+                IconButton(onClick = { zonesVisible = true }) {
+                    Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = stringResource(R.string.reader_zones_title), tint = Color.White)
+                }
             }
 
             Box(
@@ -184,47 +208,47 @@ fun PdfReaderScreen(
             settings = ui.settings,
             onChange = vm::updateSettings,
             onDismiss = { settingsVisible = false },
+            animated = motion.animatePageTurns,
+            onAnimationChanged = vm::updatePageAnimation,
         )
     }
     if (jumpVisible) {
         JumpToPageDialog(
             pageCount = ui.pageCount,
             current = ui.currentPage,
-            onGo = { page -> vm.onPageChanged(page); jumpVisible = false },
+            onGo = { page -> vm.goToPage(page); jumpVisible = false },
             onDismiss = { jumpVisible = false },
         )
     }
+    if (zonesVisible) ReaderTapZonesHelp(pdf = true,
+        paginated = ui.settings.scrollMode == PdfReaderSettings.ScrollMode.PAGINATED,
+        onDismiss = { zonesVisible = false })
 }
 
 @Composable
-private fun PdfContent(
+internal fun PdfReaderContent(
     core: PdfRenderCore,
     ui: PdfReaderViewModel.UiState,
-    vm: PdfReaderViewModel,
+    onPageChanged: (Int) -> Unit,
     onToggleChrome: () -> Unit,
     onLink: (PdfLink) -> Unit,
     onCopyText: (Int) -> Unit,
+    onToggleZoom: () -> Unit,
+    animated: Boolean = true,
+    onNavigationApplied: (PdfPageRequest) -> Unit = {},
 ) {
     val density = LocalDensity.current
-    val onToggleZoom = remember(vm) {
-        {
-            val s = vm.ui.value.settings
-            if (s.zoomMode == PdfReaderSettings.ZoomMode.CUSTOM) {
-                vm.updateSettings(s.copy(zoomMode = PdfReaderSettings.ZoomMode.FIT_WIDTH))
-            } else {
-                vm.updateSettings(s.withCustomScale(2.0))
-            }
-        }
-    }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val widthPx = with(density) { maxWidth.roundToPx() }
         val heightPx = with(density) { maxHeight.roundToPx() }
 
         if (ui.settings.scrollMode == PdfReaderSettings.ScrollMode.CONTINUOUS) {
-            PdfContinuous(core, ui, vm, widthPx, heightPx, onToggleChrome, onLink, onCopyText, onToggleZoom)
+            PdfContinuous(core, ui, onPageChanged, widthPx, heightPx, onToggleChrome, onLink, onCopyText, onToggleZoom, onNavigationApplied)
         } else {
-            PdfPaginated(core, ui, vm, widthPx, heightPx, onLink, onCopyText, onToggleZoom)
+            key(ui.settings.spread) {
+                PdfPaginated(core, ui, onPageChanged, widthPx, heightPx, onLink, onCopyText, onToggleZoom, onToggleChrome, animated, onNavigationApplied)
+            }
         }
     }
 }
@@ -233,15 +257,16 @@ private fun PdfContent(
 private fun PdfContinuous(
     core: PdfRenderCore,
     ui: PdfReaderViewModel.UiState,
-    vm: PdfReaderViewModel,
+    onPageChanged: (Int) -> Unit,
     widthPx: Int,
     heightPx: Int,
     onToggleChrome: () -> Unit,
     onLink: (PdfLink) -> Unit,
     onCopyText: (Int) -> Unit,
     onToggleZoom: () -> Unit,
+    onNavigationApplied: (PdfPageRequest) -> Unit,
 ) {
-    val listState = rememberLazyListState(initialFirstVisibleItemIndex = ui.initialPage)
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = ui.currentPage)
 
     LaunchedEffect(listState) {
         snapshotFlow {
@@ -254,10 +279,10 @@ private fun PdfContinuous(
         }
             .filterNotNull()
             .distinctUntilChanged()
-            .collect { vm.onPageChanged(it) }
+            .collect(onPageChanged)
     }
     val active = ui.search?.active
-    LaunchedEffect(active) { active?.let { listState.animateScrollToItem(it.page) } }
+    LaunchedEffect(ui.navigation) { ui.navigation?.let { listState.scrollToItem(it.page); onNavigationApplied(it) } }
 
     LazyColumn(
         state = listState,
@@ -282,6 +307,7 @@ private fun PdfContinuous(
                     onLink = onLink,
                     onLongPress = onCopyText,
                     onToggleZoom = onToggleZoom,
+                    onBackgroundTap = { onToggleChrome() },
                 )
             }
         }
@@ -292,32 +318,52 @@ private fun PdfContinuous(
 private fun PdfPaginated(
     core: PdfRenderCore,
     ui: PdfReaderViewModel.UiState,
-    vm: PdfReaderViewModel,
+    onPageChanged: (Int) -> Unit,
     widthPx: Int,
     heightPx: Int,
     onLink: (PdfLink) -> Unit,
     onCopyText: (Int) -> Unit,
     onToggleZoom: () -> Unit,
+    onToggleChrome: () -> Unit,
+    animated: Boolean,
+    onNavigationApplied: (PdfPageRequest) -> Unit,
 ) {
     val items = remember(ui.pageCount, ui.settings.spread) {
         PdfLayout.spreadItems(ui.pageCount, ui.settings.spread)
     }
     val pagerState = rememberPagerState(
-        initialPage = PdfLayout.itemForPage(items, ui.initialPage),
+        initialPage = PdfLayout.itemForPage(items, ui.currentPage),
     ) { items.size }
 
     LaunchedEffect(pagerState, items) {
-        snapshotFlow { pagerState.currentPage }
+        snapshotFlow { pagerState.settledPage }
             .distinctUntilChanged()
-            .collect { vm.onPageChanged(PdfLayout.firstPageOfItem(items, it)) }
+            .collect { onPageChanged(PdfLayout.firstPageOfItem(items, it)) }
     }
     val active = ui.search?.active
-    LaunchedEffect(active, items) { active?.let { pagerState.animateScrollToPage(PdfLayout.itemForPage(items, it.page)) } }
+    LaunchedEffect(ui.navigation, items) { ui.navigation?.let { pagerState.scrollToPage(PdfLayout.itemForPage(items, it.page)); onNavigationApplied(it) } }
+    var origin by remember { mutableStateOf(Offset.Zero) }
+    val scope = rememberCoroutineScope()
+    val pageAnimation = readerPageAnimation(animated)
+    val tap: (Offset) -> Unit = { point ->
+        when (readerTapAction((point.x - origin.x) / widthPx.toDouble())) {
+            ReaderTapAction.PREVIOUS -> scope.launch {
+                if (pagerState.currentPage > 0) pagerState.animateScrollToPage(pagerState.currentPage - 1, animationSpec = pageAnimation)
+            }
+            ReaderTapAction.NEXT -> scope.launch {
+                if (pagerState.currentPage < items.lastIndex) pagerState.animateScrollToPage(pagerState.currentPage + 1, animationSpec = pageAnimation)
+            }
+            ReaderTapAction.MENU -> onToggleChrome()
+        }
+    }
 
-    HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { item ->
+    ReaderPager(state = pagerState, animated = animated,
+        userScrollEnabled = ui.settings.zoomMode != PdfReaderSettings.ZoomMode.CUSTOM || ui.settings.customScale <= 1.0,
+        modifier = Modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInRoot() }
+            .pointerInput(tap) { detectTapGestures(onTap = { tap(origin + it) }) }) { item ->
         val pages = items.getOrElse(item) { listOf(0) }
         Box(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxSize().horizontalScroll(rememberScrollState()).verticalScroll(rememberScrollState()),
             contentAlignment = Alignment.Center,
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -334,6 +380,7 @@ private fun PdfPaginated(
                         onLink = onLink,
                         onLongPress = onCopyText,
                         onToggleZoom = onToggleZoom,
+                        onBackgroundTap = tap,
                     )
                 }
             }
@@ -372,7 +419,7 @@ private fun JumpToPageDialog(
 
 private fun handleLink(context: Context, vm: PdfReaderViewModel, link: PdfLink) {
     when (link) {
-        is PdfLink.Internal -> vm.onPageChanged(link.targetPage)
+        is PdfLink.Internal -> vm.goToPage(link.targetPage)
         is PdfLink.External -> {
             runCatching {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link.uri)).apply {

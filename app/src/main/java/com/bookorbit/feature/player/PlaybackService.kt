@@ -30,7 +30,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import com.bookorbit.feature.downloads.DownloadsRepository
-import com.bookorbit.feature.downloads.isCompleteDownloadStatus
+import com.bookorbit.feature.downloads.hasPublishedAudio
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -76,6 +76,11 @@ class PlaybackService : MediaLibraryService() {
 
     @Inject lateinit var downloads: DownloadsRepository
     @Inject lateinit var audioProgress: AudioProgressRepository
+    @Inject lateinit var nativeNarration: com.bookorbit.feature.reader.NativeNarrationSession
+    @Inject lateinit var narrationPositions: com.bookorbit.feature.reader.ReadAlongPositionStore
+    @Inject lateinit var readingActivities: com.bookorbit.feature.sessions.ReadingSessionTracker
+    @Inject lateinit var authSession: com.bookorbit.core.auth.SessionManager
+    private var narrationPlayback: com.bookorbit.feature.reader.NativeNarrationPlayback? = null
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var lastNotifiedBookId: Int? = null
@@ -98,6 +103,12 @@ class PlaybackService : MediaLibraryService() {
         mediaSession = MediaLibrarySession.Builder(this, wrap(player), callback)
             .setSessionActivity(openApp)
             .build()
+        narrationPlayback = com.bookorbit.feature.reader.NativeNarrationPlayback(player, checkNotNull(mediaSession),
+            authSession, narrationPositions, readingActivities, nativeNarration, serviceScope,
+            beforePlay = ::ensureForegroundBeforePlay,
+            beforeNarration = { check(!usingCast); activeBookPlayer.current?.detach(); activeBookPlayer.current = null },
+            restoreAudiobook = { mediaSession?.setPlayer(wrap(player)) },
+        ).also(nativeNarration::bind)
 
         serviceScope.launch {
             playerManager.state
@@ -115,7 +126,7 @@ class PlaybackService : MediaLibraryService() {
 
         serviceScope.launch {
             combine(
-                downloads.downloads.map { rows -> rows.filter { it.isAudiobook && it.status.isCompleteDownloadStatus() } },
+                downloads.downloads.map { rows -> rows.filter { it.hasPublishedAudio() } },
                 audioProgress.observeRecent().map { rows -> rows.map { it.bookId to (it.percentage >= ResumeCandidates.FINISHED_PERCENT) } },
             ) { books, history -> books to history }.distinctUntilChanged().drop(1).collect {
                 mediaSession?.let { callback.refresh(it, setOf(AutoBrowseTree.DOWNLOADS_ID, AutoBrowseTree.CONTINUE_ID)) }
@@ -162,6 +173,8 @@ class PlaybackService : MediaLibraryService() {
 
     /** Moves playback from the local [player] to [cast], preserving position and play state. */
     private fun switchToCast(cast: Player) {
+        // Narration's owner-bound EPUB sources are local-only, never hand them to a receiver.
+        if (nativeNarration.state.value != null) return
         if (usingCast) return
         val session = mediaSession ?: return
         val current = session.player
@@ -229,6 +242,8 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        narrationPlayback?.let { it.release(); nativeNarration.unbind(it) }
+        narrationPlayback = null
         serviceScope.cancel()
         if (earlyForeground) ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         // Release both possible players explicitly rather than through `mediaSession.player.release()`

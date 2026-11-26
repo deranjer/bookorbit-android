@@ -12,10 +12,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -36,6 +39,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
@@ -94,9 +102,9 @@ private const val PANE_EMPTY = "pane-empty"
 fun MainShell(
     user: AuthUser,
     onSignOut: () -> Unit,
-    onOpenReader: (Int) -> Unit,
-    onOpenPdf: (Int) -> Unit,
-    onOpenComic: (Int) -> Unit,
+    onOpenReader: (Int, Int) -> Unit,
+    onOpenPdf: (Int, Int) -> Unit,
+    onOpenComic: (Int, Int) -> Unit,
     onListen: (Int) -> Unit,
     onOpenPlayer: () -> Unit,
     vm: MainShellViewModel = hiltViewModel(),
@@ -109,6 +117,8 @@ fun MainShell(
     val barRoutes = bar.map { it.route }.toSet()
     val unpinned = NavConfig.available(bar, canUseBookDrop).filter { it != NavItem.YOU }
     val startRoute = remember { bar.first().route }
+    var activeTab by rememberSaveable { mutableStateOf(startRoute) }
+    var libraryReset by rememberSaveable { mutableIntStateOf(0) }
     val tabNav = rememberNavController()
     // Tablets, unfolded foldables and landscape phones: a navigation rail beats a bottom bar.
     val widthDp = LocalConfiguration.current.screenWidthDp
@@ -120,6 +130,9 @@ fun MainShell(
 
     val backStackEntry by tabNav.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+    LaunchedEffect(currentRoute) {
+        if (currentRoute in barRoutes) activeTab = checkNotNull(currentRoute)
+    }
     val isBookDetail = currentRoute == SubRoute.BOOK_DETAIL
     val twoPane = TwoPane.isActive(widthDp, currentRoute)
     val onBookClick: (Int) -> Unit = { id -> tabNav.navigate(SubRoute.bookDetail(id)) }
@@ -139,6 +152,21 @@ fun MainShell(
     val onSeriesClick: (Int, String) -> Unit = { id, name -> tabNav.navigate(SubRoute.series(id, name)) }
 
     fun navigateTab(route: String) {
+        val selected = if (currentRoute in barRoutes) currentRoute else activeTab
+        if (route == selected) {
+            detailNav.popBackStack(PANE_EMPTY, inclusive = false)
+            if (route == NavItem.LIBRARY.route) libraryReset++
+            // Reselect means root, never restore the nested book/author stack just popped.
+            if (!tabNav.popBackStack(route, inclusive = false)) {
+                tabNav.navigate(route) {
+                    popUpTo(tabNav.graph.findStartDestination().id) { saveState = false }
+                    launchSingleTop = true
+                    restoreState = false
+                }
+            }
+            return
+        }
+        activeTab = route
         tabNav.navigate(route) {
             popUpTo(tabNav.graph.findStartDestination().id) { saveState = true }
             launchSingleTop = true
@@ -146,13 +174,13 @@ fun MainShell(
         }
     }
 
-    // The tab to highlight: the You sub-screens count as You; book detail highlights nothing.
+    // Nested screens retain their owning tab so reselecting it can return to its root.
     // A screen that isn't in the bar is opened from You: it counts as You and gets a back button.
     val openedFromYou = currentRoute != null && currentRoute !in barRoutes && unpinned.any { it.route == currentRoute }
     val selectedRoute = when {
         currentRoute in barRoutes -> currentRoute
         openedFromYou -> NavItem.YOU.route
-        else -> currentRoute
+        else -> activeTab
     }
 
     val title = when (currentRoute) {
@@ -192,13 +220,13 @@ fun MainShell(
                 MiniPlayer(onOpenPlayer = onOpenPlayer)
                 // On wide windows the tabs move to a rail on the left instead.
                 if (!wide) {
-                    NavigationBar {
+                    NavigationBar(modifier = Modifier.heightIn(min = if (LocalConfiguration.current.fontScale > 1.2f) 104.dp else 80.dp)) {
                         bar.forEach { tab ->
                             NavigationBarItem(
                                 selected = selectedRoute == tab.route,
                                 onClick = { navigateTab(tab.route) },
                                 icon = { Icon(tab.icon(), contentDescription = stringResource(tab.labelRes())) },
-                                label = { Text(stringResource(tab.labelRes()), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                label = { Text(stringResource(tab.labelRes()), maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center) },
                             )
                         }
                     }
@@ -229,14 +257,14 @@ fun MainShell(
       }
       Row(Modifier.padding(padding).consumeWindowInsets(padding)) {
         if (wide) {
-            NavigationRail {
+            NavigationRail(modifier = Modifier.widthIn(min = if (LocalConfiguration.current.fontScale > 1.2f) 104.dp else 80.dp)) {
                 Spacer(Modifier.weight(1f))
                 bar.forEach { tab ->
                     NavigationRailItem(
                         selected = selectedRoute == tab.route,
                         onClick = { navigateTab(tab.route) },
                         icon = { Icon(tab.icon(), contentDescription = stringResource(tab.labelRes())) },
-                        label = { Text(stringResource(tab.labelRes()), maxLines = 1) },
+                        label = { Text(stringResource(tab.labelRes()), maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center) },
                         alwaysShowLabel = true,
                     )
                 }
@@ -263,7 +291,7 @@ fun MainShell(
                 }
             }
             composable(NavItem.LIBRARY.route) {
-                LibraryHubScreen(onBookClick = onListBookClick, onAuthorClick = onAuthorClick, onSeriesClick = onSeriesClick)
+                LibraryHubScreen(onBookClick = onListBookClick, onAuthorClick = onAuthorClick, onSeriesClick = onSeriesClick, resetEpoch = libraryReset)
             }
             composable(
                 route = SubRoute.AUTHOR,

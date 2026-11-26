@@ -12,4 +12,5 @@ data class AudioProgressEntity(
     val percentage: Double,
     val updatedAt: Long,
     val dirty: Boolean,
+    @androidx.room.ColumnInfo(defaultValue = "''") val writeId: String = "",
 )

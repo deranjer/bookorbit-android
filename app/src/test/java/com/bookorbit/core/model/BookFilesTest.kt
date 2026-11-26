@@ -8,6 +8,49 @@ import org.junit.Test
 
 class BookFilesTest {
 
+    @Test
+    fun `explicit secondary EPUB is not replaced by primary`() {
+        val b = book(file(1, "epub", "primary"), file(2, "epub"))
+        assertEquals(2, (BookFiles.readingTarget(b, 2) as BookFiles.ReadingTarget.Foliate).file.id)
+    }
+
+    @Test
+    fun `explicit PDF wins even when EPUB is present`() {
+        val b = book(file(1, "epub", "primary"), file(2, "pdf"))
+        assertEquals(2, (BookFiles.readingTarget(b, 2) as BookFiles.ReadingTarget.Pdf).file.id)
+    }
+
+    @Test
+    fun `missing explicit file and non-readable content never fall back`() {
+        val b = book(file(1, "epub"), file(2, "mp3"))
+        assertEquals(BookFiles.ReadingTarget.None, BookFiles.readingTarget(b, 99))
+        assertEquals(BookFiles.ReadingTarget.None, BookFiles.readingTarget(b, 2))
+    }
+
+    @Test
+    fun `combined book allows exact text audio or both selection`() {
+        val b = book(file(1, "epub"), file(2, "MP3"), file(3, "mp3"), file(4, "jpg", "primary"))
+        assertEquals(listOf(1, 2, 3), BookFiles.downloadCandidates(b).map { it.id })
+        assertEquals(listOf(1), BookFiles.selectedDownloads(b, setOf(1)).map { it.id })
+        assertEquals(listOf(2, 3), BookFiles.selectedDownloads(b, setOf(3, 2)).map { it.id })
+        assertEquals(listOf(1, 2, 3), BookFiles.selectedDownloads(b, setOf(1, 2, 3)).map { it.id })
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `unknown selected ID never falls back to another edition`() {
+        BookFiles.selectedDownloads(book(file(1, "epub")), setOf(99))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `cover is not a downloadable book`() {
+        BookFiles.selectedDownloads(book(file(1, "jpg", "primary")), setOf(1))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `empty selection cannot enqueue anything`() {
+        BookFiles.selectedDownloads(book(file(1, "epub")), emptySet())
+    }
+
     private fun book(vararg files: BookFileRef) = BookDetail(
         id = 1,
         libraryId = 1,

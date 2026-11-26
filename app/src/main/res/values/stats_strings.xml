@@ -1,0 +1,20 @@
+<resources>
+    <string name="stats_period_days">%1$d days</string>
+    <string name="stats_refresh">Refresh</string>
+    <string name="stats_partial">Some statistics are unavailable. Refresh to retry.</string>
+    <string name="stats_all_time">All-time progress · current streak and goal</string>
+    <string name="stats_previous">Previous equal period: %1$s</string>
+    <string name="stats_timezone">Daily totals · %1$s</string>
+    <string name="stats_chart_group">Time per bar: up to %1$d days</string>
+    <string name="stats_source_window">Last %1$d days · server UTC range</string>
+    <string name="stats_history">Session history</string>
+    <string name="stats_history_note">UTC weeks. The server does not distinguish reading from listening here. Session durations may overlap; they are not added to daily totals.</string>
+    <string name="stats_week_previous">Previous week</string>
+    <string name="stats_week_next">Next week</string>
+    <string name="stats_history_failed">Session history is unavailable.</string>
+    <string name="stats_history_empty">No sessions this week.</string>
+    <string name="stats_history_limit">The server returns at most 3,000 sessions per week. This list may be incomplete.</string>
+    <string name="stats_duration_hours">%1$d h %2$d min</string>
+    <string name="stats_duration_minutes">%1$d min</string>
+    <string name="stats_duration_under_minute">&lt;1 min</string>
+</resources>

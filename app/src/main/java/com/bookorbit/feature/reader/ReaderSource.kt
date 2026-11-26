@@ -1,6 +1,7 @@
 package com.bookorbit.feature.reader
 
 import android.content.Context
+import com.bookorbit.core.auth.SessionManager
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFileRef
 import com.bookorbit.core.model.BookFiles
@@ -24,19 +25,29 @@ import javax.inject.Singleton
 class ReaderSource @Inject constructor(
     private val api: ApiService,
     private val downloads: DownloadsRepository,
+    private val session: SessionManager,
     @ApplicationContext private val context: Context,
 ) {
     data class ResolvedFile(val ref: LocalRef, val format: String, val fileId: Int)
 
+    suspend fun offlineFile(bookId: Int, ref: BookFileRef): ResolvedFile? = withContext(Dispatchers.IO) {
+        downloads.localFiles(bookId)[ref.id]?.let { path ->
+            val local = LocalRef.parse(path)
+            if (local.exists(context)) ResolvedFile(local, ref.format.orEmpty().lowercase(), ref.id) else null
+        }
+    }
+
     /** Resolve the foliate-readable file for a book to a local file. */
-    suspend fun resolve(book: BookDetail): ResolvedFile {
-        val ref = BookFiles.readableFile(book) ?: throw IllegalStateException("This book has no readable file.")
+    suspend fun resolve(book: BookDetail, fileId: Int): ResolvedFile {
+        val ref = (BookFiles.readingTarget(book, fileId) as? BookFiles.ReadingTarget.Foliate)?.file
+            ?: throw IllegalStateException("The selected reading file is unavailable.")
         return resolveFile(book, ref)
     }
 
     /** Resolve the PDF file for a book to a local file (native PDF reader). */
-    suspend fun resolvePdf(book: BookDetail): ResolvedFile {
-        val ref = BookFiles.pdfFile(book) ?: throw IllegalStateException("This book has no PDF file.")
+    suspend fun resolvePdf(book: BookDetail, fileId: Int): ResolvedFile {
+        val ref = (BookFiles.readingTarget(book, fileId) as? BookFiles.ReadingTarget.Pdf)?.file
+            ?: throw IllegalStateException("The selected PDF file is unavailable.")
         return resolveFile(book, ref)
     }
 
@@ -54,17 +65,16 @@ class ReaderSource @Inject constructor(
             if (local.exists(context)) return@withContext ResolvedFile(local, format, ref.id)
         }
 
-        val cacheDir = File(context.cacheDir, "reader-cache").apply { mkdirs() }
+        // New namespace deliberately excludes potentially partial legacy cache entries.
+        val cacheDir = File(context.cacheDir, "reader-cache-v2/${session.dataScope.ifEmpty { "owner" }}/${session.currentUser?.id ?: 0}")
         val dest = File(cacheDir, "${book.id}-${ref.id}.$ext")
-
-        // Reuse a cached copy when it matches the server-reported size.
-        val size = ref.sizeBytes
-        if (dest.exists() && (size == null || size <= 0 || dest.length() == size)) {
-            return@withContext ResolvedFile(LocalRef.PlainFile(dest), format, ref.id)
-        }
-
-        api.serveFile(ref.id).byteStream().use { input ->
-            dest.outputStream().use { output -> input.copyTo(output) }
+        ReaderFileCache.getOrFetch(dest, ref.sizeBytes) { partial ->
+            api.serveFile(ref.id).use { body ->
+                val copied = body.byteStream().use { input ->
+                    partial.outputStream().use { output -> input.copyTo(output) }
+                }
+                check(body.contentLength() < 0 || copied == body.contentLength()) { "Incomplete reading response." }
+            }
         }
         ResolvedFile(LocalRef.PlainFile(dest), format, ref.id)
     }

@@ -1,6 +1,5 @@
 package com.bookorbit.core.di
 
-import com.bookorbit.BuildConfig
 import android.content.Context
 import coil.ImageLoader
 import com.bookorbit.core.network.ApiService
@@ -20,7 +19,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
+import com.bookorbit.core.diagnostics.DiagnosticInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit
@@ -41,21 +40,10 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideLoggingInterceptor(): HttpLoggingInterceptor =
-        HttpLoggingInterceptor().apply {
-            level = if (BuildConfig.DEBUG) {
-                HttpLoggingInterceptor.Level.BASIC
-            } else {
-                HttpLoggingInterceptor.Level.NONE
-            }
-        }
-
-    @Provides
-    @Singleton
     @RefreshClient
     fun provideRefreshClient(
         cookieJar: PersistentCookieJar,
-        logging: HttpLoggingInterceptor,
+        logging: DiagnosticInterceptor,
         userCaTrust: UserCaTrust,
     ): OkHttpClient = userCaTrust.applyTo(OkHttpClient.Builder())
         .cookieJar(cookieJar)
@@ -72,14 +60,16 @@ object NetworkModule {
         baseUrlInterceptor: BaseUrlInterceptor,
         authInterceptor: AuthInterceptor,
         authenticator: TokenAuthenticator,
-        logging: HttpLoggingInterceptor,
+        logging: DiagnosticInterceptor,
         userCaTrust: UserCaTrust,
+        attestation: com.bookorbit.core.network.AndroidAttestation,
     ): OkHttpClient = userCaTrust.applyTo(OkHttpClient.Builder())
         .cookieJar(cookieJar)
         .addInterceptor(baseUrlInterceptor)
         .addInterceptor(authInterceptor)
         .addInterceptor(logging)
         .authenticator(authenticator)
+        .addNetworkInterceptor(com.bookorbit.core.network.AttestedReadInterceptor(attestation))
         .connectTimeout(15, TimeUnit.SECONDS)
         // Also carries file downloads (serveFile/serveCover): large audiobook files can go quiet
         // for longer than a typical API call between reads, especially on slow/mobile networks.
@@ -92,7 +82,7 @@ object NetworkModule {
     fun provideImageClient(
         cookieJar: PersistentCookieJar,
         authInterceptor: AuthInterceptor,
-        logging: HttpLoggingInterceptor,
+        logging: DiagnosticInterceptor,
         userCaTrust: UserCaTrust,
     ): OkHttpClient = userCaTrust.applyTo(OkHttpClient.Builder())
         .cookieJar(cookieJar)
@@ -128,4 +118,22 @@ object NetworkModule {
     @Singleton
     fun provideApiService(retrofit: Retrofit): ApiService =
         retrofit.create(ApiService::class.java)
+
+    @Provides
+    @Singleton
+    @com.bookorbit.core.network.AnnotationApi
+    fun provideAnnotationApi(@MainClient client: OkHttpClient, json: Json): ApiService = Retrofit.Builder()
+        .baseUrl("http://localhost/")
+        .client(com.bookorbit.core.network.annotationClient(client))
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .build().create(ApiService::class.java)
+
+    @Provides
+    @Singleton
+    @com.bookorbit.core.network.MobileAiApi
+    fun provideMobileAiApi(@MainClient client: OkHttpClient, json: Json, attestation: com.bookorbit.core.network.AndroidAttestation): ApiService = Retrofit.Builder()
+        .baseUrl("http://localhost/")
+        .client(com.bookorbit.core.network.singleAttemptAiClient(client, attestation))
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .build().create(ApiService::class.java)
 }

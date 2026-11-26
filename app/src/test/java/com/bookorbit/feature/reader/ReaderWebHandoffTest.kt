@@ -21,9 +21,10 @@ class ReaderWebHandoffTest {
     fun `pending offline position is saved before web reading`() = runTest {
         coEvery { dao.get(34) } returns ReaderProgressEntity(34, "epubcfi(test)", 42.0, 100, true)
         coEvery { api.saveFileProgress(34, any()) } returns Unit
+        coEvery { dao.markSynced(34, "") } returns 1
         repo.syncBeforeWeb(34)
         coVerify { api.saveFileProgress(34, SaveFileProgress("epubcfi(test)", 42.0)) }
-        coVerify { dao.markSynced(34) }
+        coVerify { dao.markSynced(34, "") }
     }
 
     @Test
@@ -31,7 +32,7 @@ class ReaderWebHandoffTest {
         coEvery { dao.get(34) } returns ReaderProgressEntity(34, "epubcfi(test)", 42.0, 100, true)
         coEvery { api.saveFileProgress(34, any()) } throws IllegalStateException("offline")
         assertTrue(runCatching { repo.syncBeforeWeb(34) }.isFailure)
-        coVerify(exactly = 0) { dao.markSynced(any()) }
+        coVerify(exactly = 0) { dao.markSynced(any(), any()) }
     }
 
     @Test

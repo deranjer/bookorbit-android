@@ -20,7 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PendingAnnotationOpEntity::class,
         AnnotationCacheEntity::class,
     ],
-    version = 8,
+    version = 11,
     exportSchema = false,
 )
 abstract class BookOrbitDatabase : RoomDatabase() {
@@ -34,9 +34,33 @@ abstract class BookOrbitDatabase : RoomDatabase() {
     abstract fun annotationCacheDao(): AnnotationCacheDao
 }
 
+/** Persist explicit download plans without modifying existing content or progress. */
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `downloads` ADD COLUMN `planId` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `downloads` ADD COLUMN `storageId` TEXT NOT NULL DEFAULT ''")
+    }
+}
+
+/** Persist snapshot IDs without clearing queued positions. */
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `reader_progress` ADD COLUMN `pageNumber` INTEGER")
+        db.execSQL("ALTER TABLE `reader_progress` ADD COLUMN `writeId` TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE `audio_progress` ADD COLUMN `writeId` TEXT NOT NULL DEFAULT ''")
+    }
+}
+
+/** Persist explicit download plans without modifying existing content or progress. */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `downloads` ADD COLUMN `selectedFileIdsJson` TEXT")
+    }
+}
+
 /**
  * Records which account queued each offline highlight change and reading session. Rows already queued
- * keep a null owner, so they still go out with whoever is signed in.
+ * keep a null owner; current clients preserve but do not send those without verified ownership.
  */
 val MIGRATION_7_8 = object : Migration(7, 8) {
     override fun migrate(db: SupportSQLiteDatabase) {

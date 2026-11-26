@@ -7,6 +7,9 @@ import com.bookorbit.R
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -68,6 +71,10 @@ import com.bookorbit.feature.player.SPEED_PRESETS
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlinx.coroutines.launch
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.RadioButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,9 +100,25 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
     val downloadLocationAccessible by vm.downloadLocationAccessible.collectAsStateWithLifecycle()
     val appInfo by vm.appInfo.collectAsStateWithLifecycle()
+    val attestEnrolled by vm.attestEnrolled.collectAsStateWithLifecycle()
+    val attestBusy by vm.attestBusy.collectAsStateWithLifecycle()
+    val attestError by vm.attestError.collectAsStateWithLifecycle()
+    val diagnosticEnabled by vm.diagnosticEnabled.collectAsStateWithLifecycle()
+    val diagnosticBusy by vm.diagnosticBusy.collectAsStateWithLifecycle()
+    val diagnosticFailed by vm.diagnosticFailed.collectAsStateWithLifecycle()
+    var confirmDiagnostics by remember { mutableStateOf(false) }
+    var confirmLogExport by remember { mutableStateOf(false) }
+    val logExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+        if (uri != null) vm.exportDiagnostics(uri)
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmClearDownloads by remember { mutableStateOf(false) }
+    var confirmAttestation by remember { mutableStateOf(false) }
+    var showDictionaries by remember { mutableStateOf(false) }
+    var showAiConnection by remember { mutableStateOf(false) }
+    var showDeviceVerification by remember { mutableStateOf(false) }
+    val aiOwner by vm.aiOwners.collectAsStateWithLifecycle()
     val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) vm.setDownloadLocation(uri)
     }
@@ -107,6 +130,41 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
         }
     }
 
+    if (showAiConnection) com.bookorbit.feature.ai.AiConnectionDialog(vm.aiConnections, aiOwner,
+        onDeviceVerification = { showAiConnection = false; showDeviceVerification = true }) { showAiConnection = false }
+    if (showDeviceVerification) androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showDeviceVerification = false },
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding()) {
+            Text(stringResource(R.string.attest_title), Modifier.padding(16.dp), style = MaterialTheme.typography.headlineSmall)
+            DeviceVerificationPanel(attestEnrolled, attestBusy, attestError, { confirmAttestation = true }, vm::disableAttestation)
+        }
+    }
+    if (showDictionaries) androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showDictionaries = false },
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.dictionary_manage), style = MaterialTheme.typography.titleLarge)
+            com.bookorbit.feature.dictionary.OfflineDictionaryPanel("", vm.dictionaries, showLookup = false)
+            TextButton(onClick = { showDictionaries = false }) { Text(stringResource(R.string.reader_settings_done)) }
+        }
+    }
+    if (confirmAttestation) AlertDialog(
+        onDismissRequest = { confirmAttestation = false },
+        title = { Text(stringResource(R.string.attest_title)) },
+        text = { Text(stringResource(R.string.attest_consent)) },
+        confirmButton = { TextButton(onClick = { confirmAttestation = false; vm.enrollAttestation() }) {
+            Text(stringResource(R.string.attest_register))
+        } },
+        dismissButton = { TextButton(onClick = { confirmAttestation = false }) { Text(stringResource(android.R.string.cancel)) } },
+    )
+
+    if (confirmDiagnostics) AlertDialog(onDismissRequest = { confirmDiagnostics = false },
+        title = { Text(stringResource(R.string.diagnostics_switch)) }, text = { Text(stringResource(R.string.diagnostics_consent)) },
+        confirmButton = { TextButton(onClick = { confirmDiagnostics = false; vm.setDiagnosticEnabled(true) }) { Text(stringResource(R.string.diagnostics_enable)) } },
+        dismissButton = { TextButton(onClick = { confirmDiagnostics = false }) { Text(stringResource(R.string.cancel)) } })
+    if (confirmLogExport) AlertDialog(onDismissRequest = { confirmLogExport = false },
+        title = { Text(stringResource(R.string.diagnostics_export)) }, text = { Text(stringResource(R.string.diagnostics_export_notice)) },
+        confirmButton = { TextButton(onClick = { confirmLogExport = false; logExporter.launch("bookorbit-diagnostics-${System.currentTimeMillis()}.txt") }) { Text(stringResource(R.string.diagnostics_export)) } },
+        dismissButton = { TextButton(onClick = { confirmLogExport = false }) { Text(stringResource(R.string.cancel)) } })
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         LazyColumn(modifier = Modifier.fillMaxWidth().padding(padding)) {
             item { SectionHeader(stringResource(R.string.appearance)) }
@@ -136,20 +194,30 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             item { HorizontalDivider() }
 
             item { SectionHeader(stringResource(R.string.settings_reading)) }
+            item { TextButton(onClick = { showAiConnection = true }, modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(stringResource(R.string.ai_connection_title))
+            } }
+            item { TextButton(onClick = { showDictionaries = true }, modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(stringResource(R.string.dictionary_manage))
+            } }
             item {
                 SettingsRow(
                     title = stringResource(R.string.settings_reader_interface),
                     subtitle = stringResource(R.string.settings_reader_interface_desc),
                     trailing = {},
                 )
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    ReaderInterface.entries.forEachIndexed { index, mode ->
-                        SegmentedButton(
-                            selected = readerInterface == mode,
-                            onClick = { vm.setReaderInterface(mode) },
-                            shape = SegmentedButtonDefaults.itemShape(index, ReaderInterface.entries.size),
-                            label = { Text(stringResource(if (mode == ReaderInterface.APP) R.string.reader_interface_app else R.string.reader_interface_web)) },
-                        )
+                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).selectableGroup()) {
+                    ReaderInterface.entries.forEach { mode ->
+                        Row(Modifier.fillMaxWidth().selectable(selected = readerInterface == mode,
+                            role = androidx.compose.ui.semantics.Role.RadioButton, onClick = { vm.setReaderInterface(mode) })
+                            .padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(selected = readerInterface == mode, onClick = null)
+                            Text(stringResource(when (mode) {
+                                ReaderInterface.APP -> R.string.reader_interface_app
+                                ReaderInterface.APP_STREAMING -> R.string.reader_interface_streaming
+                                ReaderInterface.SERVER_WEB -> R.string.reader_interface_web
+                            }), modifier = Modifier.padding(horizontal = 12.dp), style = MaterialTheme.typography.bodyMedium)
+                        }
                     }
                 }
             }
@@ -358,7 +426,15 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             }
 
             item { HorizontalDivider() }
+            item { SectionHeader(stringResource(R.string.attest_title)) }
+            item {
+                DeviceVerificationPanel(attestEnrolled, attestBusy, attestError, { confirmAttestation = true }, vm::disableAttestation)
+            }
+            item { HorizontalDivider() }
             item { SectionHeader(stringResource(R.string.about)) }
+            item { DiagnosticSettingsPanel(diagnosticEnabled, diagnosticBusy, diagnosticFailed,
+                { if (it) confirmDiagnostics = true else vm.setDiagnosticEnabled(false) },
+                { confirmLogExport = true }, vm::clearDiagnostics) }
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Text(
@@ -370,12 +446,13 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    val readmeOpenFailed = stringResource(R.string.settings_readme_open_failed)
                     TextButton(onClick = {
                         try {
-                            uriHandler.openUri("https://github.com/deranjer/bookorbit-android/blob/main/README.md#no-longer-maintained")
+                            uriHandler.openUri("https://github.com/monkeCode/bookorbit-android/tree/feat/independent-android-client/docs")
                         } catch (_: IllegalArgumentException) {
                             scope.launch {
-                                snackbarHostState.showSnackbar(appContext.getString(R.string.settings_readme_open_failed))
+                                snackbarHostState.showSnackbar(readmeOpenFailed)
                             }
                         }
                     }) {

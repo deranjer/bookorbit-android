@@ -1,0 +1,26 @@
+<resources>
+    <string name="help_forbidden">Доступ ограничен. Проверьте права учётной записи.</string>
+    <string name="help_title">Помощь при чтении · ИИ</string>
+    <string name="help_context">Объяснение выделенного отрывка.</string>
+    <string name="help_recap">Объяснить отрывок</string>
+    <string name="help_term">Имя или термин</string>
+    <string name="help_term_label">Имя или термин из отрывка</string>
+    <string name="help_careful">Подробный разбор</string>
+    <string name="help_invalid">Выделите от 1 до 12 000 символов. Имя или термин — не длиннее 120 символов.</string>
+    <string name="help_ask">Спросить об отрывке</string>
+    <string name="help_completed">Готово</string>
+    <string name="help_cancelled">Ответ прерван</string>
+    <string name="help_confirm_title">Отправить этот отрывок ИИ?</string>
+    <string name="help_confirm_body">ИИ-сервис получит выделенный отрывок. Возможна плата за обработку.</string>
+    <string name="help_send">Отправить отрывок</string>
+    <string name="help_restricted">Сервер ограничил доступ. Проверьте регистрацию устройства в настройках.</string>
+    <string name="help_disabled">Для помощи при чтении требуется настройка ИИ на сервере.</string>
+    <string name="help_unsupported">Для помощи при чтении требуется совместимый сервер.</string>
+    <string name="help_budget">Месячный бюджет сервера на ИИ исчерпан.</string>
+    <string name="help_reader_cap">Достигнут лимит запросов помощи при чтении.</string>
+    <string name="help_careful_off">Подробный разбор требует настройки ИИ на сервере.</string>
+    <string name="help_timeout">Время ожидания ответа истекло.</string>
+    <string name="help_refused">ИИ-сервис отклонил отрывок.</string>
+    <string name="help_too_long">Выделите более короткий отрывок.</string>
+    <string name="help_provider">Ошибка получения ответа.</string>
+</resources>

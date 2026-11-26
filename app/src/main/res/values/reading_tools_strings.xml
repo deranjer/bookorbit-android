@@ -1,0 +1,16 @@
+<resources>
+    <string name="reader_ocr_hint">Tap a word; hold to select its sentence.</string>
+    <string name="reader_comic_ocr">Recognize text · EN/RU</string>
+    <string name="reader_ocr_failed">Text recognition failed.</string>
+    <string name="reader_ocr_empty">No text found on this page.</string>
+    <string name="reader_ocr_range">Select more words</string>
+    <string name="reader_ocr_range_on">Range selection on</string>
+    <string name="reader_ocr_clear">Clear selection</string>
+    <string name="reader_translate">Translate</string>
+    <string name="reader_dictionary">Dictionary</string>
+    <string name="reader_lookup_text">Selected text</string>
+    <string name="reader_translate_notice">Translation language. Google receives the text when you tap Translate.</string>
+    <string name="reader_dictionary_notice">Word language. Wiktionary receives the word when you tap Dictionary. Definitions are in English.</string>
+    <string name="reader_lookup_limit">Select up to %1$d characters.</string>
+    <string name="reader_lookup_failed">Lookup failed. Check the word, language and connection.</string>
+</resources>

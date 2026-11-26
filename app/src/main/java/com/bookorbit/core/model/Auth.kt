@@ -15,7 +15,11 @@ data class AuthUser(
     val avatarUrl: String? = null,
     val provisioningMethod: String = "local",
     val permissions: List<String> = emptyList(),
+    val settings: AuthUserSettings? = null,
 )
+
+@Serializable
+data class AuthUserSettings(val timezone: String? = null)
 
 @Serializable
 data class LoginRequest(val username: String, val password: String)

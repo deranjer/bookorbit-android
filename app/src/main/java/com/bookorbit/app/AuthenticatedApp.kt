@@ -42,9 +42,9 @@ fun AuthenticatedApp(user: AuthUser, onSignOut: () -> Unit) {
             MainShell(
                 user = user,
                 onSignOut = onSignOut,
-                onOpenReader = { id -> navController.navigate(AppRoutes.reader(id)) },
-                onOpenPdf = { id -> navController.navigate(AppRoutes.pdf(id)) },
-                onOpenComic = { id -> navController.navigate(AppRoutes.comic(id)) },
+                onOpenReader = { id, fileId -> navController.navigate(AppRoutes.reader(id, fileId)) },
+                onOpenPdf = { id, fileId -> navController.navigate(AppRoutes.pdf(id, fileId)) },
+                onOpenComic = { id, fileId -> navController.navigate(AppRoutes.comic(id, fileId)) },
                 onListen = { id ->
                     playerVm.loadAndPlay(id)
                     navController.navigate(AppRoutes.PLAYER)
@@ -54,19 +54,19 @@ fun AuthenticatedApp(user: AuthUser, onSignOut: () -> Unit) {
         }
         composable(
             route = AppRoutes.READER,
-            arguments = listOf(navArgument("id") { type = NavType.IntType }),
+            arguments = readerArguments(),
         ) {
             ReaderDestination(ReaderKind.EBOOK, onBack = dropUnlessResumed { navController.popBackStack() })
         }
         composable(
             route = AppRoutes.PDF,
-            arguments = listOf(navArgument("id") { type = NavType.IntType }),
+            arguments = readerArguments(),
         ) {
             ReaderDestination(ReaderKind.PDF, onBack = dropUnlessResumed { navController.popBackStack() })
         }
         composable(
             route = AppRoutes.COMIC,
-            arguments = listOf(navArgument("id") { type = NavType.IntType }),
+            arguments = readerArguments(),
         ) {
             ReaderDestination(ReaderKind.COMIC, onBack = dropUnlessResumed { navController.popBackStack() })
         }
@@ -76,13 +76,18 @@ fun AuthenticatedApp(user: AuthUser, onSignOut: () -> Unit) {
     }
 }
 
+private fun readerArguments() = listOf(
+    navArgument("id") { type = NavType.IntType },
+    navArgument("fileId") { type = NavType.IntType },
+)
+
 object AppRoutes {
     const val MAIN = "main"
-    const val READER = "reader/{id}"
-    const val PDF = "pdf/{id}"
-    const val COMIC = "comic/{id}"
+    const val READER = "reader/{id}/{fileId}"
+    const val PDF = "pdf/{id}/{fileId}"
+    const val COMIC = "comic/{id}/{fileId}"
     const val PLAYER = "player"
-    fun reader(id: Int) = "reader/$id"
-    fun pdf(id: Int) = "pdf/$id"
-    fun comic(id: Int) = "comic/$id"
+    fun reader(id: Int, fileId: Int) = "reader/$id/$fileId"
+    fun pdf(id: Int, fileId: Int) = "pdf/$id/$fileId"
+    fun comic(id: Int, fileId: Int) = "comic/$id/$fileId"
 }

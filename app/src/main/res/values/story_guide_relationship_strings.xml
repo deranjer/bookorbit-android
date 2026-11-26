@@ -1,0 +1,31 @@
+<resources>
+    <string name="guide_search_visible">Search revealed content</string>
+    <string name="guide_no_visible_matches">No revealed entries or relationships match this search.</string>
+    <string name="guide_relationships">Relationships so far</string>
+    <string name="guide_recaps">Chapter recaps</string>
+    <string name="guide_kind_character">Character</string>
+    <string name="guide_kind_place">Place</string>
+    <string name="guide_kind_group">Group</string>
+    <string name="guide_kind_event">Event</string>
+    <string name="guide_kind_object">Object</string>
+    <string name="guide_kind_term">Term</string>
+    <string name="guide_tie_parent">parent of</string>
+    <string name="guide_tie_grandparent">grandparent of</string>
+    <string name="guide_tie_aunt_uncle">aunt or uncle of</string>
+    <string name="guide_tie_sibling">sibling of</string>
+    <string name="guide_tie_spouse">spouse of</string>
+    <string name="guide_tie_betrothed">betrothed to</string>
+    <string name="guide_tie_cousin">cousin of</string>
+    <string name="guide_tie_relative">relative of</string>
+    <string name="guide_tie_loves">loves</string>
+    <string name="guide_tie_bonded">bonded to</string>
+    <string name="guide_tie_friend">friend of</string>
+    <string name="guide_tie_enemy">enemy of</string>
+    <string name="guide_tie_rival">rival of</string>
+    <string name="guide_tie_teaches">teaches</string>
+    <string name="guide_tie_works">works for</string>
+    <string name="guide_tie_studies">studies at</string>
+    <string name="guide_tie_member">member of</string>
+    <string name="guide_tie_owns">owns</string>
+    <string name="guide_tie_lives">lives at</string>
+</resources>

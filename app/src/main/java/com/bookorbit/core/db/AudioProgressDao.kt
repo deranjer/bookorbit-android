@@ -24,6 +24,6 @@ interface AudioProgressDao {
     @Query("SELECT * FROM audio_progress ORDER BY updatedAt DESC")
     fun observeRecent(): Flow<List<AudioProgressEntity>>
 
-    @Query("UPDATE audio_progress SET dirty = 0 WHERE bookId = :bookId")
-    suspend fun markSynced(bookId: Int)
+    @Query("UPDATE audio_progress SET dirty = 0 WHERE bookId = :bookId AND writeId = :writeId")
+    suspend fun markSynced(bookId: Int, writeId: String): Int
 }

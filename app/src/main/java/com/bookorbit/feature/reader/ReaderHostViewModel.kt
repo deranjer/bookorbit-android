@@ -28,24 +28,34 @@ class ReaderHostViewModel @Inject constructor(
     private val session: SessionManager,
     private val refresher: TokenRefresher,
     private val json: Json,
+    private val lastEditions: LastReadEditionStore,
+    private val comicImages: ServerComicImages,
 ) : ViewModel() {
     private val bookId = checkNotNull(savedStateHandle.get<Int>("id"))
+    private val selectedFileId = checkNotNull(savedStateHandle.get<Int>("fileId"))
     private val accountId = session.currentUser?.id
+    private val owner = session.owner()
     val preferences = combine(settings.readerInterface, settings.readingFullscreen) { mode, fullscreen ->
         ReadingPreferences(mode, fullscreen)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     suspend fun prepare(kind: ReaderKind): ServerReaderPolicy {
+        val owner = checkNotNull(owner).also { check(session.owns(it)) }
         // Intentionally require a live server. Native downloads belong to App mode.
         val book = api.getBookDetail(bookId)
+        val target = BookFiles.readingTarget(book, selectedFileId)
         val file = checkNotNull(when (kind) {
-            ReaderKind.EBOOK -> BookFiles.readableFile(book)
-            ReaderKind.PDF -> BookFiles.pdfFile(book)
-            ReaderKind.COMIC -> BookFiles.comicFile(book)
+            ReaderKind.EBOOK -> (target as? BookFiles.ReadingTarget.Foliate)?.file
+            ReaderKind.PDF -> (target as? BookFiles.ReadingTarget.Pdf)?.file
+            ReaderKind.COMIC -> (target as? BookFiles.ReadingTarget.Comic)?.file
         })
         progress.syncBeforeWeb(file.id)
-        return ServerReaderPolicy(checkNotNull(session.serverUrl), bookId, file.id)
+        check(session.owns(owner))
+        lastEditions.record(owner, bookId, file.id)
+        return ServerReaderPolicy(owner.serverUrl, bookId, file.id, checkNotNull(file.format))
     }
+
+    fun comicImageResponse(policy: ServerReaderPolicy, url: okhttp3.HttpUrl, method: String) = comicImages.open(policy, owner, url, method)
 
     /** Called on WebView's request thread. Never copy refresh cookies into a second cookie jar. */
     fun refreshResponse(policy: ServerReaderPolicy, staleToken: String?): String? {

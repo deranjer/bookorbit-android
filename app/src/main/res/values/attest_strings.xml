@@ -1,0 +1,13 @@
+<resources>
+    <string name="attest_title">Device verification for AI</string>
+    <string name="attest_status_off">Not registered</string>
+    <string name="attest_status_registered">Key registered for this server and account</string>
+    <string name="attest_description">Register your device for AI features on a compatible server.</string>
+    <string name="attest_consent">Your server will receive a key certificate containing app and device security information.</string>
+    <string name="attest_register">Register device key</string>
+    <string name="attest_busy">Registering…</string>
+    <string name="attest_disable">Remove device key</string>
+    <string name="attest_registered">Device registered</string>
+    <string name="attest_disabled">Device key removed</string>
+    <string name="attest_failed">Registration failed. Check server support for your device and app, HTTPS and device time.</string>
+</resources>

@@ -50,9 +50,60 @@ class SettingsViewModel @Inject constructor(
     private val appInfoRepository: AppInfoRepository,
     private val session: SessionManager,
     private val userCaSettings: UserCaSettings,
+    private val attestation: com.bookorbit.core.network.AndroidAttestation,
+    val dictionaries: com.bookorbit.feature.dictionary.DictionaryRepository,
+    val aiConnections: com.bookorbit.feature.ai.AiConnectionStore,
+    private val diagnostics: com.bookorbit.core.diagnostics.DiagnosticLog,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
+    val diagnosticEnabled = diagnostics.enabled
+    val diagnosticFailed = diagnostics.failed
+    private val mutableDiagnosticBusy = MutableStateFlow(false)
+    val diagnosticBusy = mutableDiagnosticBusy.asStateFlow()
+    fun setDiagnosticEnabled(value: Boolean) = diagnosticAction { diagnostics.setEnabled(value) }
+    fun clearDiagnostics() = diagnosticAction { diagnostics.clear(); _message.value = UiText.of(R.string.diagnostics_cleared) }
+    fun exportDiagnostics(uri: Uri) = diagnosticAction {
+        val bytes = diagnostics.export()
+        kotlinx.coroutines.withContext(Dispatchers.IO) {
+            requireNotNull(context.contentResolver.openOutputStream(uri, "wt")).use { it.write(bytes) }
+        }
+        _message.value = UiText.of(R.string.diagnostics_exported)
+    }
+    private fun diagnosticAction(action: suspend () -> Unit) {
+        if (mutableDiagnosticBusy.value) return
+        mutableDiagnosticBusy.value = true
+        viewModelScope.launch {
+            try { action() }
+            catch (error: kotlinx.coroutines.CancellationException) { throw error }
+            catch (_: Exception) { _message.value = UiText.of(R.string.diagnostics_failed) }
+            finally { mutableDiagnosticBusy.value = false }
+        }
+    }
+    val aiOwners = session.owners
     val appInfo: StateFlow<AppInfo?> = appInfoRepository.appInfo
+
+    private val _attestEnrolled = MutableStateFlow(attestation.isEnrolled())
+    val attestEnrolled = _attestEnrolled.asStateFlow()
+    private val _attestBusy = MutableStateFlow(false)
+    val attestBusy = _attestBusy.asStateFlow()
+    private val _attestError = MutableStateFlow<UiText?>(null)
+    val attestError = _attestError.asStateFlow()
+
+    fun enrollAttestation() = changeAttestation(true)
+    fun disableAttestation() = changeAttestation(false)
+    private fun changeAttestation(enroll: Boolean) {
+        if (_attestBusy.value) return
+        _attestBusy.value = true
+        _attestError.value = null
+        viewModelScope.launch {
+            try {
+                if (enroll) attestation.enroll() else attestation.disable()
+                _message.value = UiText.of(if (enroll) R.string.attest_registered else R.string.attest_disabled)
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (error: Exception) { _attestError.value = attestationErrorText(error) }
+            finally { _attestBusy.value = false; _attestEnrolled.value = attestation.isEnrolled() }
+        }
+    }
 
     val readerInterface = appSettings.readerInterface
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReaderInterface.APP)

@@ -13,16 +13,21 @@ fun overlayPendingOps(base: List<BookAnnotation>, ops: List<PendingAnnotationOpE
     var list = base
     for (op in ops) {
         list = when (op.kind) {
-            AnnotationOp.CREATE -> list + BookAnnotation(
+            AnnotationOp.CREATE, AnnotationOp.CREATE_UNCERTAIN, AnnotationOp.CREATE_UNCERTAIN_DELETE -> list + BookAnnotation(
                 id = op.annotationId,
                 bookId = op.bookId,
-                cfi = op.cfi,
+                cfi = op.cfi.takeIf { op.kind == AnnotationOp.CREATE },
                 text = op.text.orEmpty(),
                 color = op.color ?: ReaderAnnotationRepository.COLORS.first().second,
                 style = ReaderAnnotationRepository.DEFAULT_STYLE,
                 note = op.note?.takeIf { op.noteSet && it.isNotBlank() },
                 chapterTitle = op.chapterTitle,
                 origin = "web",
+                positionStatus = when (op.kind) {
+                    AnnotationOp.CREATE_UNCERTAIN -> "delivery-uncertain"
+                    AnnotationOp.CREATE_UNCERTAIN_DELETE -> "delivery-uncertain-delete"
+                    else -> null
+                },
             )
             AnnotationOp.UPDATE -> list.map { a ->
                 if (a.id != op.annotationId) a

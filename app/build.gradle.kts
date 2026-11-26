@@ -2,7 +2,6 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
@@ -36,7 +35,9 @@ if (playServiceAccountFile.exists()) {
 
 android {
     namespace = "com.bookorbit"
-    compileSdk = 36
+    compileSdk {
+        version = release(37) { minorApiLevel = 2 }
+    }
 
     testOptions {
         // Android framework calls such as Log.w are no-ops in JVM unit tests instead of throwing.
@@ -44,27 +45,27 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.bookorbit"
+        applicationId = "io.github.monkecode.bookorbitclient"
         minSdk = 26
         targetSdk = 36
         // versionCode/versionName are bumped automatically by a companion step in
         // .github/workflows/release-please.yml (release-please's own generic-file updater is
         // unreliable for this -- see the commit that introduced this comment). Both must stay
         // plain literals so F-Droid's static manifest parser can find them too.
-        versionCode = 900
-        versionName = "0.9.0"
+        versionCode = 923
+        versionName = "0.9.23"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // OIDC redirect scheme used by the AppAuth intent-filter (see AndroidManifest).
-        // Must match the server's whitelisted mobile redirect URI (bookorbit://oauth2-callback,
-        // OIDC_MOBILE_REDIRECT_URIS default) and the value used by OidcManager.
-        manifestPlaceholders["appAuthRedirectScheme"] = "bookorbit"
+        // Server must allow bookorbitclient://oauth2-callback explicitly.
+        manifestPlaceholders["appAuthRedirectScheme"] = "bookorbitclient"
+        buildConfigField("String", "OIDC_REDIRECT_URI", "\"bookorbitclient://oauth2-callback\"")
     }
 
     // "full" (default) links Google's proprietary Cast SDK for Chromecast support; "fdroid"
     // excludes it entirely -- see app/src/{full,fdroid}/java/com/bookorbit/feature/cast/. Both
-    // flavors share the same applicationId; this isn't a fork, just a dependency toggle.
+    // flavors share our independent applicationId; this is just a dependency toggle.
     flavorDimensions += "distribution"
     productFlavors {
         create("full") {
@@ -121,10 +122,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -138,6 +135,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":software-audio"))
     // Core / lifecycle / activity
     implementation(libs.androidx.core.ktx)
     // Theme.BookOrbit (themes.xml) needs an AppCompat parent theme. Previously this arrived only
@@ -176,6 +174,8 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
+    implementation("org.apache.commons:commons-compress:1.28.0")
+    implementation("org.tukaani:xz:1.10")
 
     // Media + images
     implementation(libs.androidx.media3.exoplayer)
@@ -208,6 +208,7 @@ dependencies {
 
     // WebView (foliate reader host)
     implementation(libs.androidx.webkit)
+    implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
 
     // Unit test
     testImplementation(libs.junit)
@@ -215,6 +216,7 @@ dependencies {
     testImplementation(libs.turbine)
     testImplementation(libs.mockk)
     testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.okhttp.tls)
 
     // Instrumented test
     androidTestImplementation(libs.androidx.junit)

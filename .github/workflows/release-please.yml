@@ -1,10 +1,7 @@
 name: Release Please
 
-# Fully automates versioning. Merging a normal PR to main may add conventional commits
-# (feat:/fix:/etc.); release-please keeps an always-up-to-date "release PR" open with the
-# resulting version bump and changelog. Merging that PR is the only manual step left -- it
-# creates the tag and GitHub Release, which this same workflow run then uses to trigger the
-# signed APK/AAB build (the Play Store upload is currently manual - see below).
+# Opt-in stable-release workflow, not a push/PR build. Dispatch only on a merged-PR
+# main commit. The stable-release environment is separate from debug signing.
 #
 # release-please's own generic-file updater (the `x-release-please-version` comment marker) is
 # unreliable in practice -- see https://github.com/googleapis/release-please-action/issues/1130
@@ -15,8 +12,8 @@ name: Release Please
 # PR before anyone merges it.
 
 on:
-  push:
-    branches: [main]
+  # Stable release automation is opt-in, not triggered by ordinary main builds.
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -24,11 +21,19 @@ permissions:
 
 jobs:
   release-please:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+      - name: Require merged-PR main source before stable release automation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/android/verify-release-source.py "$GITHUB_REPOSITORY" "$GITHUB_SHA"
       - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
         id: release
         with:
@@ -65,7 +70,6 @@ jobs:
     uses: ./.github/workflows/android-release.yml
     with:
       tag: ${{ needs.release-please.outputs.tag_name }}
-    secrets: inherit
 
   # Automatic Play Store upload is paused: build-release attaches the signed AAB to the GitHub
   # Release and it's uploaded to Play Console by hand. To re-enable, restore this job:

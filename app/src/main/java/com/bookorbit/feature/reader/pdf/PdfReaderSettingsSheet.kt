@@ -20,6 +20,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.Switch
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +34,8 @@ fun PdfReaderSettingsSheet(
     settings: PdfReaderSettings,
     onChange: (PdfReaderSettings) -> Unit,
     onDismiss: () -> Unit,
+    animated: Boolean = true,
+    onAnimationChanged: ((Boolean) -> Unit)? = null,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -42,6 +46,10 @@ fun PdfReaderSettingsSheet(
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.reader_settings_title), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.reader_settings_done)) }
+            }
             Label(stringResource(R.string.rs_label_scroll))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
@@ -109,6 +117,10 @@ fun PdfReaderSettingsSheet(
                 IconButton(onClick = { onChange(settings.rotatedCw()) }) {
                     Icon(Icons.Filled.RotateRight, contentDescription = stringResource(R.string.rotate))
                 }
+            }
+            if (onAnimationChanged != null) Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.reader_page_animation), modifier = Modifier.weight(1f))
+                Switch(checked = animated, onCheckedChange = onAnimationChanged)
             }
         }
     }

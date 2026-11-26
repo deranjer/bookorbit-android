@@ -5,10 +5,14 @@ import com.bookorbit.core.db.ReaderProgressEntity
 import com.bookorbit.core.model.SaveFileProgress
 import com.bookorbit.core.network.ApiService
 import com.bookorbit.core.sync.SyncScheduler
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
-data class InitialProgress(val cfi: String?, val fraction: Double?)
+data class InitialProgress(val cfi: String?, val fraction: Double?, val pageNumber: Int? = null)
 
 /**
  * Offline-first reading-position store keyed by server file id, backed by Room: every position is
@@ -21,36 +25,48 @@ class ReaderProgressRepository @Inject constructor(
     private val api: ApiService,
     private val syncScheduler: SyncScheduler,
 ) {
+    private val syncMutex = Mutex()
+    suspend fun mostRecentFileId(fileIds: List<Int>): Int? = fileIds.distinct().mapNotNull { dao.get(it) }.maxByOrNull { it.updatedAt }?.fileId
     /**
      * Save locally, then attempt to push to the server (clearing dirty on success). [pageNumber] is
-     * forwarded to the server for cross-client parity (used by the PDF reader); the local Room store
-     * keeps only cfi + percentage, from which a stable PDF page count is recoverable on resume.
+     * persisted alongside CFI + percentage so offline retries retain PDF/comic coordinates.
      */
     suspend fun report(fileId: Int, cfi: String?, percentage: Double, pageNumber: Int? = null) {
-        dao.upsert(ReaderProgressEntity(fileId, cfi, percentage, System.currentTimeMillis(), dirty = true))
-        val ok = runCatching {
-            api.saveFileProgress(fileId, SaveFileProgress(cfi, percentage, pageNumber))
-        }.isSuccess
-        if (ok) dao.markSynced(fileId) else syncScheduler.schedule()
+        val entry = ReaderProgressEntity(fileId, cfi, percentage, System.currentTimeMillis(), dirty = true,
+            pageNumber = pageNumber, writeId = UUID.randomUUID().toString())
+        dao.upsert(entry)
+        syncMutex.withLock {
+            if (dao.get(fileId)?.writeId != entry.writeId) return@withLock
+            if (!push(entry) || dao.markSynced(fileId, entry.writeId) == 0) syncScheduler.schedule()
+        }
     }
 
     /** Push every dirty position to the server. Returns true if anything is still dirty afterward. */
-    suspend fun flushPending(): Boolean {
+    suspend fun flushPending(): Boolean = syncMutex.withLock {
         for (entry in dao.dirtyEntries()) {
-            val ok = runCatching {
-                api.saveFileProgress(entry.fileId, SaveFileProgress(entry.cfi, entry.percentage))
-            }.isSuccess
-            if (ok) dao.markSynced(entry.fileId)
+            if (push(entry)) dao.markSynced(entry.fileId, entry.writeId)
         }
-        return dao.dirtyEntries().isNotEmpty()
+        dao.dirtyEntries().isNotEmpty()
+    }
+
+    private suspend fun push(entry: ReaderProgressEntity): Boolean = try {
+        api.saveFileProgress(entry.fileId, SaveFileProgress(entry.cfi, entry.percentage, entry.pageNumber))
+        true
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        false
     }
 
     /** Do not let a web reader start behind a pending offline position for this file. */
-    suspend fun syncBeforeWeb(fileId: Int) {
-        val local = dao.get(fileId) ?: return
-        if (!local.dirty) return
-        api.saveFileProgress(fileId, SaveFileProgress(local.cfi, local.percentage))
-        dao.markSynced(fileId)
+    suspend fun syncBeforeWeb(fileId: Int) = syncMutex.withLock {
+        val local = dao.get(fileId) ?: return@withLock
+        if (!local.dirty) return@withLock
+        api.saveFileProgress(fileId, SaveFileProgress(local.cfi, local.percentage, local.pageNumber))
+        if (dao.markSynced(fileId, local.writeId) == 0) {
+            syncScheduler.schedule()
+            error("Reading position changed during handoff. Try again.")
+        }
     }
 
     /**
@@ -63,15 +79,18 @@ class ReaderProgressRepository @Inject constructor(
 
         val cfi: String?
         val percentage: Double?
+        val pageNumber: Int?
         if (local != null && (local.dirty || server == null)) {
             cfi = local.cfi
             percentage = local.percentage
+            pageNumber = local.pageNumber
         } else if (server != null) {
             cfi = server.cfi
             percentage = server.percentage
+            pageNumber = server.pageNumber
         } else {
             return InitialProgress(null, null)
         }
-        return InitialProgress(cfi, percentage?.let { it / 100.0 })
+        return InitialProgress(cfi, percentage?.let { it / 100.0 }, pageNumber)
     }
 }

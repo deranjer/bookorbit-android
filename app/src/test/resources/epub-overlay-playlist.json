@@ -1,0 +1,19 @@
+{
+  "bookId": 5,
+  "fileId": 84,
+  "durationSeconds": 40,
+  "items": [
+    {"index":0,"sectionIndex":0,"smilHref":"OEBPS/overlay.smil","textHref":"OEBPS/chapter.xhtml","textFragment":"one","audioHref":"OEBPS/audio.mp3","audioMimeType":"audio/mpeg","clipBeginSeconds":0,"clipEndSeconds":10,"durationSeconds":10,"label":"First chapter"},
+    {"index":1,"sectionIndex":0,"smilHref":"OEBPS/overlay.smil","textHref":"OEBPS/chapter.xhtml","textFragment":"two","audioHref":"OEBPS/audio.mp3","audioMimeType":"audio/mpeg","clipBeginSeconds":10,"clipEndSeconds":20,"durationSeconds":10,"label":"First chapter"},
+    {"index":2,"sectionIndex":2,"smilHref":"OEBPS/second.smil","textHref":"OEBPS/second.xhtml","textFragment":"one","audioHref":"OEBPS/second.mp3","audioMimeType":"audio/mpeg","clipBeginSeconds":0,"clipEndSeconds":10,"durationSeconds":10,"label":"Second chapter"},
+    {"index":3,"sectionIndex":2,"smilHref":"OEBPS/second.smil","textHref":"OEBPS/second.xhtml","textFragment":"two","audioHref":"OEBPS/second.mp3","audioMimeType":"audio/mpeg","clipBeginSeconds":10,"clipEndSeconds":20,"durationSeconds":10,"label":"Second chapter"}
+  ],
+  "sections": [
+    {"index":0,"href":"OEBPS/chapter.xhtml","label":"First chapter","smilHref":"OEBPS/overlay.smil","startSeconds":0,"durationSeconds":20},
+    {"index":2,"href":"OEBPS/second.xhtml","label":"Second chapter","smilHref":"OEBPS/second.smil","startSeconds":20,"durationSeconds":20}
+  ],
+  "resources": [
+    {"href":"OEBPS/audio.mp3","mediaType":"audio/mpeg","size":80293},
+    {"href":"OEBPS/second.mp3","mediaType":"audio/mpeg","size":80293}
+  ]
+}

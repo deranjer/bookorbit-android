@@ -1,0 +1,33 @@
+<resources>
+    <string name="ai_enter_endpoint">Enter a valid API base address. HTTP requires the explicit checkbox above.</string>
+    <string name="ai_enter_model">Enter the exact model ID from your provider or local server.</string>
+    <string name="ai_enter_token">Enter an API token for this provider.</string>
+    <string name="ai_invalid_token">Invalid token: use printable ASCII without spaces or line breaks, at most 8192 characters.</string>
+    <string name="guide_entry_description">Characters, events and connections · Open Story Guide</string>
+    <string name="ai_route_heading">Where to send selected text</string>
+    <string name="ai_provider">Provider</string>
+    <string name="ai_server_summary">Use your BookOrbit server and its AI configuration.</string>
+    <string name="ai_direct_summary">Use your own provider or a local model server.</string>
+    <string name="ai_server_setup">No provider key is needed here: it is configured by your BookOrbit administrator. Photo search and Story Guide currently use the server only. Protected features also require device registration in Settings → Device verification for AI. A stock server may reject independently signed apps; HTTPS alone is not enough.</string>
+    <string name="ai_direct_scope">Currently works for selected-text help only. Does not enable photo search or Story Guide. Saving does not send a request or download a model.</string>
+    <string name="ai_connection_details">Connection details and privacy</string>
+    <string name="vision_server_route">Photo search uses the BookOrbit server, not the direct AI connection configured on this phone. Selecting a photo does not upload it.</string>
+    <string name="vision_device_help">Settings → Device verification for AI shows registration status. The server must also trust this app. Device registration does not configure the server’s AI provider.</string>
+    <string name="attest_error_detail">Registration failed: %1$s.\n%2$s\n%3$s %4$s</string>
+    <string name="attest_stage_connection">connection prerequisites</string>
+    <string name="attest_stage_challenge">requesting a server challenge</string>
+    <string name="attest_stage_key">creating a device key</string>
+    <string name="attest_stage_registration">server verification of the device certificate</string>
+    <string name="attest_stage_receipt">validating the registration receipt</string>
+    <string name="attest_stage_storage">saving registration locally</string>
+    <string name="attest_reason_https">A clean HTTPS server address is required.</string>
+    <string name="attest_reason_tls">TLS connection failed. Check the server certificate and device time; do not disable certificate validation.</string>
+    <string name="attest_reason_network">Could not complete the network request. Check connectivity and retry explicitly.</string>
+    <string name="attest_reason_key">Android could not create a hardware-backed key with a certificate chain. Check device support and security settings.</string>
+    <string name="attest_reason_auth">The server rejected authentication. Sign in again before retrying.</string>
+    <string name="attest_reason_missing">This registration route is unavailable. Check the server version and proxy API path.</string>
+    <string name="attest_reason_rate">Too many registration attempts. Wait before retrying.</string>
+    <string name="attest_reason_server">The server rejected registration. HTTPS does not grant app trust. Check server logs for the code below: package/signing certificate policy and device attestation are possible causes, not a confirmed diagnosis.</string>
+    <string name="attest_reason_response">The server returned an invalid or incompatible response. Registration was not activated.</string>
+    <string name="attest_reason_local">Could not save the registration on this device. Previous registration, if any, was not intentionally removed.</string>
+</resources>

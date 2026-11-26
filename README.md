@@ -1,172 +1,326 @@
-# BookOrbit — Android (native)
+<div align="center">
+  <img src="store-assets/icon-512.png" width="88" alt="BookOrbit Client icon">
+  <h1>BookOrbit Client</h1>
+  <p><strong>Your library. Your Android client.</strong></p>
+  <p>An independent, open-source Android client for self-hosted BookOrbit.</p>
+  <p>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="AGPL-3.0 license"></a>
+    <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84" alt="Android 8.0 or newer">
+    <img src="https://img.shields.io/badge/UI-English%20%7C%20Russian-6875D9" alt="English and Russian UI">
+  </p>
+  <p>
+    <a href="#what-it-does">Features</a> ·
+    <a href="#build--install">Build</a> ·
+    <a href="#allow-this-client-on-your-own-server">Server setup</a> ·
+    <a href="ROADMAP.md">Roadmap</a> ·
+    <a href="docs/DEVICE_TESTING.md">Testing</a>
+  </p>
+</div>
 
-## No longer maintained
+> **Independent fork, not the official BookOrbit app.** Based on
+> [deranjer/bookorbit-android](https://github.com/deranjer/bookorbit-android), with
+> upstream attribution and the AGPL license preserved. No client-side Premium gate,
+> download quota, or automatic whole-library download is added.
 
-This project will no longer be maintained. I am ending development because BookOrbit's server
-has begun restricting selected API routes to its official applications through app attestation,
-making continued support for an independently signed, open-source Android client uncertain.
+## What it does
 
-The server [added attestation requirements to existing routes](https://github.com/bookorbit/bookorbit/commit/b44d902eca79c082f8378ae336b9cc89c6a7de4e),
-and its [Android attestation policy](https://github.com/bookorbit/bookorbit/blob/v3.8.0/server/src/modules/app-attest/app-attest.policy.ts)
-accepts only the official package and approved signing certificates. Some routes remain available
-to other clients, and alternatives exist for the current widget and smart-scope restrictions;
-this does not mean every backend request is blocked today. Future server compatibility, fixes,
-and new features will no longer be maintained here.
+<div align="center">
+  <img src="docs/images/library.png" width="260" alt="Library with synthetic text and comic editions">
+  &nbsp;&nbsp;
+  <img src="docs/images/book-details.png" width="260" alt="Book details with the Story Guide entry and retained offline edition">
+  <p><sub>0.9.22 development UI · Russian locale · synthetic fixture books, not a user's library.</sub></p>
+</div>
 
-For a maintained alternative, use the
-[official BookOrbit Android application](https://play.google.com/store/apps/details?id=app.bookorbit.reader).
-The official Android app is not open source and offers paid Premium features; see its
-[purchase information](https://bookorbit.app/android/support/). As of November 11, 2026, the
-[official announcement](https://github.com/bookorbit/bookorbit/issues/2001) describes a closed
-Google Play beta with Premium free during testing. Follow that announcement for access instructions
-and check the current app listing for availability and purchase terms.
+| | Features |
+| --- | --- |
+| **Read** | Native EPUB-family, PDF and comic readers; text settings, themes, bookmarks, highlights and notes. Opt-in on-demand EPUB chapters/resources. |
+| **Listen** | Media3 background audiobooks, HTTP Range streaming, multi-track queues, sleep timer and Android media controls. Source-built software audio decoding with platform-first fallback. |
+| **Read along** | Embedded EPUB/SMIL narration through the shared playback service, online or explicitly offline. Exact fragment highlighting, audio checkpoints and **Listen from here** in selection → ⋮. |
+| **Keep offline** | Download text, audio or both. A 75-track audiobook is one edition/action; adding another edition keeps existing downloads and positions. |
+| **Look up words** | Downloadable FreeDict dictionaries: **305 catalog pairs**, searchable language chooser and private offline indexes. Dictionaries download only when requested. |
+| **Use AI** | Server Reading Help, photo search and Story Guide clients. Direct selected-text help with OpenAI, Gemini, OpenRouter, Ollama and OpenAI-compatible endpoints. |
+| **Track reading** | 7/30/90/365-day periods, previous-period comparison, compact calendar and weekly session history without inventing READ/LISTEN distinctions. |
+| **Troubleshoot** | Optional private debug logging, bounded local storage and explicit text-file export. No automatic log upload. |
 
-The source and build instructions below remain available for reference and for anyone who wants
-to fork the project.
+**Development status:** 0.9.23 adds diagnostic logging. Both APK/lint tasks,
+**627 JVM tests per flavor**, **34 Node checks** (including three policy checks)
+and **14 Python checks** passed. Two diagnostic instrumentation tests passed in
+each of three runs, and Android's file-picker export was checked on the emulator.
+This is not complete feature parity or physical-device acceptance; see the
+[validation checklist](docs/DEVICE_TESTING.md) for exact boundaries.
 
-Native Kotlin / Jetpack Compose client for a self-hosted
-[BookOrbit](https://github.com/bookorbit/bookorbit) server. This is a **standalone Gradle project** —
-open this repository's root directly in Android Studio.
+### Important limits
 
-> User-facing docs: **https://deranjer.github.io/bookorbit-android/** (source in [`website/`](website/)).
-> Privacy policy: **https://deranjer.github.io/bookorbit-android/privacy.html**.
-> Historical roadmap: see [`ROADMAP.md`](ROADMAP.md); development has ended.
-> Also available via [F-Droid](https://deranjer.github.io/fdroid/repo) (self-hosted repo).
+- **Server trust is separate from login.** Stock BookOrbit restricts selected API
+  routes to approved applications. HTTPS and a valid account do not bypass that.
+- **Direct AI currently means selected-text help only.** It does not enable photo
+  search or direct Story Guide generation. Ollama runs wherever your configured
+  endpoint lives; `127.0.0.1` means the phone, not your computer.
+- **A decoder is not a transcoding server.** Local software fallback does not make
+  Cast receivers support every format. The audited stock server has no playback
+  transcoding contract.
+- Offline CBZ works locally; CBR/CB7 still need server-rendered pages. PDF and other
+  non-streamed formats use complete temporary files.
+- Physical Bluetooth/OEM/Doze, audible output, SAF and migration/performance
+  acceptance remain separate from emulator and synthetic-media tests.
 
-> **Existing features (unmaintained):** auth + OIDC, library browsing, search,
-> smart scopes, collections, authors/series, book detail, the foliate.js ebook reader, the Media3
-> audiobook player (with sleep timer and Chromecast), and downloads/offline. See
-> [Architecture & conventions](#architecture--conventions) below, the
-> [Cross-repo couplings](#cross-repo-couplings) section. [`ROADMAP.md`](ROADMAP.md) records historical plans.
+See the [detailed plan](docs/CLIENT_PLAN.md), [AI compatibility](docs/AI_COMPATIBILITY.md)
+and [audio compatibility](docs/AUDIO_COMPATIBILITY.md) before assuming a feature is
+available on your deployment.
 
-## Prerequisites
+## Build & install
 
-| Tool               | Version                                | Notes                                                   |
-| ------------------ | -------------------------------------- | ------------------------------------------------------- |
-| **Android Studio** | Ladybug (2024.2) or newer              | Easiest path; bundles a compatible JDK + SDK manager.   |
-| **JDK**            | 17+ (21 recommended)                   | Android Studio's bundled JBR works. CI uses Temurin 21. |
-| **Android SDK**    | Platform **36**, Build-Tools 35+       | Installed via Android Studio's SDK Manager.             |
-| **A device**       | Emulator (API 26+) or a physical phone | Min SDK is **26**; compile/target SDK is **36**.        |
+### Docker: no host JDK or Android SDK required
 
-Gradle itself does **not** need to be installed — the committed wrapper (`./gradlew`) downloads the
-right version (8.11.1) on first run.
+From this repository's root:
 
-## First-time setup
-
-1. **Install the SDK.** In Android Studio: _Settings → Languages & Frameworks → Android SDK_ → install
-   **Android API 36** (SDK Platform) and a recent **Build-Tools**. Accept the SDK licenses.
-2. **`local.properties`.** This machine-specific file points Gradle at your SDK and must **not** be
-   committed (it's git-ignored). Android Studio creates it automatically on first open. To create it
-   by hand, put one line in `android/local.properties` (use forward slashes, even on Windows, to
-   avoid Java-properties escaping issues):
-
-   ```properties
-   sdk.dir=C:/Users/<you>/AppData/Local/Android/Sdk
-   ```
-
-   On macOS/Linux it's typically `~/Library/Android/sdk` / `~/Android/Sdk`.
-
-## Run it in Android Studio (recommended)
-
-1. **File → Open** and select this repository's **root** folder.
-2. Wait for the initial **Gradle sync** to finish (first time pulls dependencies).
-3. Pick a device in the toolbar's device dropdown (or create one in **Device Manager**).
-4. Click **Run ▶**. Studio builds, installs, and launches the app.
-
-The debug variant installs as application id **`com.bookorbit.debug`** (the `.debug` suffix lets debug
-and release builds coexist on one device).
-
-## Run it from the command line
-
-From the repository root:
-
-```bash
-./gradlew :app:installDebug      # build + install on the connected device/emulator
-./gradlew :app:assembleDebug     # just build the APK -> app/build/outputs/apk/debug/
-./gradlew :app:testDebugUnitTest # JVM unit tests
-./gradlew :app:lintDebug         # Android lint
+```sh
+bash tools/android/gradle.sh :app:assembleFdroidDebug
 ```
 
-Launch after installing:
+APK: `app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk`.
 
-```bash
-adb shell monkey -p com.bookorbit.debug -c android.intent.category.LAUNCHER 1
+```sh
+# Optional: build with Google's Cast SDK.
+bash tools/android/gradle.sh :app:assembleFullDebug
+
+# Install on a device you explicitly selected with adb.
+adb -s DEVICE_SERIAL install -r app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk
 ```
 
-(`adb` lives in `<sdk>/platform-tools/`.) To start an emulator headlessly:
-`"$ANDROID_HOME/emulator/emulator" -avd <avd-name>`.
+| Variant | Cast SDK | Debug installation ID |
+| --- | --- | --- |
+| `fdroid` | Excluded | `io.github.monkecode.bookorbitclient.debug` |
+| `full` | Included | `io.github.monkecode.bookorbitclient.debug` |
 
-## Connecting to a BookOrbit server
+The flavors replace one another, but do not replace the official or upstream app.
+Release builds use `io.github.monkecode.bookorbitclient` and require your own
+release-signing configuration. Debug APKs are for development; no new public binary
+release is implied by a source push. Ignored `.local/apks/` archives are not GitHub
+downloads and do not ship signing keys.
 
-On first launch the app asks for a server URL. To point at a **local dev server**
-(`pnpm run db:up && pnpm dev` from the repo root, listening on `:3000`):
+**Android Studio:** open this repository root. Minimum Android API is 26, target
+API is 36, and the current Compose toolchain requires compile SDK 37.2. The pinned
+Docker workflow is the reference build environment. More setup, fixtures and
+emulator commands: [Local development](tools/README.md).
 
-- **Emulator:** the host machine is reachable at `10.0.2.2`, so enter `http://10.0.2.2:3000`.
-- **Physical device:** use your machine's LAN IP, e.g. `http://192.168.1.50:3000`.
+## Connect your server
 
-Cleartext HTTP is permitted (self-hosted servers are often plain HTTP on a LAN); prefer HTTPS when
-exposed. For **OIDC** login, the server must whitelist the mobile redirect URI
-`bookorbit://oauth2-callback` (`OIDC_MOBILE_REDIRECT_URIS`, the default).
+1. Enter your BookOrbit URL and sign in with your existing account.
+2. For OIDC, allow **`bookorbitclient://oauth2-callback`** in the server's
+   `OIDC_MOBILE_REDIRECT_URIS`. Do not use the official app's callback for this fork.
+3. Choose a reader mode in **Settings → Reading**. Cached-file mode is the default;
+   online EPUB mode loads resources on demand. Explicit offline editions take priority.
 
-## Project layout
+Use HTTPS for remote deployments. Plain HTTP is supported for trusted local BookOrbit
+connections, but **device-key enrollment requires HTTPS**. Development against the
+isolated fixture server is described in [tools/README.md](tools/README.md).
 
+### AI entry points
+
+- **Settings → AI connection:** choose BookOrbit server or a direct provider;
+  saving does not make a billable model call.
+- **Reader selection → Reading Help:** explicitly confirm sending the selected text.
+- **Search → Find by photo · AI:** choose a cover/shelf photo, review it and confirm.
+  This currently uses BookOrbit's server configuration, not the direct-provider key.
+- **Book details → Story Guide · AI:** open the card below Read/Listen. Opening
+  reads status/content; creating or updating a guide is a separate confirmed job.
+
+Direct credentials stay encrypted and scoped to the server/account/provider.
+Changing a custom endpoint drops its previous token. Custom HTTP endpoints require
+explicit opt-in. There is no automatic provider/route fallback or paid POST replay.
+
+## Allow this client on your own server
+
+This removes the **official-app-only identity restriction for one explicitly trusted
+build**, not all authentication or device-security checks. It is intended only for
+servers you administer. There is no stock admin field where you can paste this key.
+
+The audited policy is in
+[`server/src/modules/app-attest/app-attest.policy.ts`](https://github.com/bookorbit/bookorbit/blob/v3.9.0/server/src/modules/app-attest/app-attest.policy.ts).
+It hardcodes permitted package/signing-certificate pairs. Adding a phone key directly,
+an ordinary API key, or an environment variable to an unmodified server is not equivalent.
+
+### 1. Identify the APK you actually installed
+
+Use Android SDK tools against that exact artifact:
+
+```sh
+apkanalyzer manifest application-id /path/to/client.apk
+apksigner verify --print-certs /path/to/client.apk
 ```
-app/src/main/
-    assets/reader/            # foliate.js + bridge.js + index.html (foliate copied verbatim from the web client's build)
-    java/com/bookorbit/
-      app/                    # Application (Hilt), MainActivity, nav graph (BookOrbitApp / AuthenticatedApp)
-      core/
-        auth/                 # SessionManager, SecureStorage (EncryptedSharedPreferences)
-        network/              # Retrofit ApiService, interceptors, token refresh, ImageUrls
-        model/                # hand-written @Serializable DTOs (mirror the server's API types)
-        db/                   # Room: reader/audio progress + downloads
-        di/                   # Hilt modules (network, database, player)
-        paging/               # Paging 3 sources
-      feature/
-        auth/ library/ search/ scopes/ collections/ authors/ series/
-        dashboard/ bookdetail/ main/
-        reader/               # foliate WebView host + bridge + CFI progress
-        player/               # Media3 service, MediaController manager, player UI
-        downloads/            # WorkManager downloads + offline catalog
-      ui/                     # shared Compose components + theme
+
+You need the **package ID** and **Signer certificate SHA-256 digest**, not the APK
+file's SHA-256, a phone public-key hash or an AI token. A locally rebuilt debug APK
+usually has a different signing certificate.
+
+For the locally validated 0.9.22/0.9.23 development artifacts, the expected pair is:
+
+```text
+package: io.github.monkecode.bookorbitclient.debug
+certificate SHA-256:
+9f8472c84b54b5033314fb3cd26ac949a2b7d818a78530263c3e8dc955c64f0d
 ```
 
-## Architecture & conventions
+**Verify your artifact; do not trust this example blindly.** Prefer a stable private
+release-signing key for a friends-and-family deployment. Never upload that private key.
 
-- **Kotlin + Jetpack Compose** (Material 3), **MVVM** with `ViewModel` + `StateFlow`, **Hilt** DI,
-  **Coroutines/Flow**. Networking is Retrofit/OkHttp + kotlinx.serialization; images via Coil;
-  audiobooks via Media3/ExoPlayer; persistence via Room + DataStore; downloads via WorkManager.
-- **No emoji as icons** — use `androidx.compose.material.icons` (Material Symbols), matching the repo
-  convention.
-- **API models are hand-written** Kotlin `@Serializable` classes (there is no OpenAPI codegen), so
-  server DTO changes must be mirrored here by hand. See [Cross-repo couplings](#cross-repo-couplings).
-- **Reader theming is a three-way sync.** The foliate assets (`assets/reader/`) are a verbatim copy of
-  the web client's build; when the web foliate or its `bridge.js` `THEMES`/`generateCSS` changes,
-  re-copy into `assets/reader/` and keep `feature/reader/ReaderThemes.kt` aligned. See
-  [Cross-repo couplings](#cross-repo-couplings) for the full rule.
+### 2. Add the exact pair in a separate server source checkout
 
-## Testing
+Back up your database and deployment configuration first. Work from the **same server
+version you run**, not a random newer branch, and do not edit a live container.
+The provided minimal patch was tested on **BookOrbit v3.9.0**, commit
+`c1dd6b4f1947ff50843a155e12e70f1e7d15f0c7`; other versions need review.
 
-```bash
-./gradlew :app:testDebugUnitTest    # unit tests (query builder, playback math, serialization)
+Inside `androidKeyAttestPolicy()`, add an entry to `apps`, retaining the official entries:
+
+```ts
+{
+  packageName: 'io.github.monkecode.bookorbitclient.debug',
+  signatureDigests: [
+    '9f8472c84b54b5033314fb3cd26ac949a2b7d818a78530263c3e8dc955c64f0d',
+  ],
+  development: false,
+},
 ```
 
-CI (`.github/workflows/android-build.yml`) runs lint + unit tests + `assembleDebug` on every PR and
-on pushes to `main`.
+Use your own verified values when they differ. `development: false` is intentional:
+even an APK whose package ends in `.debug` must pass the normal hardware checks.
 
-## Cross-repo couplings
+For that **exact example pair and v3.9.0 only**, this repository also supplies
+[`minimal-debug-apk-policy.patch`](tools/server-compat/minimal-debug-apk-policy.patch).
+From the separate server checkout:
 
-This app is developed independently of the [BookOrbit server](https://github.com/bookorbit/bookorbit),
-but two things must be kept in sync **by hand** when the server/web client changes — there is no build
-dependency or codegen that enforces them:
+```sh
+# Set CLIENT_REPO to the absolute path of this Android repository.
+git apply --check "$CLIENT_REPO/tools/server-compat/minimal-debug-apk-policy.patch"
+git apply "$CLIENT_REPO/tools/server-compat/minimal-debug-apk-policy.patch"
+```
 
-1. **API DTOs.** The models in `app/src/main/java/com/bookorbit/core/model/` are hand-written
-   `@Serializable` mirrors of the server's `/api/v1` response types. When a server endpoint's shape
-   changes, update the matching Kotlin model here. `BaseUrlInterceptor` rewrites every request onto the
-   configured server + `/api/v1`.
-2. **Foliate reader assets (three-way sync).** `app/src/main/assets/reader/` is a verbatim copy of the
-   web client's foliate.js build (`client/public/assets/foliate/` in the server repo) plus `bridge.js`,
-   `index.html`. When the web client updates foliate or the `bridge.js` `THEMES`/`generateCSS` block,
-   re-copy those files here and keep the settings-UI swatches in
-   `app/src/main/java/com/bookorbit/feature/reader/ReaderThemes.kt` aligned with the same theme
-   definitions. This preserves byte-identical EPUB CFI sync with the web client and Kobo.
+Do not add the digest under the official package name. Do not use `any`, disable
+certificate validation, or set `NODE_ENV=development` as a workaround. Keep Google
+trust roots, hardware/verified-boot checks, JWT/library permissions and replay protection.
+
+### 3. Test, rebuild and deploy your custom server
+
+The upstream policy test asserts exactly one production identity. Extend its expected
+array with the same explicit entry rather than removing the test. Then, using the
+server repository's required Node/pnpm versions:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm --filter server exec vitest run src/modules/app-attest
+pnpm --filter server build
+
+# Optional Docker artifact, built from the complete server source checkout.
+docker build --build-arg APP_VERSION=3.9.0-local-client \
+  -t bookorbit-with-client:3.9.0 .
+```
+
+Deploy the resulting image using your existing deployment's application service,
+preserving volumes, secrets and production settings. Service names vary; there is
+deliberately no blind `compose down` or database-reset command here. Retain a rollback
+image. Future upstream image updates will not automatically contain your change.
+
+An alternative [opt-in configurable policy](tools/server-compat/README.md) is available
+if you maintain multiple exact package/certificate pairs. Its environment variable
+works **only after applying that companion change**.
+
+### 4. Register the phone, then check the feature
+
+In the app, open **Settings → Device verification for AI → Register device key** and
+confirm certificate disclosure. The phone creates its own hardware-backed key and
+registers it for this server/account. You never paste its private key anywhere.
+
+If it fails, enable [debug logging](#debug-logging), reproduce once and save the log.
+The UI reports the failing stage, HTTP status and a bounded `APP_ATTEST_*` code.
+Use your server logs to distinguish app identity, certificate trust, device/boot,
+clock, proxy and authorization failures. An unlocked or unsupported phone can still fail.
+
+**What has actually been tested:** on an isolated v3.9.0 checkout, 109 attestation
+tests and the server build passed. Synthetic enrollment/signature tests accept our
+exact identity only after adding it and still reject wrong identities, roots,
+challenges, software keys, body changes and replay. This is **not** real-phone
+enrollment or end-to-end photo/model acceptance. No production deployment was changed.
+
+The shared identity policy covers routes using that guard, but enabling trust does
+not configure a model, grant account permissions, remove provider budgets, or
+implement missing client features.
+
+## Debug logging
+
+In **Settings → About → Debug logging**, enable recording, reproduce the issue,
+then choose **Save logs** and select a destination in Android's file picker.
+
+- Off by default; the switch persists on this device until disabled.
+- Structured events only: timestamps, app/Android versions, request categories,
+  HTTP outcomes, attestation stages/codes and player error codes.
+- No tokens, passwords, cookies, URLs, account/book IDs, certificates, request or
+  response bodies, book text or photos. This does not collect Android logcat or
+  arbitrary exception messages.
+- Up to **512 KiB** is retained privately, excluded from backup. Turning logging off
+  stops recording but keeps existing records; **Clear logs** removes the app's
+  retained records, not files you previously exported. Records are device-wide,
+  without account identifiers, rather than a separate log for each login.
+- Export is explicit, not an automatic upload. Review timestamps and technical
+  metadata before sharing. It does not disable attestation or enable server dev mode.
+
+HTTP timings cover response headers, not complete audio/SSE consumption. These are
+targeted diagnostics, not a complete network trace or crash recorder.
+
+## Development & verification
+
+### CI and debug prereleases
+
+Ordinary PR/push/manual **Android Build** runs have no persistent signing secrets.
+Their downloadable APK artifacts use a temporary runner key, not the published
+development certificate, and cannot update installations signed with that certificate.
+
+To publish, dispatch **Debug Prerelease** on `main`. It requires an exact merged-PR
+commit, runs the checks/build without the private key, then signs both APKs in a
+separate `debug-release` environment job and attaches them, checksums and source/run
+metadata to a clearly marked prerelease. The signing job does not check out or run
+repository build scripts. A failed release stays a draft; assets are not overwritten.
+
+The persistent development keystore is an **environment secret**, available only
+to main deployments in that release environment, not a repository secret. The stable
+release/Play workflows use the separate `stable-release` environment and are not
+triggered by normal pushes. Administrators can change these protections; branch
+protection alone cannot prohibit an administrator creating a release manually.
+
+```sh
+bash tools/android/gradle.sh \
+  :app:testFdroidDebugUnitTest :app:testFullDebugUnitTest \
+  :app:assembleFdroidDebug :app:assembleFullDebug \
+  :app:assembleFdroidDebugAndroidTest \
+  :app:lintFdroidDebug :app:lintFullDebug
+
+python -m unittest discover -s tools/android -p 'test_*.py'
+node --test tools/android/test_read_along.mjs tools/android/test_epub_streaming.mjs \
+  tools/android/test_reader_appearance.mjs tools/android/test_reader_paging.mjs
+```
+
+Tests use isolated servers and original synthetic books/media, not production books
+or reading history. Mocks validate protocol, cancellation and consent, not model
+quality, actual audible output or physical-device reliability.
+
+| Documentation | Purpose |
+| --- | --- |
+| [Roadmap](ROADMAP.md) | Short status and next priorities |
+| [Client plan](docs/CLIENT_PLAN.md) | Detailed requirements, invariants and remaining work |
+| [Device testing](docs/DEVICE_TESTING.md) | Acceptance checklist and evidence boundaries |
+| [Local development](tools/README.md) | Docker builds, fixture server and emulator |
+| [AI compatibility](docs/AI_COMPATIBILITY.md) | Audited server contracts and attestation |
+| [Audio compatibility](docs/AUDIO_COMPATIBILITY.md) | Direct play, decoder fallback and transcoding limits |
+
+## Attribution & license
+
+This fork builds on [deranjer/bookorbit-android](https://github.com/deranjer/bookorbit-android).
+The server is [bookorbit/bookorbit](https://github.com/bookorbit/bookorbit). Neither
+project's official distribution channel is a release channel for this fork.
+
+The client retains the [GNU AGPL v3 license](LICENSE). Preserve upstream copyright
+and attribution notices. Reader, OCR, media and dictionary components retain their
+own notices/licenses; FreeDict packages do **not** all share one data license.
+Historical upstream context is retained in the [archived README](docs/history/README.before-refresh.md)
+and [upstream roadmap](docs/history/UPSTREAM_ROADMAP.md).

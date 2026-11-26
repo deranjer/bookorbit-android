@@ -1,0 +1,13 @@
+<resources>
+    <string name="attest_title">Проверка устройства для ИИ</string>
+    <string name="attest_status_off">Ключ не зарегистрирован</string>
+    <string name="attest_status_registered">Ключ зарегистрирован для этого сервера и аккаунта</string>
+    <string name="attest_description">Регистрация устройства для ИИ-функций совместимого сервера.</string>
+    <string name="attest_consent">Сервер получит сертификат ключа со сведениями о приложении и безопасности устройства.</string>
+    <string name="attest_register">Зарегистрировать ключ устройства</string>
+    <string name="attest_busy">Регистрация…</string>
+    <string name="attest_disable">Удалить ключ устройства</string>
+    <string name="attest_registered">Устройство зарегистрировано</string>
+    <string name="attest_disabled">Ключ устройства удалён</string>
+    <string name="attest_failed">Ошибка регистрации. Проверьте поддержку устройства и приложения на сервере, HTTPS и время устройства.</string>
+</resources>

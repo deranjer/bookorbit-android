@@ -12,6 +12,9 @@ import com.bookorbit.core.network.AudiobookAssetResolver
 import com.bookorbit.core.network.AudiobookAssetResolver.Sources
 import com.bookorbit.core.sync.SyncScheduler
 import kotlinx.serialization.json.Json
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import retrofit2.HttpException
 import java.time.Instant
 import java.util.UUID
@@ -35,21 +38,26 @@ class AudioProgressRepository @Inject constructor(
     private val json: Json,
     private val syncScheduler: SyncScheduler,
 ) {
+    private val syncMutex = Mutex()
     /** Last playback-state revision seen per book - the PUT's optimistic-concurrency base. */
     private val revisions = ConcurrentHashMap<Int, Int>()
 
     suspend fun report(bookId: Int, currentFileId: Int, positionSeconds: Double, percentage: Double) {
-        val entity = AudioProgressEntity(bookId, currentFileId, positionSeconds, percentage, System.currentTimeMillis(), dirty = true)
+        val entity = AudioProgressEntity(bookId, currentFileId, positionSeconds, percentage, System.currentTimeMillis(), dirty = true,
+            writeId = UUID.randomUUID().toString())
         dao.upsert(entity)
-        if (push(entity)) dao.markSynced(bookId) else syncScheduler.schedule()
+        syncMutex.withLock {
+            if (dao.get(bookId)?.writeId != entity.writeId) return@withLock
+            if (!push(entity) || dao.markSynced(bookId, entity.writeId) == 0) syncScheduler.schedule()
+        }
     }
 
     /** Push every dirty position to the server. Returns true if anything is still dirty afterward. */
-    suspend fun flushPending(): Boolean {
+    suspend fun flushPending(): Boolean = syncMutex.withLock {
         for (e in dao.dirtyEntries()) {
-            if (push(e)) dao.markSynced(e.bookId)
+            if (push(e)) dao.markSynced(e.bookId, e.writeId)
         }
-        return dao.dirtyEntries().isNotEmpty()
+        dao.dirtyEntries().isNotEmpty()
     }
 
     /** Saved positions, most recently played first (Android Auto "Continue listening" shelf). */
@@ -99,7 +107,10 @@ class AudioProgressRepository @Inject constructor(
             }
             is Sources.Assets -> putPlaybackState(e, sources, retriesLeft = 1)
         }
-    }.onFailure { Log.w(TAG, "progress sync failed bookId=${e.bookId}: ${it.message}") }.getOrDefault(false)
+    }.onFailure {
+        if (it is CancellationException) throw it
+        Log.w(TAG, "progress sync failed bookId=${e.bookId}: ${it.message}")
+    }.getOrDefault(false)
 
     private suspend fun putPlaybackState(e: AudioProgressEntity, sources: Sources.Assets, retriesLeft: Int): Boolean {
         val assetId = sources.assetIds[e.currentFileId] ?: run {

@@ -1,0 +1,27 @@
+<resources>
+    <string name="ai_base_url">Базовый адрес API</string>
+    <string name="ai_allow_http">Разрешить незашифрованный HTTP для этого адреса</string>
+    <string name="ai_http_warning">HTTP: фрагмент и необязательный токен передаются без шифрования. Используйте только доверенную сеть.</string>
+    <string name="ai_endpoint_token_reset">Адрес изменился. Прежний токен не будет использован; при необходимости введите токен нового сервера.</string>
+    <string name="ai_optional_token">API-токен необязателен. Для сервера без авторизации оставьте поле пустым.</string>
+    <string name="ai_ollama_notice">Адрес Ollama без /api/chat. 127.0.0.1 означает этот телефон, а не компьютер. Для сервера в локальной сети укажите доступный адрес. Модель должна быть заранее установлена на том сервере; приложение модели не скачивает.</string>
+    <string name="ai_compatible_notice">Базовый адрес с префиксом API, например https://host/v1/. Приложение добавляет chat/completions. Поддержан текстовый Chat Completions без стриминга; изображения, tools и путеводитель этим не подразумеваются.</string>
+    <string name="ai_connection_title">Подключение ИИ</string>
+    <string name="ai_connection_notice">Выберите маршрут явно. Прямой режим отправляет выделенный фрагмент выбранному серверу: локальному, сетевому или облачному. Он не устанавливает модель на телефон. Автоматического переключения нет. Сохранение не делает сетевой или платный запрос.</string>
+    <string name="ai_route_server">Через BookOrbit</string>
+    <string name="ai_route_direct">Напрямую с телефона</string>
+    <string name="ai_token_stored">Токен сохранён: %1$s</string>
+    <string name="ai_yes">да</string>
+    <string name="ai_no">нет</string>
+    <string name="ai_token_replacement">Новый API-токен (пусто — оставить прежний)</string>
+    <string name="ai_token_remove">Удалить токен</string>
+    <string name="ai_help_model">ID модели для помощи при чтении</string>
+    <string name="ai_guide_model">ID модели путеводителя (на будущее)</string>
+    <string name="ai_model_notice">Укажите ID модели из своего аккаунта провайдера. Сохранение не проверяет доступность и цену. Токены шифруются на устройстве и привязаны к этому аккаунту и серверу BookOrbit.</string>
+    <string name="ai_guide_direct_unsupported">Прямой путеводитель пока не поддержан: структурированный контекст и границы спойлеров не проверены. Запасного запроса к BookOrbit не будет. Для серверного путеводителя выберите этот маршрут явно.</string>
+    <string name="ai_configuration_required">Настройте подключение ИИ или откройте панель заново после его изменения. Запасной запрос не выполнялся.</string>
+    <string name="ai_save">Сохранить</string>
+    <string name="ai_active_server">Подключение: через BookOrbit</string>
+    <string name="ai_active_direct">Подключение: %1$s · %2$s · с телефона</string>
+    <string name="ai_direct_confirm">Отправить только выделенный фрагмент в %1$s, модель %2$s, по адресу ниже? Сервер может передать его облачному провайдеру и списать оплату. Книга целиком, токен и идентификаторы аккаунта BookOrbit не отправляются. ИИ может ошибиться или вывести спойлеры. Автоматического повтора или смены маршрута нет.</string>
+</resources>

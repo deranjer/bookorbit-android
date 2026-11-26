@@ -1,0 +1,24 @@
+<resources>
+    <string name="read_along_background">Аудио EPUB · работает в фоне</string>
+    <string name="reader_native_narration_failed">Не удалось запустить фоновое чтение.</string>
+    <string name="reader_selection_more">Ещё действия</string>
+    <string name="reader_zones_pdf">Нажимайте по краям для перелистывания. Двойное нажатие меняет масштаб.</string>
+    <string name="reader_page_animation">Анимация перелистывания</string>
+    <string name="reader_zones_title">Зоны касания</string>
+    <string name="reader_zones_close">Понятно</string>
+    <string name="reader_zones_book">Нажимайте по краям для перелистывания. Удерживайте слово для выделения.</string>
+    <string name="reader_zones_scroll">Листайте вверх или вниз. Коснитесь экрана для меню.</string>
+    <string name="reader_zones_comic">Листайте свайпом. Масштаб — двумя пальцами или двойным нажатием; перемещение — перетаскиванием.</string>
+    <string name="reader_settings_title">Настройки чтения</string>
+    <string name="reader_settings_done">Готово</string>
+    <string name="reader_settings_reset">Сбросить настройки чтения</string>
+    <string name="reader_continuous">Непрерывная прокрутка</string>
+    <string name="reader_page_margins">Поля сверху и снизу</string>
+    <string name="reader_text_width">Максимальная ширина колонки</string>
+    <string name="reader_columns">Максимум колонок</string>
+    <string name="reader_side_spacing">Боковые отступы</string>
+    <string name="reader_justify">По ширине</string>
+    <string name="reader_hyphenate">Переносы слов</string>
+    <string name="reader_decrease_setting">Уменьшить: %1$s</string>
+    <string name="reader_increase_setting">Увеличить: %1$s</string>
+</resources>

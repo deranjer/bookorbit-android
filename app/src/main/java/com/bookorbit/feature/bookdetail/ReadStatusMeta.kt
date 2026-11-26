@@ -30,7 +30,7 @@ data class ReadStatusMeta(
 val READ_STATUS_META: List<ReadStatusMeta> = listOf(
     ReadStatusMeta("unread", R.string.status_unread, Icons.Outlined.Book, TextMuted),
     ReadStatusMeta("want_to_read", R.string.status_want_to_read, Icons.Outlined.BookmarkBorder, Color(0xFFA78BFA)),
-    ReadStatusMeta("reading", R.string.status_reading, Icons.Filled.AutoStories, Accent),
+    ReadStatusMeta("reading", R.string.status_reading, Icons.Filled.AutoStories, Color(0xFF358F7D)),
     ReadStatusMeta("on_hold", R.string.status_on_hold, Icons.Outlined.PauseCircleOutline, WarningOrange),
     ReadStatusMeta("rereading", R.string.status_rereading, Icons.Filled.Refresh, Color(0xFFE879F9)),
     ReadStatusMeta("read", R.string.status_read, Icons.Filled.CheckCircle, SuccessGreen),

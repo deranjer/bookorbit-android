@@ -1,0 +1,25 @@
+<resources>
+    <string name="vision_rate_limit">Too many requests. Try again later.</string>
+    <string name="vision_title">Find books in a photo · AI</string>
+    <string name="vision_description">Find books from a cover or shelf photo.</string>
+    <string name="vision_cover">Cover</string>
+    <string name="vision_shelf">Shelf</string>
+    <string name="vision_preview">Photo preview</string>
+    <string name="vision_privacy">Review the photo before sending.</string>
+    <string name="vision_pick">Choose photo</string>
+    <string name="vision_scan">Identify books</string>
+    <string name="vision_cancelled">Recognition cancelled</string>
+    <string name="vision_empty">No readable books were found in this photo.</string>
+    <string name="vision_check">Check the title and author.</string>
+    <string name="vision_no_match">No matching book in your accessible libraries.</string>
+    <string name="vision_open_match">Open library match: %1$s</string>
+    <string name="vision_confirm_title">Send this photo to AI?</string>
+    <string name="vision_confirm_body">The AI service will receive the selected photo. Processing charges may apply.</string>
+    <string name="vision_restricted">Server access restricted. Check device registration in Settings.</string>
+    <string name="vision_disabled">Photo recognition requires AI setup on your server.</string>
+    <string name="vision_unsupported">Photo recognition requires a compatible server.</string>
+    <string name="vision_timeout">Photo recognition timed out.</string>
+    <string name="vision_refused">The AI service declined this photo.</string>
+    <string name="vision_image_error">Choose another photo under 10 MB.</string>
+    <string name="vision_provider">Photo recognition error.</string>
+</resources>

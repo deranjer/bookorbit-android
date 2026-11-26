@@ -1,0 +1,25 @@
+<resources>
+    <string name="vision_rate_limit">Слишком много запросов. Попробуйте позже.</string>
+    <string name="vision_title">Найти книги на фото · ИИ</string>
+    <string name="vision_description">Найдите книги по фото обложки или полки.</string>
+    <string name="vision_cover">Обложка</string>
+    <string name="vision_shelf">Полка</string>
+    <string name="vision_preview">Предпросмотр фото</string>
+    <string name="vision_privacy">Проверьте фото перед отправкой.</string>
+    <string name="vision_pick">Выбрать фото</string>
+    <string name="vision_scan">Распознать книги</string>
+    <string name="vision_cancelled">Распознавание отменено</string>
+    <string name="vision_empty">На фото не удалось прочитать названия книг.</string>
+    <string name="vision_check">Проверьте название и автора.</string>
+    <string name="vision_no_match">Совпадений в доступных вам библиотеках нет.</string>
+    <string name="vision_open_match">Открыть в библиотеке: %1$s</string>
+    <string name="vision_confirm_title">Отправить это фото ИИ?</string>
+    <string name="vision_confirm_body">ИИ-сервис получит выбранное фото. Возможна плата за обработку.</string>
+    <string name="vision_restricted">Сервер ограничил доступ. Проверьте регистрацию устройства в настройках.</string>
+    <string name="vision_disabled">Для распознавания фото требуется настройка ИИ на сервере.</string>
+    <string name="vision_unsupported">Для распознавания фото требуется совместимый сервер.</string>
+    <string name="vision_timeout">Время ожидания распознавания истекло.</string>
+    <string name="vision_refused">ИИ-сервис отклонил фото.</string>
+    <string name="vision_image_error">Выберите другое фото размером до 10 МБ.</string>
+    <string name="vision_provider">Ошибка распознавания фото.</string>
+</resources>

@@ -19,6 +19,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -34,10 +36,16 @@ class PdfReaderViewModel @Inject constructor(
     private val progress: ReaderProgressRepository,
     private val settingsStore: PdfReaderSettingsStore,
     private val sessions: ReadingSessionTracker,
+    session: com.bookorbit.core.auth.SessionManager,
+    private val lastEditions: com.bookorbit.feature.reader.LastReadEditionStore,
+    private val readerSettingsStore: com.bookorbit.feature.reader.ReaderSettingsStore,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
+    private val selectedFileId = checkNotNull(savedStateHandle.get<Int>("fileId"))
+    private val activityOwner = session.owner()
+    private var readingHandle: com.bookorbit.feature.sessions.ReadingHandle? = null
 
     /** A single search match: which page it is on, and its bounds in page-point space. */
     data class SearchHit(val page: Int, val rect: RectF)
@@ -62,10 +70,13 @@ class PdfReaderViewModel @Inject constructor(
         val settings: PdfReaderSettings = PdfReaderSettings(),
         val hasTextLayer: Boolean = Build.VERSION.SDK_INT >= 35,
         val search: SearchState? = null,
+        val navigation: PdfPageRequest? = null,
     )
 
     private val _ui = MutableStateFlow(UiState())
     val ui = _ui.asStateFlow()
+    val readerSettings = readerSettingsStore.observe().stateIn(viewModelScope, SharingStarted.Eagerly, com.bookorbit.feature.reader.ReaderSettings())
+    private var navigationSequence = 0L
 
     private var fileId: Int = 0
     private var lastSaved = 0L
@@ -90,12 +101,14 @@ class PdfReaderViewModel @Inject constructor(
             _ui.update { it.copy(title = book.title) }
 
             try {
-                val resolved = source.resolvePdf(book)
+                val resolved = source.resolvePdf(book, selectedFileId)
                 fileId = resolved.fileId
                 val core = PdfRenderCore.open(context, resolved.ref)
                 val initial = progress.resolveInitial(resolved.fileId)
-                val page = PdfProgress.fractionToPage(initial.fraction, core.pageCount)
-                sessions.beginReading(resolved.fileId, PdfProgress.pageToPercentage(page, core.pageCount))
+                val page = initial.pageNumber?.takeIf { it > 0 }?.minus(1)?.coerceIn(0, core.pageCount - 1)
+                    ?: PdfProgress.fractionToPage(initial.fraction, core.pageCount)
+                activityOwner?.let { lastEditions.record(it, bookId, resolved.fileId) }
+                readingHandle = sessions.beginReading(resolved.fileId, PdfProgress.pageToPercentage(page, core.pageCount), activityOwner)
                 _ui.update {
                     it.copy(
                         loading = false,
@@ -118,12 +131,26 @@ class PdfReaderViewModel @Inject constructor(
         if (clamped == _ui.value.currentPage) return
         _ui.update { it.copy(currentPage = clamped) }
         report(clamped)
-        sessions.onReadingProgress(PdfProgress.pageToPercentage(clamped, total))
+        readingHandle?.let { sessions.onReadingProgress(it, PdfProgress.pageToPercentage(clamped, total)) }
     }
 
     fun updateSettings(settings: PdfReaderSettings) {
         _ui.update { it.copy(settings = settings) }
         viewModelScope.launch { settingsStore.save(settings) }
+    }
+
+    fun goToPage(page: Int) {
+        val count = _ui.value.pageCount
+        if (count <= 0) return
+        _ui.update { it.copy(navigation = PdfPageRequest(page.coerceIn(0, count - 1), ++navigationSequence)) }
+    }
+
+    fun onNavigationApplied(request: PdfPageRequest) {
+        _ui.update { if (it.navigation == request) it.copy(navigation = null) else it }
+    }
+
+    fun updatePageAnimation(animated: Boolean) {
+        viewModelScope.launch { readerSettingsStore.save(readerSettingsStore.load().copy(animatePageTurns = animated)) }
     }
 
     // ---- Search (API 35+) ----
@@ -149,6 +176,7 @@ class PdfReaderViewModel @Inject constructor(
             _ui.update {
                 it.copy(search = SearchState(query, running = false, hits = hits, activeIndex = if (hits.isEmpty()) -1 else 0))
             }
+            hits.firstOrNull()?.let { goToPage(it.page) }
         }
     }
 
@@ -161,6 +189,7 @@ class PdfReaderViewModel @Inject constructor(
         if (s.hits.isEmpty()) return
         val next = (s.activeIndex + delta + s.hits.size) % s.hits.size
         _ui.update { it.copy(search = s.copy(activeIndex = next)) }
+        goToPage(s.hits[next].page)
     }
 
     fun clearSearch() {
@@ -186,7 +215,7 @@ class PdfReaderViewModel @Inject constructor(
 
     override fun onCleared() {
         flush()
-        sessions.end()
+        readingHandle?.let(sessions::endReading)
         _ui.value.core?.close()
         super.onCleared()
     }

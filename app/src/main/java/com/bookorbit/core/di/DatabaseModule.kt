@@ -9,6 +9,9 @@ import com.bookorbit.core.db.AnnotationCacheDao
 import com.bookorbit.core.db.MIGRATION_5_6
 import com.bookorbit.core.db.MIGRATION_6_7
 import com.bookorbit.core.db.MIGRATION_7_8
+import com.bookorbit.core.db.MIGRATION_8_9
+import com.bookorbit.core.db.MIGRATION_9_10
+import com.bookorbit.core.db.MIGRATION_10_11
 import com.bookorbit.core.db.PendingAnnotationOpDao
 import com.bookorbit.core.db.PendingRatingDao
 import com.bookorbit.core.db.PendingReadStatusDao
@@ -33,7 +36,7 @@ object DatabaseModule {
         session.activeDataScope = scope
         val name = if (scope.isEmpty()) "bookorbit.db" else "bookorbit-$scope.db"
         return Room.databaseBuilder(context, BookOrbitDatabase::class.java, name)
-            .addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+            .addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
             .fallbackToDestructiveMigration()
             .build()
     }

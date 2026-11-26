@@ -7,7 +7,7 @@ import com.bookorbit.core.model.BookFileRef
 import com.bookorbit.core.model.BookFiles
 import com.bookorbit.core.network.ApiService
 import com.bookorbit.feature.downloads.DownloadsRepository
-import com.bookorbit.feature.downloads.isCompleteDownloadStatus
+import com.bookorbit.feature.downloads.hasPublishedAudio
 import com.bookorbit.feature.library.filters.LibraryFilters
 import com.bookorbit.feature.library.filters.LibrarySort
 import com.bookorbit.feature.library.filters.buildBookQuery
@@ -47,7 +47,7 @@ class AutoLibraryRepository @Inject constructor(
     private suspend fun books(): List<BookCard> = lock.withLock {
         if (session.dataScopeChanged()) throw AutoRequestException(AutoFailure.INVALID_REQUEST)
         val requestScope = scope()
-        val local = downloads.downloads.first().filter { it.isAudiobook && it.status.isCompleteDownloadStatus() }.map { download ->
+        val local = downloads.downloads.first().filter { it.hasPublishedAudio() }.map { download ->
             val book = runCatching { json.decodeFromString(BookDetail.serializer(), download.bookJson) }.getOrNull()
             BookCard(download.bookId, title = download.title,
                 authors = book?.authors?.map { it.name }?.takeIf { it.isNotEmpty() } ?: listOfNotNull(download.authors.takeIf { it.isNotBlank() }),

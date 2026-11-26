@@ -15,6 +15,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -65,7 +72,13 @@ fun HighlightToolbar(
     onNote: () -> Unit,
     onDelete: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    onReadingHelp: (() -> Unit)? = null,
+    onTranslate: (() -> Unit)? = null,
+    onDictionary: (() -> Unit)? = null,
+    onListenFromHere: (() -> Unit)? = null,
 ) {
+    var more by remember { mutableStateOf(false) }
+    var palette by remember { mutableStateOf(false) }
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.extraLarge,
@@ -73,34 +86,37 @@ fun HighlightToolbar(
         shadowElevation = 6.dp,
         color = Color(0xF21E1E1E),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        FlowRow(
+            modifier = Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 4.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            ReaderAnnotationRepository.COLORS.forEach { (name, hex) ->
-                val selected = currentColor != null && currentColor.equals(hex, ignoreCase = true) || currentColor == name
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clickable(onClickLabel = stringResource(R.string.highlight, name)) { onColor(hex) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(highlightColor(hex))
-                            .border(if (selected) BorderStroke(2.dp, Color.White) else BorderStroke(0.dp, Color.Transparent), CircleShape),
-                    )
+            Box {
+                IconButton(onClick = { palette = true }) {
+                    Box(Modifier.size(26.dp).clip(CircleShape).background(highlightColor(currentColor ?: "#FACC15"))
+                        .border(1.dp, Color.White, CircleShape))
+                    Icon(Icons.Filled.EditNote, contentDescription = stringResource(R.string.highlights), tint = Color.Black)
+                }
+                DropdownMenu(expanded = palette, onDismissRequest = { palette = false }) {
+                    ReaderAnnotationRepository.COLORS.forEach { (name, hex) ->
+                        DropdownMenuItem(text = { Box(Modifier.size(26.dp).clip(CircleShape).background(highlightColor(hex))) },
+                            onClick = { palette = false; onColor(hex) },
+                            modifier = Modifier.heightIn(min = 48.dp),
+                            leadingIcon = { Text(stringResource(R.string.highlight, name)) })
+                    }
                 }
             }
-            IconButton(onClick = onNote) {
-                Icon(Icons.Filled.EditNote, contentDescription = stringResource(R.string.add_note), tint = Color.White)
-            }
-            if (onDelete != null) {
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.delete_highlight), tint = Color.White)
+            if (onTranslate != null) TextButton(modifier = Modifier.heightIn(min = 48.dp), onClick = onTranslate) { Text(stringResource(R.string.reader_translate), color = Color.White) }
+            if (onDictionary != null) TextButton(modifier = Modifier.heightIn(min = 48.dp), onClick = onDictionary) { Text(stringResource(R.string.reader_dictionary), color = Color.White) }
+            Box {
+                IconButton(onClick = { more = true }) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.reader_selection_more), tint = Color.White)
+                }
+                DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
+                    if (onListenFromHere != null) DropdownMenuItem(text = { Text(stringResource(R.string.read_along_from_selection)) },
+                        onClick = { more = false; onListenFromHere() })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.add_note)) }, onClick = { more = false; onNote() })
+                    if (onReadingHelp != null) DropdownMenuItem(text = { Text(stringResource(R.string.help_title)) }, onClick = { more = false; onReadingHelp() })
+                    if (onDelete != null) DropdownMenuItem(text = { Text(stringResource(R.string.delete_highlight)) }, onClick = { more = false; onDelete() })
                 }
             }
         }
@@ -164,10 +180,11 @@ fun HighlightsSheet(
         } else {
             LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp)) {
                 items(annotations, key = { it.id }) { a ->
+                    val uncertain = a.positionStatus?.startsWith("delivery-uncertain") == true
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onJump(a) }
+                            .clickable(enabled = a.cfi != null) { onJump(a) }
                             .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -179,6 +196,9 @@ fun HighlightsSheet(
                                 .background(highlightColor(a.color)),
                         )
                         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                            if (uncertain) Text(
+                                stringResource(if (a.positionStatus == "delivery-uncertain-delete") R.string.reader_annotation_uncertain_delete else R.string.reader_annotation_uncertain),
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                             a.chapterTitle?.takeIf { it.isNotBlank() }?.let {
                                 Text(
                                     it,
@@ -188,19 +208,21 @@ fun HighlightsSheet(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
-                            Text(a.text, style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                            if (uncertain) androidx.compose.foundation.text.selection.SelectionContainer {
+                                Text(a.text, style = MaterialTheme.typography.bodyMedium)
+                            } else Text(a.text, style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
                             a.note?.takeIf { it.isNotBlank() }?.let {
                                 Text(
                                     it,
                                     style = MaterialTheme.typography.bodySmall,
                                     fontStyle = FontStyle.Italic,
                                     color = MaterialTheme.colorScheme.primary,
-                                    maxLines = 3,
+                                    maxLines = if (uncertain) Int.MAX_VALUE else 3,
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
                         }
-                        IconButton(onClick = { onDelete(a) }) {
+                        IconButton(enabled = !uncertain, onClick = { onDelete(a) }) {
                             Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.delete_highlight))
                         }
                     }

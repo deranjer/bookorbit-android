@@ -11,7 +11,9 @@
  * Keep this file dependency-free and in plain ES module JS — it is shipped as a static
  * asset served by WebViewAssetLoader.
  */
-import './foliate/view.js';
+import { makeStreamingBook } from './foliate/view.js';
+import { chapterSurfaceCSS, applyCanvasTheme } from './appearance.js';
+import { ReadAlongController } from './read-along.js';
 
 const container = document.getElementById('reader');
 
@@ -21,6 +23,7 @@ let currentSettings = null;
 let view = null;
 /** Base64 transfer state for the book currently being opened. */
 let pending = null;
+const readAlong = new ReadAlongController(post);
 
 function post(message) {
   try {
@@ -58,6 +61,7 @@ const DEFAULT_SETTINGS = {
   fontFamily: null,
   maxColumnCount: 2,
   gap: 0.05,
+  pageMargin: 40,
   maxInlineSize: 720,
   maxBlockSize: 1440,
   justify: true,
@@ -65,6 +69,7 @@ const DEFAULT_SETTINGS = {
   isDark: false,
   themeName: 'default',
   flow: 'paginated',
+  animatePageTurns: true,
 };
 
 function themeFor(name) {
@@ -97,11 +102,14 @@ function generateCSS(s) {
     pre { white-space: pre-wrap !important; tab-size: 2; }
     ${
       forceBg
-        ? `html, body { color: ${mode.fg} !important; background: none !important; }
-           body * { color: inherit !important; border-color: currentColor !important; background-color: ${mode.bg} !important; }
-           a:any-link { color: ${mode.link} !important; }
-           svg, img { background-color: transparent !important; ${!dark ? 'mix-blend-mode: multiply;' : ''} }`
+        ? chapterSurfaceCSS(mode)
         : ''
+    }
+    .${CSS.escape(view?.book?.media?.activeClass || 'bookorbit-read-along-active')} {
+      background-color: ${dark ? 'rgba(255, 210, 110, .28)' : 'rgba(245, 190, 55, .35)'} !important;
+      color: inherit !important;
+      border-radius: .2em;
+      box-decoration-break: clone;
     }
     p, li, blockquote, dd { line-height: ${s.lineHeight}; text-align: ${s.justify ? 'justify' : 'start'} !important; hyphens: ${s.hyphenate ? 'auto' : 'none'}; }
     ::selection { background-color: rgba(128, 128, 128, 0.3); }
@@ -114,14 +122,18 @@ function applyStyles(settings) {
   currentSettings = { ...DEFAULT_SETTINGS, ...(settings ?? currentSettings ?? {}) };
   const s = currentSettings;
   const r = view.renderer;
+  const theme = themeFor(s.themeName);
+  applyCanvasTheme(document, container, view, r, s.isDark ? theme.dark : theme.light, s.isDark);
   if (!r) return;
   r.setAttribute('max-column-count', String(s.maxColumnCount));
   r.setAttribute('gap', `${s.gap * 100}%`);
   r.setAttribute('max-inline-size', `${s.maxInlineSize}px`);
   r.setAttribute('max-block-size', `${s.maxBlockSize}px`);
-  if (s.flow === 'paginated') r.setAttribute('margin', '40px');
+  if (s.flow === 'paginated') r.setAttribute('margin', `${s.pageMargin}px`);
   else r.removeAttribute('margin');
   r.setAttribute('flow', s.flow);
+  if (s.animatePageTurns) r.setAttribute('animated', '');
+  else r.removeAttribute('animated');
   if (typeof r.setStyles === 'function') r.setStyles(generateCSS(s));
 }
 
@@ -357,7 +369,9 @@ function attachDocHandlers(doc, index) {
     }, 0);
   });
 
+  let selectionRequest = 0;
   doc.addEventListener('selectionchange', () => {
+    const request = ++selectionRequest;
     clearTimeout(selectionTimer);
     selectionTimer = setTimeout(() => {
       const sel = doc.getSelection();
@@ -375,6 +389,12 @@ function attachDocHandlers(doc, index) {
         cfi = null;
       }
       post({ type: 'selection', text, cfi, rect: viewportRect(range) });
+      const selected = range.cloneRange();
+      void readAlong.positionForSelection(index, selected).then(narration => {
+        if (!narration || request !== selectionRequest) return;
+        if (!view?.renderer?.getContents?.().some(content => content.doc === doc && content.index === index)) return;
+        post({ type: 'selection', text, cfi, rect: viewportRect(selected), narration });
+      });
     }, 300);
   });
 }
@@ -425,6 +445,7 @@ function createView() {
       cfi: d.cfi ?? null,
       fraction: typeof d.fraction === 'number' ? d.fraction : null,
       chapterTitle: d.tocItem?.label ?? null,
+      sectionIndex: Number.isInteger(d.sectionIndex) ? d.sectionIndex : null,
       location: d.location ?? null,
     });
   });
@@ -459,9 +480,18 @@ async function openBook(meta, parts) {
   try {
     createView();
     const format = (meta.format ?? 'epub').toLowerCase();
-    const blob = new Blob(parts, { type: MIME[format] ?? 'application/octet-stream' });
-    const file = new File([blob], `book.${format}`, { type: blob.type });
+    let file;
+    if (meta.streaming) {
+      const { bookId, fileId, baseUrl, info } = meta.streaming;
+      // Native interception owns authorization. No bearer token is ever exposed to this page.
+      file = await makeStreamingBook(bookId, baseUrl, info, null, null, fileId);
+    } else {
+      const blob = new Blob(parts, { type: MIME[format] ?? 'application/octet-stream' });
+      file = new File([blob], `book.${format}`, { type: blob.type });
+    }
 
+    applyStyles(meta.settings ?? currentSettings);
+    readAlong.detach();
     await view.open(file);
 
     applyStyles(meta.settings ?? currentSettings);
@@ -472,6 +502,7 @@ async function openBook(meta, parts) {
       metadata: {
         title: view.book?.metadata?.title ?? null,
         language: view.book?.metadata?.language ?? null,
+        direction: view.book?.dir === 'rtl' ? 'rtl' : 'ltr',
       },
     });
 
@@ -493,6 +524,7 @@ async function openBook(meta, parts) {
       }
     }
     if (!navigated) await view.goTo(0).catch(() => {});
+    readAlong.attach(view, meta.readAlongPosition);
   } catch (e) {
     postError(e?.message ?? 'Failed to open book');
   }
@@ -537,6 +569,12 @@ window.__readerCommand = (json) => {
     return;
   }
   switch (cmd.type) {
+    case 'readAlong':
+      void readAlong.command(cmd.action, cmd.rate);
+      break;
+    case 'nativeReadAlong':
+      readAlong.followNative(cmd.position);
+      break;
     case 'goTo':
       void view.goTo(cmd.target).catch(() => {});
       break;

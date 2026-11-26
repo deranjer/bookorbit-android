@@ -10,6 +10,8 @@ data class BookFileRef(
     val sizeBytes: Long? = null,
     val durationSeconds: Double? = null,
     val filename: String? = null,
+    val fileHash: String? = null,
+    val contentVersion: String? = null,
 )
 
 @Serializable

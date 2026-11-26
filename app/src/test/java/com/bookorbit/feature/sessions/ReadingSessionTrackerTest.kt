@@ -1,6 +1,7 @@
 package com.bookorbit.feature.sessions
 
 import com.bookorbit.core.auth.SessionManager
+import com.bookorbit.core.auth.SessionOwner
 import com.bookorbit.core.db.PendingReadingSessionDao
 import com.bookorbit.core.db.PendingReadingSessionEntity
 import com.bookorbit.core.model.AuthUser
@@ -52,6 +53,9 @@ class ReadingSessionTrackerTest {
         dao = FakeSessionDao()
         val session = mockk<SessionManager>()
         every { session.currentUser } answers { signedIn }
+        every { session.owner() } answers { signedIn?.let { SessionOwner("https://synthetic.test", it.id, 1) } }
+        every { session.owns(any()) } answers { firstArg<SessionOwner>() == session.owner() }
+        every { session.dataScopeChanged() } returns false
         tracker = ReadingSessionTracker(dao, api, mockk<SyncScheduler>(relaxed = true), session)
     }
 
@@ -72,7 +76,7 @@ class ReadingSessionTrackerTest {
     @Test
     fun `flush keeps a session queued when the session has expired`() = runTest {
         queue("s1", me.id)
-        coEvery { api.saveReadingSession(any(), any()) } throws HttpException(Response.error<Any>(401, "".toResponseBody()))
+        coEvery { api.saveReadingSession(any(), any(), any()) } throws HttpException(Response.error<Any>(401, "".toResponseBody()))
         assertTrue(tracker.flushPending())
         assertEquals(1, dao.rows.size)
     }
@@ -80,7 +84,7 @@ class ReadingSessionTrackerTest {
     @Test
     fun `flush still drops a session the server permanently rejects`() = runTest {
         queue("s1", me.id)
-        coEvery { api.saveReadingSession(any(), any()) } throws HttpException(Response.error<Any>(404, "".toResponseBody()))
+        coEvery { api.saveReadingSession(any(), any(), any()) } throws HttpException(Response.error<Any>(404, "".toResponseBody()))
         assertFalse(tracker.flushPending())
         assertTrue(dao.rows.isEmpty())
     }
@@ -90,15 +94,15 @@ class ReadingSessionTrackerTest {
         queue("s1", me.id)
         signedIn = someoneElse
         assertFalse(tracker.flushPending())
-        coVerify(exactly = 0) { api.saveReadingSession(any(), any()) }
+        coVerify(exactly = 0) { api.saveReadingSession(any(), any(), any()) }
 
         signedIn = null
         assertFalse(tracker.flushPending())
-        coVerify(exactly = 0) { api.saveReadingSession(any(), any()) }
+        coVerify(exactly = 0) { api.saveReadingSession(any(), any(), any()) }
 
         signedIn = me
         assertFalse(tracker.flushPending())
-        coVerify(exactly = 1) { api.saveReadingSession(9, any()) }
+        coVerify(exactly = 1) { api.saveReadingSession(9, any(), any()) }
         assertTrue(dao.rows.isEmpty())
     }
 
@@ -107,6 +111,6 @@ class ReadingSessionTrackerTest {
         queue("s1", null)
         signedIn = someoneElse
         assertFalse(tracker.flushPending())
-        coVerify(exactly = 1) { api.saveReadingSession(9, any()) }
+        coVerify(exactly = 1) { api.saveReadingSession(9, any(), any()) }
     }
 }

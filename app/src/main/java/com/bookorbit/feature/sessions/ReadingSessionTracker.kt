@@ -7,6 +7,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.bookorbit.core.auth.SessionManager
+import com.bookorbit.core.auth.SessionOwner
 import com.bookorbit.core.db.PendingReadingSessionDao
 import com.bookorbit.core.db.PendingReadingSessionEntity
 import com.bookorbit.core.model.SaveReadingSession
@@ -34,15 +35,21 @@ import javax.inject.Singleton
  * A queued session belongs to the account that was signed in and waits while that account is signed out.
  */
 @Singleton
-class ReadingSessionTracker @Inject constructor(
+class ReadingSessionTracker internal constructor(
     private val dao: PendingReadingSessionDao,
     private val api: ApiService,
     private val syncScheduler: SyncScheduler,
     private val session: SessionManager,
+    private val scope: CoroutineScope,
+    private val clock: () -> Long,
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    @Inject constructor(dao: PendingReadingSessionDao, api: ApiService, syncScheduler: SyncScheduler, session: SessionManager) :
+        this(dao, api, syncScheduler, session, CoroutineScope(SupervisorJob() + Dispatchers.IO), System::currentTimeMillis)
     private val recorder = ReadingSessionRecorder(maxGapMs = MAX_GAP_MS)
+    private val activities = ReadingActivityArbiter()
+    private var activeOwner: SessionOwner? = null
     private var lastCheckpointMs = 0L
+    private var foreground = true
 
     init {
         // ProcessLifecycleOwner must be touched on the main thread.
@@ -57,84 +64,115 @@ class ReadingSessionTracker @Inject constructor(
     // --- reading (ebook / PDF) ---
 
     @Synchronized
-    fun beginReading(fileId: Int, percent: Double?) {
-        val key = "read:$fileId"
-        if (recorder.key == key) return
-        endLocked()
-        recorder.begin(key, fileId, SessionType.READ, percent, now())
-        lastCheckpointMs = now()
+    fun beginReading(fileId: Int, percent: Double?, expectedOwner: SessionOwner? = liveOwner()): ReadingHandle? {
+        if (expectedOwner == null || expectedOwner != liveOwner()) { applyActivity(); return null }
+        val handle = activities.openReader(expectedOwner, fileId, percent)
+        applyActivity()
+        return handle
     }
 
     @Synchronized
-    fun onReadingProgress(percent: Double) {
-        if (recorder.key?.startsWith("read:") != true) return
-        recorder.progress(percent, now())
-        checkpointIfDue()
+    fun onReadingProgress(handle: ReadingHandle, percent: Double) {
+        if (handle.owner == liveOwner()) activities.readerProgress(handle, percent)
+        applyActivity()
     }
+
+    @Synchronized
+    fun endReading(handle: ReadingHandle) { activities.closeReader(handle); applyActivity() }
 
     // --- listening (audiobook) ---
 
     /** Called while playing (every few seconds). Opens a session on first call for a book. */
     @Synchronized
-    fun onListening(bookId: Int, firstFileId: Int, percent: Double) {
-        val key = "listen:$bookId"
-        val now = now()
-        if (recorder.key == key && recorder.inactiveForMs(now) > LISTEN_IDLE_CLOSE_MS) endLocked()
-        if (recorder.key != key) {
-            endLocked()
-            recorder.begin(key, firstFileId, SessionType.LISTEN, percent, now)
-            lastCheckpointMs = now
-        }
-        recorder.setActive(true, now)
-        recorder.progress(percent, now)
-        checkpointIfDue()
+    fun onListening(bookId: Int, firstFileId: Int, percent: Double, expectedOwner: SessionOwner? = liveOwner()) {
+        if (expectedOwner != null && expectedOwner == liveOwner() && percent.isFinite())
+            activities.listening(expectedOwner, bookId, firstFileId, percent)
+        applyActivity()
     }
 
     @Synchronized
-    fun setListeningActive(active: Boolean) {
-        if (recorder.key?.startsWith("listen:") != true) return
-        val now = now()
-        if (active && recorder.inactiveForMs(now) > LISTEN_IDLE_CLOSE_MS) {
-            // Paused a long while: close it; the next onListening call opens a fresh session.
-            endLocked()
-            return
-        }
-        recorder.setActive(active, now)
+    fun setListeningActive(active: Boolean, expectedOwner: SessionOwner? = liveOwner()) {
+        if (expectedOwner != null && expectedOwner == liveOwner()) activities.audioPlaying(expectedOwner, active)
+        applyActivity()
         if (!active) checkpointLocked()
     }
+
+    @Synchronized
+    fun endListening(expectedOwner: SessionOwner? = liveOwner()) {
+        expectedOwner?.let(activities::closeAudio)
+        applyActivity()
+    }
+
+    @Synchronized
+    fun beginNarration(fileId: Int, owner: SessionOwner): NarrationHandle? {
+        if (owner != liveOwner()) { applyActivity(); return null }
+        val handle = activities.openNarration(owner, fileId)
+        applyActivity()
+        return handle
+    }
+
+    @Synchronized
+    fun setNarrationActive(handle: NarrationHandle, active: Boolean) {
+        if (handle.owner == liveOwner()) activities.narrationPlaying(handle, active)
+        applyActivity()
+        if (!active) checkpointLocked()
+    }
+
+    @Synchronized
+    fun endNarration(handle: NarrationHandle) { activities.closeNarration(handle); applyActivity() }
 
     // --- shared ---
 
     /** Close the open session (if any) and queue it. */
     @Synchronized
-    fun end() = endLocked()
+    fun end() { activities.clear(); endLocked() }
 
     /**
      * Send the signed-in account's queued sessions. Returns true if any of them remain (so the sync
      * worker retries); those of an account that isn't signed in wait for its next sign-in.
      */
     suspend fun flushPending(): Boolean {
-        val user = session.currentUser?.id ?: return false
+        val owner = liveOwner() ?: return false
+        val user = owner.userId
         for (entity in mine(user)) {
-            send(entity)
+            send(entity, owner.serverUrl)
         }
-        return mine(user).isNotEmpty()
+        return session.owns(owner) && mine(user).isNotEmpty()
     }
+
+    private fun liveOwner(): SessionOwner? = session.owner()?.takeUnless { session.dataScopeChanged() }
 
     /** Rows queued before owners were recorded have none and go out with whoever is signed in. */
     private suspend fun mine(user: Int) = dao.all().filter { it.userId == null || it.userId == user }
 
     @Synchronized
-    private fun onForeground(foreground: Boolean) {
-        // Only reading follows the app's visibility; audio keeps playing in the background.
-        if (recorder.key?.startsWith("read:") != true) return
-        recorder.setActive(foreground, now())
+    internal fun onForeground(foreground: Boolean) {
+        this.foreground = foreground
+        applyActivity()
         if (!foreground) checkpointLocked()
+    }
+
+    private fun applyActivity() {
+        val choice = activities.choose(liveOwner(), foreground) ?: run { endLocked(); return }
+        val now = now()
+        val expiredPause = choice.type == SessionType.LISTEN && choice.active && recorder.key == choice.key &&
+            recorder.inactiveForMs(now) > LISTEN_IDLE_CLOSE_MS
+        if (recorder.key != choice.key || activeOwner != choice.owner || expiredPause) {
+            endLocked()
+            activeOwner = choice.owner
+            recorder.begin(choice.key, choice.fileId, choice.type, choice.percent, now)
+            lastCheckpointMs = now
+        }
+        recorder.setActive(choice.active, now)
+        choice.percent?.takeIf { it.isFinite() }?.let { recorder.progress(it, now) }
+        checkpointIfDue()
     }
 
     private fun endLocked() {
         val snap = recorder.end(now()) ?: return
-        persistAndSend(snap)
+        val owner = activeOwner
+        activeOwner = null
+        if (owner != null) persistAndSend(snap, owner)
     }
 
     private fun checkpointIfDue() {
@@ -144,10 +182,10 @@ class ReadingSessionTracker @Inject constructor(
     private fun checkpointLocked() {
         lastCheckpointMs = now()
         val snap = recorder.snapshot(now()) ?: return
-        persistAndSend(snap)
+        activeOwner?.let { persistAndSend(snap, it) }
     }
 
-    private fun persistAndSend(snap: SessionSnapshot) {
+    private fun persistAndSend(snap: SessionSnapshot, owner: SessionOwner) {
         if (snap.durationSeconds < MIN_SESSION_SECONDS) return
         val entity = PendingReadingSessionEntity(
             sessionId = snap.sessionId,
@@ -158,15 +196,17 @@ class ReadingSessionTracker @Inject constructor(
             durationSeconds = snap.durationSeconds,
             progressDelta = snap.progressDelta,
             endProgress = snap.endProgress,
-            userId = session.currentUser?.id,
+            userId = owner.userId,
         )
         scope.launch {
             dao.upsert(entity)
-            send(entity)
+            send(entity, owner.serverUrl)
         }
     }
 
-    private suspend fun send(e: PendingReadingSessionEntity) {
+    private suspend fun send(e: PendingReadingSessionEntity, expectedServer: String) {
+        val owner = liveOwner() ?: return
+        if (owner.serverUrl != expectedServer || e.userId != null && e.userId != owner.userId) return
         val body = SaveReadingSession(
             sessionId = e.sessionId,
             startedAt = Instant.ofEpochMilli(e.startedAt).toString(),
@@ -178,7 +218,7 @@ class ReadingSessionTracker @Inject constructor(
             source = SOURCE,
         )
         try {
-            api.saveReadingSession(e.fileId, body)
+            api.saveReadingSession(e.fileId, body, owner)
             Log.d(TAG, "sent ${e.sessionType} session ${e.sessionId} file=${e.fileId} ${e.durationSeconds}s end=${e.endProgress}")
             dao.deleteIfUnchanged(e.sessionId, e.endedAt)
         } catch (t: HttpException) {
@@ -194,7 +234,7 @@ class ReadingSessionTracker @Inject constructor(
         }
     }
 
-    private fun now() = System.currentTimeMillis()
+    private fun now() = clock()
 
     companion object {
         private const val TAG = "ReadingSessions"

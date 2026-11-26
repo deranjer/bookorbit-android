@@ -93,13 +93,37 @@ object BookFiles {
      * otherwise a PDF opens in the native PDF reader.
      */
     fun readingTarget(book: BookDetail): ReadingTarget {
-        readableFile(book)?.let { return ReadingTarget.Foliate(it) }
+        readableFile(book)?.let { return if (it.format.equals("cbz", ignoreCase = true)) ReadingTarget.Comic(it) else ReadingTarget.Foliate(it) }
         comicFile(book)?.let { return ReadingTarget.Comic(it) }
         pdfFile(book)?.let { return ReadingTarget.Pdf(it) }
         return ReadingTarget.None
     }
 
-    /** Files to persist for offline use: all audio files, else the primary/first non-audio file. */
+    /** Explicit identity must never fall back to a different edition or reading engine. */
+    fun readingTarget(book: BookDetail, fileId: Int): ReadingTarget {
+        val file = book.files.singleOrNull { it.id == fileId } ?: return ReadingTarget.None
+        return when {
+            file.format.equals("cbz", ignoreCase = true) -> ReadingTarget.Comic(file)
+            isReadableEbook(file.format) -> ReadingTarget.Foliate(file)
+            isPdfFormat(file.format) -> ReadingTarget.Pdf(file)
+            isComicServerPaged(file.format) -> ReadingTarget.Comic(file)
+            else -> ReadingTarget.None
+        }
+    }
+
+    /** All content choices; never offer incidental covers or unknown attachments. */
+    fun downloadCandidates(book: BookDetail): List<BookFileRef> =
+        book.files.filter { isOpenableEbook(it.format) || it.format?.lowercase() in AUDIO_FORMATS }
+            .distinctBy { it.id }
+
+    /** Validate exact user-selected IDs, retaining server order (important for split audio). */
+    fun selectedDownloads(book: BookDetail, ids: Set<Int>): List<BookFileRef> {
+        val candidates = downloadCandidates(book)
+        require(ids.isNotEmpty() && candidates.map { it.id }.containsAll(ids))
+        return candidates.filter { it.id in ids }
+    }
+
+    /** Legacy download plans only; new downloads always persist an explicit selection. */
     fun downloadableFiles(book: BookDetail): List<BookFileRef> {
         if (isAudiobook(book)) return audioFiles(book)
         val primary = book.files.firstOrNull { it.role == "primary" }

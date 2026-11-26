@@ -1,0 +1,33 @@
+<resources>
+    <string name="ai_enter_endpoint">Укажите корректный базовый адрес API. Для HTTP нужно явное разрешение выше.</string>
+    <string name="ai_enter_model">Укажите точный ID модели у провайдера или на локальном сервере.</string>
+    <string name="ai_enter_token">Введите API-токен этого провайдера.</string>
+    <string name="ai_invalid_token">Некорректный токен: нужны печатные ASCII-символы без пробелов и переносов, не более 8192 знаков.</string>
+    <string name="guide_entry_description">Персонажи, события и связи · Открыть Story Guide</string>
+    <string name="ai_route_heading">Куда отправлять выделенный текст</string>
+    <string name="ai_provider">Провайдер</string>
+    <string name="ai_server_summary">Использовать BookOrbit и настройки ИИ на сервере.</string>
+    <string name="ai_direct_summary">Подключить своего провайдера или локальный сервер моделей.</string>
+    <string name="ai_server_setup">Здесь ключ провайдера не нужен: его настраивает администратор BookOrbit. Поиск по фото и Story Guide пока работают только через сервер. Защищённые функции также требуют регистрации в «Настройки → Проверка устройства для ИИ». Штатный сервер может отклонять независимые приложения; одного HTTPS недостаточно.</string>
+    <string name="ai_direct_scope">Пока работает только для помощи по выделенному тексту. Не включает поиск по фото и Story Guide. Сохранение не отправляет запрос и не скачивает модель.</string>
+    <string name="ai_connection_details">Подробности подключения и приватность</string>
+    <string name="vision_server_route">Поиск по фото использует сервер BookOrbit, а не прямое подключение ИИ на телефоне. Выбор фото не отправляет его на сервер.</string>
+    <string name="vision_device_help">«Настройки → Проверка устройства для ИИ» показывает состояние регистрации. Сервер также должен доверять этому приложению. Регистрация устройства не настраивает серверного ИИ-провайдера.</string>
+    <string name="attest_error_detail">Ошибка регистрации: %1$s.\n%2$s\n%3$s %4$s</string>
+    <string name="attest_stage_connection">проверка подключения</string>
+    <string name="attest_stage_challenge">получение запроса проверки от сервера</string>
+    <string name="attest_stage_key">создание ключа устройства</string>
+    <string name="attest_stage_registration">проверка сертификата устройства сервером</string>
+    <string name="attest_stage_receipt">проверка подтверждения регистрации</string>
+    <string name="attest_stage_storage">сохранение регистрации на устройстве</string>
+    <string name="attest_reason_https">Нужен HTTPS-адрес сервера без встроенных учётных данных и параметров.</string>
+    <string name="attest_reason_tls">Не удалось установить TLS-соединение. Проверьте сертификат сервера и время устройства; не отключайте проверку сертификатов.</string>
+    <string name="attest_reason_network">Не удалось завершить сетевой запрос. Проверьте соединение и повторите явно.</string>
+    <string name="attest_reason_key">Android не смог создать аппаратно защищённый ключ с цепочкой сертификатов. Проверьте поддержку и настройки безопасности устройства.</string>
+    <string name="attest_reason_auth">Сервер отклонил авторизацию. Войдите в аккаунт заново перед повтором.</string>
+    <string name="attest_reason_missing">Маршрут регистрации недоступен. Проверьте версию сервера и путь API в прокси.</string>
+    <string name="attest_reason_rate">Слишком много попыток регистрации. Подождите перед повтором.</string>
+    <string name="attest_reason_server">Сервер отклонил регистрацию. HTTPS не означает доверие приложению. Проверьте серверные логи по коду ниже: возможны ограничения пакета/подписи APK или аттестации устройства; точная причина пока не установлена.</string>
+    <string name="attest_reason_response">Сервер вернул некорректный или несовместимый ответ. Регистрация не активирована.</string>
+    <string name="attest_reason_local">Не удалось сохранить регистрацию на устройстве. Прежняя регистрация, если была, намеренно не удалялась.</string>
+</resources>

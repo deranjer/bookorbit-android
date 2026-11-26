@@ -35,17 +35,20 @@ data class SearchHit(val cfi: String, val pre: String, val match: String, val po
 
 sealed interface ReaderEvent {
     data object Ready : ReaderEvent
-    data class Loaded(val toc: List<TocItem>, val title: String?) : ReaderEvent
+    data class Loaded(val toc: List<TocItem>, val title: String?, val rightToLeft: Boolean = false) : ReaderEvent
     data class Relocate(
         val cfi: String?,
         val fraction: Double?,
         val chapterTitle: String?,
+        val sectionIndex: Int? = null,
     ) : ReaderEvent
     data class Error(val message: String) : ReaderEvent
+    data class ReadAlong(val available: Boolean, val state: String, val rate: Double = 1.0, val error: String? = null,
+        val position: ReadAlongPosition? = null) : ReaderEvent
 
     /** A tap on the page body (not on a link or highlight). [x] is 0..1 across the viewport. */
     data class Tap(val x: Double) : ReaderEvent
-    data class Selection(val text: String, val cfi: String?, val rect: ViewportRect?) : ReaderEvent
+    data class Selection(val text: String, val cfi: String?, val rect: ViewportRect?, val narration: ReadAlongPosition? = null) : ReaderEvent
     data object SelectionCleared : ReaderEvent
     data class AnnotationTap(val cfi: String, val rect: ViewportRect?) : ReaderEvent
 
@@ -91,23 +94,37 @@ object ReaderBridge {
         val obj = json.parseToJsonElement(data).jsonObject
         when (obj["type"]?.jsonPrimitive?.contentOrNull) {
             "ready" -> ReaderEvent.Ready
+            "readAlong" -> ReaderEvent.ReadAlong(
+                available = obj["available"]?.jsonPrimitive?.booleanOrNull ?: false,
+                state = obj["state"]?.jsonPrimitive?.contentOrNull ?: "unavailable",
+                rate = obj["rate"]?.jsonPrimitive?.doubleOrNull?.takeIf { it.isFinite() && it in 0.5..2.0 } ?: 1.0,
+                error = obj["error"]?.jsonPrimitive?.contentOrNull,
+                position = obj["position"]?.let { runCatching {
+                    json.decodeFromJsonElement(ReadAlongPosition.serializer(), it).takeIf { value -> value.valid() }
+                }.getOrNull() },
+            )
             "loaded" -> {
                 val toc = obj["toc"]?.let {
                     runCatching { json.decodeFromJsonElement(kotlinx.serialization.builtins.ListSerializer(TocItem.serializer()), it) }
                         .getOrDefault(emptyList())
                 } ?: emptyList()
                 val title = obj["metadata"]?.jsonObject?.get("title")?.jsonPrimitive?.contentOrNull
-                ReaderEvent.Loaded(toc, title)
+                val rightToLeft = obj["metadata"]?.jsonObject?.get("direction")?.jsonPrimitive?.contentOrNull == "rtl"
+                ReaderEvent.Loaded(toc, title, rightToLeft)
             }
             "relocate" -> ReaderEvent.Relocate(
                 cfi = obj["cfi"]?.jsonPrimitive?.contentOrNull,
                 fraction = obj["fraction"]?.jsonPrimitive?.doubleOrNull,
                 chapterTitle = obj["chapterTitle"]?.jsonPrimitive?.contentOrNull,
+                sectionIndex = obj["sectionIndex"]?.jsonPrimitive?.intOrNull?.takeIf { it in 0..100_000 },
             )
             "error" -> ReaderEvent.Error(obj["message"]?.jsonPrimitive?.contentOrNull ?: "Reader error")
             "tap" -> obj["x"]?.jsonPrimitive?.doubleOrNull?.let { ReaderEvent.Tap(it) }
             "selection" -> obj["text"]?.jsonPrimitive?.contentOrNull?.let {
-                ReaderEvent.Selection(it, obj["cfi"]?.jsonPrimitive?.contentOrNull, parseRect(obj["rect"]))
+                ReaderEvent.Selection(it, obj["cfi"]?.jsonPrimitive?.contentOrNull, parseRect(obj["rect"]),
+                    obj["narration"]?.let { value -> runCatching {
+                        json.decodeFromJsonElement(ReadAlongPosition.serializer(), value).takeIf { it.valid() && !it.completed }
+                    }.getOrNull() })
             }
             "selectionCleared" -> ReaderEvent.SelectionCleared
             "searchResults" -> {

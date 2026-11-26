@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Base64
+import com.bookorbit.BuildConfig
 import com.bookorbit.core.model.OidcCallbackRequest
 import com.bookorbit.core.model.OidcCallbackResponse
 import com.bookorbit.core.model.OidcProviderPublic
@@ -31,7 +32,7 @@ class OidcCancelledException : Exception("OIDC login was cancelled")
  * authorize URL in a Custom Tab via AppAuth, and on redirect sends the code back to the server
  * ([ApiService.oidcCallback]) — the server (not the client) exchanges the code for tokens.
  *
- * AppAuth is used only to launch the browser, capture the `bookorbit://oauth2-callback` redirect,
+ * AppAuth is used only to launch the browser, capture our independent callback redirect,
  * and validate the returned `state`. We supply our own PKCE verifier/challenge so the server can
  * complete the exchange.
  */
@@ -127,7 +128,7 @@ class OidcManager @Inject constructor(
     }
 
     companion object {
-        const val REDIRECT_URI = "bookorbit://oauth2-callback"
+        const val REDIRECT_URI = BuildConfig.OIDC_REDIRECT_URI
         private const val BASE64_FLAGS = Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING
     }
 }

@@ -16,6 +16,7 @@ data class ReaderSettings(
     val fontFamily: String? = null,
     val maxColumnCount: Int = 2,
     val gap: Double = 0.05,
+    val pageMargin: Int = 40,
     val maxInlineSize: Int = 720,
     val maxBlockSize: Int = 1440,
     val justify: Boolean = true,
@@ -23,6 +24,7 @@ data class ReaderSettings(
     val isDark: Boolean = true,
     val themeName: String = "default",
     val flow: String = "paginated", // "paginated" | "scrolled"
+    val animatePageTurns: Boolean = true,
 )
 
 val FONT_SIZE_RANGE = 10..32

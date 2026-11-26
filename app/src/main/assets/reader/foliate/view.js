@@ -519,21 +519,29 @@ export class View extends HTMLElement {
     this.#root.append(this.renderer)
 
     if (book.sections.some((section) => section.mediaOverlay)) {
-      const activeClass = book.media.activeClass
+      const activeClass = book.media.activeClass || 'bookorbit-read-along-active'
       const playbackActiveClass = book.media.playbackActiveClass
       this.mediaOverlay = book.getMediaOverlay()
       let lastActive
+      let highlightGeneration = 0
       this.mediaOverlay.addEventListener('highlight', (e) => {
+        const generation = ++highlightGeneration
         const resolved = this.resolveNavigation(e.detail.text)
+        if (!resolved) return
         this.renderer.goTo(resolved).then(() => {
-          const { doc } = this.renderer.getContents().find((x) => (x.index = resolved.index))
+          if (generation !== highlightGeneration) return
+          const { doc } = this.renderer.getContents().find((x) => x.index === resolved.index) ?? {}
+          if (!doc) return
           const el = resolved.anchor(doc)
+          if (!el?.classList) return
+          lastActive?.deref()?.classList.remove(activeClass)
           el.classList.add(activeClass)
           if (playbackActiveClass) el.ownerDocument.documentElement.classList.add(playbackActiveClass)
           lastActive = new WeakRef(el)
-        })
+        }).catch(error => this.mediaOverlay?.dispatchEvent(new CustomEvent('error', { detail: error })))
       })
       this.mediaOverlay.addEventListener('unhighlight', () => {
+        highlightGeneration++
         const el = lastActive?.deref()
         if (el) {
           el.classList.remove(activeClass)
@@ -544,6 +552,7 @@ export class View extends HTMLElement {
   }
 
   close() {
+    this.mediaOverlay?.stop()
     this.renderer?.destroy()
     this.renderer?.remove()
     this.#sectionProgress = null
@@ -592,6 +601,7 @@ export class View extends HTMLElement {
     const koreaderProgress = getKoreaderProgress(koreaderDocFragmentIndex, range)
     this.lastLocation = {
       ...progress,
+      sectionIndex: index,
       tocItem,
       pageItem,
       cfi,

@@ -61,6 +61,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -73,6 +75,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.bookorbit.core.model.BookDetail
 import com.bookorbit.core.model.BookFiles
+import com.bookorbit.core.model.BookEditions
+import com.bookorbit.feature.storyguide.StoryGuideSheet
 import com.bookorbit.ui.LocalImageUrls
 import com.bookorbit.ui.components.RecommendationScroller
 import com.bookorbit.ui.components.StarRating
@@ -81,9 +85,9 @@ import com.bookorbit.ui.components.StarRating
 @Composable
 fun BookDetailScreen(
     onBack: () -> Unit,
-    onRead: (Int) -> Unit,
-    onReadPdf: (Int) -> Unit,
-    onReadComic: (Int) -> Unit,
+    onRead: (Int, Int) -> Unit,
+    onReadPdf: (Int, Int) -> Unit,
+    onReadComic: (Int, Int) -> Unit,
     onListen: (Int) -> Unit,
     onBookClick: (Int) -> Unit,
     onAuthorClick: (id: Int, name: String) -> Unit,
@@ -94,17 +98,25 @@ fun BookDetailScreen(
     val collections by vm.collections.collectAsStateWithLifecycle()
     var statusSheet by remember { mutableStateOf(false) }
     var collectionSheet by remember { mutableStateOf(false) }
+    var downloadSheet by rememberSaveable { mutableStateOf(false) }
+    var pendingDownloadIds by rememberSaveable { mutableStateOf(arrayListOf<Int>()) }
     val context = LocalContext.current
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
-    ) { vm.startDownload() }
-    val startDownload = {
+    ) {
+        if (pendingDownloadIds.isNotEmpty()) vm.startDownload(pendingDownloadIds.toSet())
+        pendingDownloadIds = arrayListOf()
+    }
+    val confirmDownload: (Set<Int>) -> Unit = { ids ->
+        pendingDownloadIds = ArrayList(ids)
+        downloadSheet = false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
-            vm.startDownload()
+            vm.startDownload(ids)
+            pendingDownloadIds = arrayListOf()
         }
     }
 
@@ -140,7 +152,7 @@ fun BookDetailScreen(
                     onBookClick = onBookClick,
                     onAuthorClick = onAuthorClick,
                     onSeriesClick = onSeriesClick,
-                    onStartDownload = startDownload,
+                    onStartDownload = { downloadSheet = true },
                     onOpenStatusSheet = { statusSheet = true },
                     onOpenCollectionSheet = { collectionSheet = true },
                 )
@@ -149,6 +161,10 @@ fun BookDetailScreen(
     }
 
     val book = ui.book
+    if (book != null && downloadSheet) {
+        val download by vm.downloadState.collectAsStateWithLifecycle()
+        DownloadSelectionDialog(book, confirmDownload, onDismiss = { downloadSheet = false }, existingFileIds = vm.downloadedFileIds(download))
+    }
     if (book != null && statusSheet) {
         ReadStatusSheet(
             current = book.readStatus?.status,
@@ -175,9 +191,9 @@ private fun BookDetailContent(
     book: BookDetail,
     vm: BookDetailViewModel,
     ui: BookDetailViewModel.UiState,
-    onRead: (Int) -> Unit,
-    onReadPdf: (Int) -> Unit,
-    onReadComic: (Int) -> Unit,
+    onRead: (Int, Int) -> Unit,
+    onReadPdf: (Int, Int) -> Unit,
+    onReadComic: (Int, Int) -> Unit,
     onListen: (Int) -> Unit,
     onBookClick: (Int) -> Unit,
     onAuthorClick: (id: Int, name: String) -> Unit,
@@ -195,6 +211,25 @@ private fun BookDetailContent(
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val download by vm.downloadState.collectAsStateWithLifecycle()
+    val offlineIds = vm.downloadedFileIds(download)
+    var chooseReadingFile by rememberSaveable(book.id) { mutableStateOf(false) }
+    var guideVisible by rememberSaveable(book.id) { mutableStateOf(false) }
+    val readableFiles = book.files.filter { BookFiles.readingTarget(book, it.id) != BookFiles.ReadingTarget.None }
+    val openFile: (Int) -> Unit = { fileId ->
+        vm.openReadingEdition(fileId) { when (BookFiles.readingTarget(book, fileId)) {
+            is BookFiles.ReadingTarget.Foliate -> onRead(book.id, fileId)
+            is BookFiles.ReadingTarget.Pdf -> onReadPdf(book.id, fileId)
+            is BookFiles.ReadingTarget.Comic -> onReadComic(book.id, fileId)
+            BookFiles.ReadingTarget.None -> Unit
+        } }
+    }
+    if (chooseReadingFile) {
+        ReadingFileDialog(book, offlineIds, onSelect = {
+            chooseReadingFile = false
+            openFile(it)
+        }, onDismiss = { chooseReadingFile = false })
+    }
+    if (guideVisible) StoryGuideSheet(book, vm.storyGuides, onDismiss = { guideVisible = false })
 
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         DetailHero(book, onAuthorClick = onAuthorClick, onSeriesClick = onSeriesClick)
@@ -203,19 +238,10 @@ private fun BookDetailContent(
         Column(modifier = Modifier.padding(horizontal = 20.dp).padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 if (canRead) {
-                    Button(
-                        onClick = {
-                            when (readingTarget) {
-                                is BookFiles.ReadingTarget.Pdf -> onReadPdf(book.id)
-                                is BookFiles.ReadingTarget.Comic -> onReadComic(book.id)
-                                else -> onRead(book.id)
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Icon(Icons.Filled.Book, contentDescription = null)
-                        Text(stringResource(R.string.read), modifier = Modifier.padding(start = 8.dp))
-                    }
+                    ReadEditionButton(onRead = {
+                        com.bookorbit.feature.reader.preferredReadingFileId(book, ui.lastReadingFileId)?.let(openFile)
+                    }, onChooseEdition = { chooseReadingFile = true }, hasAlternatives = readableFiles.size > 1,
+                        modifier = Modifier.weight(1f))
                 }
                 if (canListen) {
                     if (canRead) {
@@ -231,14 +257,20 @@ private fun BookDetailContent(
                     }
                 }
             }
-            DownloadControl(download, onStartDownload = onStartDownload, onRemove = vm::removeDownload)
+            StoryGuideEntry(onClick = { guideVisible = true })
+            DownloadControl(download, onStartDownload = onStartDownload, onRetry = vm::retryDownload, onRemove = vm::removeDownload,
+                canAddFiles = BookFiles.downloadCandidates(book).any { it.id !in offlineIds })
+            if (ui.downloadActionFailed) {
+                Text(stringResource(R.string.offline_action_failed), color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall)
+            }
         }
 
         FormatChips(book, ui.fileProgress)
 
         val tabs = listOf(
             stringResource(R.string.detail_tab_details),
-            stringResource(R.string.detail_tab_files),
+            stringResource(R.string.edition_tab),
             if (ui.highlights.isNotEmpty()) stringResource(R.string.detail_tab_highlights_n, ui.highlights.size) else stringResource(R.string.detail_tab_highlights),
         )
         TabRow(selectedTabIndex = tab, modifier = Modifier.padding(top = 8.dp)) {
@@ -258,7 +290,7 @@ private fun BookDetailContent(
                 onOpenCollectionSheet = onOpenCollectionSheet,
                 onOpenUri = { uriHandler.openUri(it) },
             )
-            1 -> FilesTab(book)
+            1 -> EditionsTab(book, offlineIds, openFile, onListen)
             else -> HighlightsTab(ui.highlights)
         }
 
@@ -277,8 +309,8 @@ private fun DetailHero(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
-            .padding(horizontal = 20.dp, vertical = 20.dp),
+            .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primaryContainer.copy(alpha = .65f), MaterialTheme.colorScheme.background)))
+            .padding(horizontal = 24.dp, vertical = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AsyncImage(
@@ -286,15 +318,16 @@ private fun DetailHero(
             contentDescription = book.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(width = 150.dp, height = 225.dp)
-                .clip(RoundedCornerShape(10.dp)),
+                .size(width = 170.dp, height = 255.dp)
+                .shadow(18.dp, RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(18.dp)),
         )
         Text(
             book.title ?: stringResource(R.string.card_unknown_title),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.displaySmall,
+            fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 16.dp),
+            modifier = Modifier.padding(top = 24.dp),
         )
         book.subtitle?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
@@ -344,17 +377,20 @@ private fun DetailHero(
 private fun DownloadControl(
     download: com.bookorbit.core.db.DownloadEntity?,
     onStartDownload: () -> Unit,
+    onRetry: () -> Unit,
     onRemove: () -> Unit,
+    canAddFiles: Boolean,
 ) {
     when (download?.status) {
-        "COMPLETE" -> Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = com.bookorbit.ui.theme.SuccessGreen)
-            Text(stringResource(R.string.downloaded), color = com.bookorbit.ui.theme.SuccessGreen, modifier = Modifier.weight(1f))
-            androidx.compose.material3.TextButton(onClick = onRemove) { Text(stringResource(R.string.remove)) }
+        "COMPLETE", "COMPLETE_FALLBACK" -> Column(Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = com.bookorbit.ui.theme.SuccessGreen)
+                Text(stringResource(R.string.downloaded), color = com.bookorbit.ui.theme.SuccessGreen)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (canAddFiles) androidx.compose.material3.TextButton(onClick = onStartDownload) { Text(stringResource(R.string.offline_add_files)) }
+                androidx.compose.material3.TextButton(onClick = onRemove) { Text(stringResource(R.string.remove)) }
+            }
         }
         "DOWNLOADING" -> Row(
             modifier = Modifier.fillMaxWidth(),
@@ -371,7 +407,7 @@ private fun DownloadControl(
                 style = MaterialTheme.typography.bodySmall,
             )
             androidx.compose.material3.OutlinedButton(
-                onClick = onStartDownload,
+                onClick = onRetry,
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             ) {
                 Icon(Icons.Filled.Download, contentDescription = null)
@@ -415,14 +451,14 @@ private fun DetailsTab(
     onOpenUri: (String) -> Unit,
 ) {
     Column {
-        ShelfCards(book, vm, ui, onOpenStatusSheet, onOpenCollectionSheet)
-
         book.description?.let { description ->
             Section(stringResource(R.string.synopsis)) {
                 val annotated = remember(description) { htmlToAnnotatedString(description) }
                 Text(annotated, style = MaterialTheme.typography.bodyMedium)
             }
         }
+
+        ShelfCards(book, vm, ui, onOpenStatusSheet, onOpenCollectionSheet)
 
         DetailsSection(book)
 
@@ -544,37 +580,21 @@ private fun ShelfCards(
 }
 
 @Composable
-private fun FilesTab(book: BookDetail) {
-    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-        if (book.files.isEmpty()) {
+private fun EditionsTab(book: BookDetail, offlineIds: Set<Int>, onReadFile: (Int) -> Unit, onListen: (Int) -> Unit) {
+    val editions = BookEditions.of(book)
+    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (editions.isEmpty()) {
             Text(stringResource(R.string.no_files), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        book.files.forEach { f ->
-            Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        (f.format ?: "file").uppercase(),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    if (f.role == "primary") {
-                        Text(" · " + stringResource(R.string.primary), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Box(Modifier.weight(1f))
-                    val detail = listOfNotNull(
-                        f.sizeBytes?.let { formatBytes(it) },
-                        f.durationSeconds?.let { formatDuration(it) },
-                    ).joinToString(" · ")
-                    if (detail.isNotEmpty()) {
-                        Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                f.filename?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
-            HorizontalDivider()
+        editions.forEach { edition ->
+            val audio = edition.kind == BookEditions.Kind.AUDIO
+            val readable = audio || BookFiles.readingTarget(book, edition.files.single().id) != BookFiles.ReadingTarget.None
+            EditionCard(edition, book, offlineIds, enabled = readable, onClick = {
+                if (audio) onListen(book.id) else onReadFile(edition.files.single().id)
+            }, trailing = {
+                Icon(if (audio) Icons.Default.Headset else Icons.Default.Book,
+                    contentDescription = stringResource(if (audio) R.string.listen else R.string.read), tint = MaterialTheme.colorScheme.primary)
+            })
         }
     }
 }
@@ -627,13 +647,13 @@ private fun HighlightsTab(highlights: List<BookAnnotation>) {
     }
 }
 
-private fun formatBytes(bytes: Long): String = when {
+internal fun formatBytes(bytes: Long): String = when {
     bytes >= 1_000_000_000 -> "%.1f GB".format(bytes / 1_000_000_000.0)
     bytes >= 1_000_000 -> "%.1f MB".format(bytes / 1_000_000.0)
     else -> "%d KB".format(bytes / 1_000)
 }
 
-private fun formatDuration(seconds: Double): String {
+internal fun formatDuration(seconds: Double): String {
     val total = seconds.toLong()
     val h = total / 3600
     val m = (total % 3600) / 60

@@ -1,6 +1,7 @@
 package com.bookorbit.core.network
 
 import com.bookorbit.core.auth.SessionManager
+import com.bookorbit.core.auth.SessionOwner
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Interceptor
 import okhttp3.Response
@@ -42,14 +43,31 @@ class AuthInterceptor @Inject constructor(
     private val session: SessionManager,
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
+        val original = chain.request()
+        val owner = session.owner()
+        val expected = original.tag(SessionOwner::class.java)
+        if (expected != null && !session.owns(expected)) throw IOException("Authorization owner changed")
         val token = session.accessToken
-        val request = if (token.isNullOrBlank()) {
-            chain.request()
+        val request = if (token.isNullOrBlank() || owner == null) {
+            original
         } else {
-            chain.request().newBuilder()
+            if (!session.owns(owner)) throw IOException("Authorization account changed")
+            val server = owner.serverUrl.toHttpUrlOrNull() ?: throw IOException("Invalid authorization server")
+            val url = original.url
+            val prefix = server.encodedPath.trimEnd('/') + "/"
+            if (url.scheme != server.scheme || url.host != server.host || url.port != server.port || !url.encodedPath.startsWith(prefix))
+                throw IOException("Authorization destination changed")
+            if (expected != null && expected != owner) throw IOException("Authorization owner changed")
+            original.newBuilder()
                 .header("Authorization", "Bearer $token")
+                .tag(SessionOwner::class.java, owner)
                 .build()
         }
-        return chain.proceed(request)
+        val response = chain.proceed(request)
+        if (owner != null && !session.owns(owner)) {
+            response.close()
+            throw IOException("Authorization account changed")
+        }
+        return response
     }
 }

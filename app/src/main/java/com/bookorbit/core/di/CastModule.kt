@@ -9,7 +9,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
+import com.bookorbit.core.diagnostics.DiagnosticInterceptor
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
@@ -23,7 +23,7 @@ object CastModule {
     fun provideCastUpstreamClient(
         authInterceptor: AuthInterceptor,
         authenticator: TokenAuthenticator,
-        logging: HttpLoggingInterceptor,
+        logging: DiagnosticInterceptor,
         userCaTrust: UserCaTrust,
     ): OkHttpClient = userCaTrust.applyTo(OkHttpClient.Builder())
         .addInterceptor(authInterceptor)

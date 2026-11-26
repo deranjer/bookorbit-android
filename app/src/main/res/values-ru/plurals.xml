@@ -1,0 +1,26 @@
+<resources>
+    <plurals name="home_streak_days">
+        <item quantity="one">%d день</item><item quantity="few">%d дня</item><item quantity="many">%d дней</item><item quantity="other">%d дня</item>
+    </plurals>
+    <plurals name="bookdrop_msg_applied_fetched">
+        <item quantity="one">Метаданные применены к %d файлу</item><item quantity="few">Метаданные применены к %d файлам</item><item quantity="many">Метаданные применены к %d файлам</item><item quantity="other">Метаданные применены к %d файла</item>
+    </plurals>
+    <plurals name="bookdrop_msg_duplicates">
+        <item quantity="one"> (дубликатов: %d)</item><item quantity="few"> (дубликатов: %d)</item><item quantity="many"> (дубликатов: %d)</item><item quantity="other"> (дубликатов: %d)</item>
+    </plurals>
+    <plurals name="rsearch_first_n">
+        <item quantity="one">Первое %d совпадение</item><item quantity="few">Первые %d совпадения</item><item quantity="many">Первые %d совпадений</item><item quantity="other">Первые %d совпадения</item>
+    </plurals>
+    <plurals name="rsearch_n">
+        <item quantity="one">%d совпадение</item><item quantity="few">%d совпадения</item><item quantity="many">%d совпадений</item><item quantity="other">%d совпадения</item>
+    </plurals>
+    <plurals name="lib_book_count">
+        <item quantity="one">%d книга</item><item quantity="few">%d книги</item><item quantity="many">%d книг</item><item quantity="other">%d книги</item>
+    </plurals>
+    <plurals name="detail_in_collections">
+        <item quantity="one">В %d коллекции</item><item quantity="few">В %d коллекциях</item><item quantity="many">В %d коллекциях</item><item quantity="other">В %d коллекции</item>
+    </plurals>
+    <plurals name="settings_downloads_summary">
+        <item quantity="one">%1$d книга, %2$s</item><item quantity="few">%1$d книги, %2$s</item><item quantity="many">%1$d книг, %2$s</item><item quantity="other">%1$d книги, %2$s</item>
+    </plurals>
+</resources>

@@ -66,8 +66,8 @@ class ComicPagingTest {
     }
 
     @Test
-    fun `CBZ stays in the foliate reader and is no longer treated as server paged`() {
-        assertTrue(BookFiles.readingTarget(book("cbz" to "primary")) is BookFiles.ReadingTarget.Foliate)
+    fun `CBZ uses the native comic pager with local archive pages instead of server paging`() {
+        assertTrue(BookFiles.readingTarget(book("cbz" to "primary")) is BookFiles.ReadingTarget.Comic)
         assertNull(BookFiles.comicFile(book("cbz" to "primary")))
     }
 

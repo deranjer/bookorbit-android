@@ -54,8 +54,8 @@ fun BookCard(
 
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surface)
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .clickable(onClick = onClick),
     ) {
         Box(
@@ -98,7 +98,7 @@ fun BookCard(
                         .align(Alignment.TopEnd)
                         .padding(6.dp)
                         .clip(RoundedCornerShape(4.dp))
-                        .background(FORMAT_COLORS[primaryFormat] ?: Accent)
+                         .background(FORMAT_COLORS[primaryFormat] ?: Color(0xCC10292B))
                         .padding(horizontal = 5.dp, vertical = 2.dp),
                 )
             }
@@ -113,16 +113,16 @@ fun BookCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(fraction = (progress / 100.0).coerceIn(0.0, 1.0).toFloat())
-                        .background(Accent)
+                        .background(MaterialTheme.colorScheme.primary)
                         .padding(vertical = 1.5.dp),
                 )
             }
         }
 
-        Column(modifier = Modifier.padding(6.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
             Text(
                 book.title ?: stringResource(R.string.card_unknown_title),
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

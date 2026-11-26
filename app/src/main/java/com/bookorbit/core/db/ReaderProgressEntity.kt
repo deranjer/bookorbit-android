@@ -14,4 +14,6 @@ data class ReaderProgressEntity(
     val percentage: Double,
     val updatedAt: Long,
     val dirty: Boolean,
+    val pageNumber: Int? = null,
+    @androidx.room.ColumnInfo(defaultValue = "''") val writeId: String = "",
 )

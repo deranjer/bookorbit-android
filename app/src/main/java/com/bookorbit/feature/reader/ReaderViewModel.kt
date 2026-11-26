@@ -8,13 +8,16 @@ import androidx.lifecycle.viewModelScope
 import com.bookorbit.core.model.BookAnnotation
 import com.bookorbit.core.model.BookBookmark
 import com.bookorbit.core.storage.LocalRef
+import com.bookorbit.core.storage.openInputStream
 import com.bookorbit.feature.bookdetail.BookDetailRepository
 import com.bookorbit.feature.downloads.DownloadsRepository
 import com.bookorbit.feature.sessions.ReadingSessionTracker
+import com.bookorbit.feature.player.PlayerManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.roundToInt
@@ -32,19 +35,37 @@ class ReaderViewModel @Inject constructor(
     private val sessions: ReadingSessionTracker,
     private val annotationRepo: ReaderAnnotationRepository,
     private val bookmarkRepo: ReaderBookmarkRepository,
+    private val player: PlayerManager,
+    val readingHelp: com.bookorbit.feature.readinghelp.ReadingHelpRepository,
+    val readingTools: ReadingToolsRepository,
+    val dictionaries: com.bookorbit.feature.dictionary.DictionaryRepository,
+    private val lastEditions: LastReadEditionStore,
+    private val readAlongPositions: ReadAlongPositionStore,
+    private val session: com.bookorbit.core.auth.SessionManager,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
+    private val epubStreaming: EpubStreaming,
+    private val appSettings: com.bookorbit.core.settings.AppSettingsStore,
+    val nativeNarration: NativeNarrationSession,
+    private val nativeStreaming: NativeNarrationStreaming,
+    private val localNarration: LocalNativeNarration,
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
+    private val selectedFileId = checkNotNull(savedStateHandle.get<Int>("fileId"))
+    private val activityOwner = session.owner()
+    private var readingHandle: com.bookorbit.feature.sessions.ReadingHandle? = null
 
     data class ResolvedOpen(
-        val ref: LocalRef,
+        val ref: LocalRef?,
         val format: String,
         val fileId: Int,
         val initial: InitialProgress,
+        val readAlongPosition: ReadAlongPosition? = null,
+        val stream: EpubStreamPlan? = null,
     )
 
     /** Text the user has selected in the page, not yet saved as a highlight. */
-    data class PendingSelection(val text: String, val cfi: String)
+    data class PendingSelection(val text: String, val cfi: String, val narration: ReadAlongPosition? = null)
 
     /** What the floating highlight toolbar is acting on: a new selection, or an existing highlight. */
     data class ToolbarTarget(
@@ -63,6 +84,7 @@ class ReaderViewModel @Inject constructor(
         val chapterTitle: String? = null,
         val percentage: Int = 0,
         val loaded: Boolean = false,
+        val rightToLeft: Boolean = false,
         val showPagingHint: Boolean = false,
         val annotations: List<BookAnnotation> = emptyList(),
         val bookmarks: List<BookBookmark> = emptyList(),
@@ -87,6 +109,70 @@ class ReaderViewModel @Inject constructor(
 
     private val _ui = MutableStateFlow(UiState())
     val ui = _ui.asStateFlow()
+
+    suspend fun prepareReadAlong() { player.pauseForReadAlong() }
+    private var nativeOwnsCheckpoints = false
+    private var currentSection = 0
+
+    fun nativeReadAlongOwner(): ReadAlongOwner? = readAlongOwner
+
+    suspend fun listenFromSelection(selection: PendingSelection, rate: Double) {
+        if (_ui.value.toolbar?.selection != selection) return
+        val position = selection.narration ?: return
+        dismissToolbar()
+        if (!nativeReadAlong("selection", rate, position))
+            _ui.update { it.copy(message = UiText.of(R.string.reader_native_narration_failed)) }
+    }
+
+    suspend fun nativeReadAlong(action: String, rate: Double?, fromSelection: ReadAlongPosition? = null): Boolean {
+        if (action == "selection" && fromSelection == null) return false
+        val owner = readAlongOwner ?: return false
+        if (fromSelection != null && nativeNarration.state.value?.owner == owner) {
+            if (!nativeNarration.listenFrom(owner, fromSelection))
+                _ui.update { it.copy(message = UiText.of(R.string.reader_native_narration_failed)) }
+            return true
+        }
+        if (fromSelection == null && nativeNarration.command(owner, action, rate)) return true
+        val resolved = _ui.value.resolved ?: return false
+        if (action !in setOf("start", "resume", "restart", "selection") ||
+            player.state.value.isCasting) return false
+        val account = activityOwner ?: return false
+        if (!session.owns(account)) return true
+        val ticket = nativeNarration.ticket()
+        var pending: NativeNarrationSource? = null
+        try {
+            val plan = if (resolved.ref != null) localNarration.open(resolved.ref, bookId, owner, account)
+                else nativeStreaming.open(bookId, selectedFileId, account)
+            pending = plan
+            if (!nativeNarration.isCurrent(ticket)) return true
+            if (fromSelection != null) require(plan.timeline.selectionStart(fromSelection) != null) { "Selected narration fragment changed" }
+            val saved = if (fromSelection != null) fromSelection.copy(rate = rate?.takeIf { it.isFinite() && it in 0.5..2.0 } ?: 1.0)
+                else if (action == "restart") null else readAlongPositions.load(owner)
+            val queue = NativeNarrationQueue(plan, _ui.value.title.orEmpty())
+            if (!player.prepareForNativeNarration {
+                nativeNarration.isCurrent(ticket) && session.owns(account) && !player.state.value.isCasting
+            }) return true
+            if (!session.owns(account) || player.state.value.isCasting) return true
+            nativeOwnsCheckpoints = nativeNarration.start(ticket, queue, owner, saved, currentSection)
+            if (nativeOwnsCheckpoints) pending = null
+        } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+        catch (_: Exception) { _ui.update { it.copy(message = UiText.of(com.bookorbit.R.string.reader_native_narration_failed)) } }
+        finally { pending?.close() }
+        return true
+    }
+
+    private var readAlongOwner: ReadAlongOwner? = null
+    private val checkpointServer = session.serverUrl
+    private val checkpointUser = session.currentUser?.id
+
+    fun onReadAlong(event: ReaderEvent.ReadAlong) {
+        val owner = readAlongOwner ?: return
+        if (nativeOwnsCheckpoints || nativeNarration.state.value?.owner == owner) return
+        val position = event.position ?: return
+        if (event.state !in setOf("ready", "playing", "paused", "ended")) return
+        readAlongPositions.record(owner, position)
+        _ui.update { it.copy(resolved = it.resolved?.copy(readAlongPosition = position)) }
+    }
 
     private var lastSaved = 0L
     private var pending: Pair<String?, Double>? = null
@@ -115,23 +201,54 @@ class ReaderViewModel @Inject constructor(
             _ui.update { it.copy(title = book.title) }
 
             try {
-                val resolved = source.resolve(book)
-                val initial = progress.resolveInitial(resolved.fileId)
-                sessions.beginReading(resolved.fileId, initial.fraction?.let { it * 100 })
+                val target = (com.bookorbit.core.model.BookFiles.readingTarget(book, selectedFileId)
+                    as? com.bookorbit.core.model.BookFiles.ReadingTarget.Foliate)?.file
+                    ?: error("The selected edition cannot be opened in this reader")
+                val mode = appSettings.readerInterface.first()
+                val offline = source.offlineFile(book.id, target)
+                val stream = if (offline == null && target.format?.lowercase() == "epub" && mode == com.bookorbit.core.settings.ReaderInterface.APP_STREAMING)
+                    epubStreaming.open(book.id, target.id) else null
+                val resolved = offline ?: if (stream == null) source.resolve(book, selectedFileId) else null
+                val fingerprint = if (stream != null) target.contentVersion?.takeIf { it.isNotBlank() }?.let {
+                    "stream-v1:$it:${target.fileHash.orEmpty()}:${target.sizeBytes}"
+                } else if (resolved?.format == "epub") {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        val digest = java.security.MessageDigest.getInstance("SHA-256")
+                        resolved.ref.openInputStream(context).use { input ->
+                            val buffer = ByteArray(64 * 1024)
+                            while (true) { val count = input.read(buffer); if (count < 0) break; digest.update(buffer, 0, count) }
+                        }
+                        digest.digest().joinToString("") { "%02x".format(it) }
+                    }
+                } else null
+                val checkpoint = if (fingerprint != null) {
+                    val server = checkpointServer
+                    val user = checkpointUser
+                    if (server != null && user != null) {
+                        ReadAlongOwner(server, user, selectedFileId, fingerprint).let { owner ->
+                            readAlongOwner = owner
+                            readAlongPositions.load(owner)
+                        }
+                    } else null
+                } else null
+                val initial = progress.resolveInitial(selectedFileId)
+                activityOwner?.let { lastEditions.record(it, bookId, selectedFileId) }
+                readingHandle = sessions.beginReading(selectedFileId, initial.fraction?.let { it * 100 }, activityOwner)
                 _ui.update {
                     it.copy(
                         loadingFile = false,
-                        resolved = ResolvedOpen(resolved.ref, resolved.format, resolved.fileId, initial),
+                        resolved = ResolvedOpen(resolved?.ref, target.format.orEmpty().lowercase(), selectedFileId, initial, checkpoint, stream),
                     )
                 }
-            } catch (e: Exception) {
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Exception) {
                 _ui.update { it.copy(loadingFile = false, error = e.message?.let { m -> UiText.raw(m) } ?: UiText.of(R.string.reader_err_open_book)) }
             }
         }
     }
 
-    fun onLoaded(toc: List<TocItem>, title: String?) {
-        _ui.update { it.copy(loaded = true, toc = toc, chapterTitle = it.chapterTitle ?: title) }
+    fun onLoaded(toc: List<TocItem>, title: String?, rightToLeft: Boolean = false) {
+        _ui.update { it.copy(loaded = true, toc = toc, chapterTitle = it.chapterTitle ?: title, rightToLeft = rightToLeft) }
     }
 
     /** Keep the last reading position and reset page state before a fresh WebView is created. */
@@ -151,7 +268,8 @@ class ReaderViewModel @Inject constructor(
         }
     }
 
-    fun onRelocate(cfi: String?, fraction: Double?, chapterTitle: String?) {
+    fun onRelocate(cfi: String?, fraction: Double?, chapterTitle: String?, sectionIndex: Int? = null) {
+        sectionIndex?.takeIf { it in 0..100_000 }?.let { currentSection = it }
         _ui.update {
             it.copy(
                 chapterTitle = chapterTitle ?: it.chapterTitle,
@@ -161,7 +279,7 @@ class ReaderViewModel @Inject constructor(
         if (cfi != null) currentCfi = cfi
         if (cfi != null && fraction != null) {
             report(cfi, fraction * 100)
-            sessions.onReadingProgress(fraction * 100)
+            readingHandle?.let { sessions.onReadingProgress(it, fraction * 100) }
         }
     }
 
@@ -219,30 +337,52 @@ class ReaderViewModel @Inject constructor(
 
     // --- highlights & notes ---
 
+    private var warnedLegacyAnnotations = false
+    private var annotationRequest = 0L
+
     private fun loadAnnotations() {
+        val owner = activityOwner ?: return
+        val fileId = _ui.value.resolved?.fileId ?: return
+        val request = ++annotationRequest
         viewModelScope.launch {
             // Show what we already have straight away (cached server copy + queued changes), then
             // push anything queued and refresh from the server.
-            _ui.update { it.copy(annotations = annotationRepo.local(bookId)) }
+            val rows = annotationRepo.local(bookId, fileId, owner)
+            if (!session.owns(owner) || request != annotationRequest) return@launch
+            _ui.update { it.copy(annotations = rows) }
+            if (!warnedLegacyAnnotations && annotationRepo.hasUnownedData(bookId) && session.owns(owner)) {
+                warnedLegacyAnnotations = true
+                _ui.update { it.copy(message = UiText.of(R.string.reader_legacy_annotation_scope)) }
+            }
+            if (request != annotationRequest) return@launch
             syncAnnotations()
         }
     }
 
     /** Replay queued changes, then reload so placeholder ids are swapped for the server's. */
     private fun syncAnnotations() {
+        val owner = activityOwner ?: return
+        val fileId = _ui.value.resolved?.fileId ?: return
+        val request = ++annotationRequest
         viewModelScope.launch {
+            if (!session.owns(owner)) return@launch
             annotationRepo.flushPending()
-            _ui.update { it.copy(annotations = annotationRepo.load(bookId)) }
+            val rows = annotationRepo.load(bookId, fileId, owner)
+            if (session.owns(owner) && request == annotationRequest) _ui.update { it.copy(annotations = rows) }
         }
     }
 
     private suspend fun refreshLocalAnnotations() {
-        _ui.update { it.copy(annotations = annotationRepo.local(bookId), toolbar = null) }
+        val owner = activityOwner ?: return
+        val fileId = _ui.value.resolved?.fileId ?: return
+        val request = ++annotationRequest
+        val rows = annotationRepo.local(bookId, fileId, owner)
+        if (session.owns(owner) && request == annotationRequest) _ui.update { it.copy(annotations = rows, toolbar = null) }
     }
 
-    fun onSelection(text: String, cfi: String?, rect: ViewportRect?) {
+    fun onSelection(text: String, cfi: String?, rect: ViewportRect?, narration: ReadAlongPosition? = null) {
         if (cfi == null) return
-        _ui.update { it.copy(toolbar = ToolbarTarget(rect, selection = PendingSelection(text, cfi))) }
+        _ui.update { it.copy(toolbar = ToolbarTarget(rect, selection = PendingSelection(text, cfi, narration))) }
     }
 
     fun onSelectionCleared() {
@@ -266,14 +406,15 @@ class ReaderViewModel @Inject constructor(
     fun saveNote(note: String) = saveAnnotation(color = null, note = note)
 
     private fun saveAnnotation(color: String?, note: String?) {
+        val owner = activityOwner ?: return
         val target = _ui.value.toolbar ?: return
         val fileId = _ui.value.resolved?.fileId
         viewModelScope.launch {
             runCatching {
                 when {
                     target.annotationId != null -> {
-                        if (color != null) annotationRepo.setColor(bookId, target.annotationId, color)
-                        if (note != null) annotationRepo.setNote(bookId, target.annotationId, note)
+                        if (color != null) annotationRepo.setColor(bookId, target.annotationId, color, owner)
+                        if (note != null) annotationRepo.setNote(bookId, target.annotationId, note, owner)
                     }
                     target.selection != null && fileId != null -> annotationRepo.create(
                         bookId = bookId,
@@ -283,6 +424,7 @@ class ReaderViewModel @Inject constructor(
                         color = color ?: ReaderAnnotationRepository.COLORS.first().second,
                         note = note,
                         chapterTitle = _ui.value.chapterTitle,
+                        expectedOwner = owner,
                     )
                 }
             }.onSuccess {
@@ -295,8 +437,9 @@ class ReaderViewModel @Inject constructor(
     }
 
     fun deleteAnnotation(id: Int) {
+        val owner = activityOwner ?: return
         viewModelScope.launch {
-            runCatching { annotationRepo.delete(bookId, id) }
+            runCatching { annotationRepo.delete(bookId, id, owner) }
                 .onSuccess {
                     refreshLocalAnnotations()
                     syncAnnotations()
@@ -334,7 +477,7 @@ class ReaderViewModel @Inject constructor(
 
     override fun onCleared() {
         flush()
-        sessions.end()
+        readingHandle?.let(sessions::endReading)
         super.onCleared()
     }
 }

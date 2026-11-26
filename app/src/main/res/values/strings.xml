@@ -1,5 +1,10 @@
 <resources>
-    <string name="app_name">BookOrbit</string>
+    <string name="read_along_from_selection">Listen from here</string>
+    <string name="search_heading">What will you read next?</string>
+    <string name="search_description">Find a title, rediscover an author, or recognize books in a photo.</string>
+    <string name="search_photo_action">Find by photo · AI</string>
+    <string name="search_failed">Could not search your server. Check your connection and retry. Offline books remain in Downloads.</string>
+    <string name="app_name">BookOrbit Client</string>
     <string name="a">A</string>
     <string name="add">Add %1$s…</string>
     <string name="add_note">Add note</string>
@@ -206,7 +211,7 @@
     <string name="where_you_read">Where you read</string>
     <string name="year">Year</string>
     <string name="settings_material_you">Material You colours</string>
-    <string name="settings_material_you_desc">Match your wallpaper instead of BookOrbit blue</string>
+    <string name="settings_material_you_desc">Use colours from your wallpaper instead of the app palette</string>
     <string name="settings_security">Security</string>
     <string name="settings_trust_user_cas">Trust user-installed certificates</string>
     <string name="settings_trust_user_cas_desc">Allow device-installed CAs for %1$s only. Enable only if you trust every CA in your device\'s user store. Certificate validity and server names are still checked. Turning this off blocks new requests; transfers already in progress can finish.</string>
@@ -217,8 +222,8 @@
     <string name="settings_folder_inaccessible">This folder isn\'t accessible anymore (permission revoked or the storage was removed). New downloads will use app storage until you pick a new folder.</string>
     <string name="settings_progress_book">Whole book</string>
     <string name="settings_progress_chapter">Chapter</string>
-    <string name="settings_maintenance_title">No longer maintained</string>
-    <string name="settings_maintenance_description">Development has ended. BookOrbit now restricts some server features to its official apps. See the README for details and alternatives.</string>
+    <string name="settings_maintenance_title">Independent open-source client</string>
+    <string name="settings_maintenance_description">An independent AGPL fork, not the official BookOrbit app. Some server AI features require official-app attestation. See the project documentation for compatibility and current limitations.</string>
     <string name="settings_read_readme">Read README</string>
     <string name="settings_readme_open_failed">Could not open the README. Please install or enable a web browser.</string>
     <string name="settings_app_version">App version</string>
@@ -463,11 +468,13 @@
     <string name="settings_nav_add">Add %1$s to the bar</string>
     <string name="settings_reading">Reading</string>
     <string name="settings_reader_interface">Reader interface</string>
-    <string name="settings_reader_interface_desc">App is the default and supports downloaded books. Server web reader uses your server’s interface and requires a connection. Applies the next time you open a book.</string>
-    <string name="reader_interface_app">App (default)</string>
+    <string name="settings_reader_interface_desc">Choose how to open books.</string>
+    <string name="reader_interface_app">App · cached file (default)</string>
+    <string name="reader_interface_streaming">App · online EPUB</string>
+    <string name="reader_streaming_progress">Online EPUB · %1$d%%</string>
     <string name="reader_interface_web">Server web reader</string>
     <string name="settings_reading_fullscreen">Full-screen reading</string>
-    <string name="settings_reading_fullscreen_desc">Hide the status and navigation bars in ebooks, PDFs, and comics. Swipe from the screen edge to reveal them.</string>
+    <string name="settings_reading_fullscreen_desc">Read edge to edge.</string>
     <string name="reader_web_unavailable">The server web reader could not be opened. Check your connection or open this book in the app.</string>
     <string name="reader_renderer_unavailable">The reader stopped unexpectedly. You can try opening it again.</string>
     <string name="reader_open_app">Open in App</string>

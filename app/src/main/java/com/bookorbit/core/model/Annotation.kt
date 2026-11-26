@@ -19,6 +19,7 @@ data class BookAnnotation(
     val chapterTitle: String? = null,
     val origin: String = "web",
     val positionStatus: String? = null,
+    val jumpFileId: Int? = null,
 )
 
 /** Body of `POST /books/{id}/annotations`. */

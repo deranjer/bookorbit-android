@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.bookorbit.feature.authors.AuthorsScreen
@@ -33,8 +34,16 @@ fun LibraryHubScreen(
     onBookClick: (Int) -> Unit,
     onAuthorClick: (id: Int, name: String) -> Unit,
     onSeriesClick: (id: Int, name: String) -> Unit,
+    resetEpoch: Int = 0,
 ) {
     var section by rememberSaveable { mutableIntStateOf(0) }
+    var handledReset by rememberSaveable { mutableIntStateOf(0) }
+    LaunchedEffect(resetEpoch) {
+        if (resetEpoch != handledReset) {
+            section = 0
+            handledReset = resetEpoch
+        }
+    }
     Column(Modifier.fillMaxSize()) {
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),

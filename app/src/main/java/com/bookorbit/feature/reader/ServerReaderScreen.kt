@@ -125,6 +125,7 @@ fun ServerReaderScreen(kind: ReaderKind, vm: ReaderHostViewModel, onBack: () -> 
 
                             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
                                 val url = request.url.toString().toHttpUrlOrNull() ?: return null
+                                vm.comicImageResponse(activePolicy, url, request.method)?.let { return it }
                                 if (!activePolicy.isRefresh(url, request.method)) return null
                                 val stale = request.requestHeaders.entries.firstOrNull {
                                     it.key.equals("Authorization", ignoreCase = true)

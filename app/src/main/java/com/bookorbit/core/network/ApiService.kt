@@ -7,6 +7,9 @@ import com.bookorbit.core.model.AudioProgress
 import com.bookorbit.core.model.AuthUser
 import com.bookorbit.core.model.AuthorsPage
 import com.bookorbit.core.model.BookDetail
+import com.bookorbit.core.model.StoryGuideStatus
+import com.bookorbit.core.model.StoryGuideBuildRequest
+import com.bookorbit.core.model.StoryGuideFileRequest
 import com.bookorbit.core.model.BookDockBulkCounts
 import com.bookorbit.core.model.BookDockFile
 import com.bookorbit.core.model.BookDockFilesPage
@@ -58,6 +61,7 @@ import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 import retrofit2.http.Streaming
+import retrofit2.http.Tag
 
 /**
  * Retrofit surface for the BookOrbit server. Paths are relative and DO NOT carry the `/api/v1`
@@ -65,6 +69,35 @@ import retrofit2.http.Streaming
  * Endpoints mirror the server's `/api/v1` REST surface one-to-one.
  */
 interface ApiService {
+    @POST("mobile/vision-scan")
+    suspend fun probeVisionScan(@Body request: kotlinx.serialization.json.JsonObject): Response<ResponseBody>
+
+    @POST("mobile/vision-scan")
+    suspend fun visionScan(@Body request: com.bookorbit.core.model.VisionScanRequest): Response<com.bookorbit.core.model.VisionScanResponse>
+
+    /** Deliberately invalid DTO: validates access without submitting passages or invoking AI. */
+    @POST("mobile/reading-help")
+    suspend fun probeReadingHelp(@Body request: kotlinx.serialization.json.JsonObject): Response<ResponseBody>
+
+    @Streaming
+    @POST("mobile/reading-help")
+    fun readingHelp(@Body request: com.bookorbit.core.model.ReadingHelpRequest): retrofit2.Call<ResponseBody>
+
+    @GET("books/{bookId}/story-guide")
+    suspend fun getStoryGuideStatus(@Path("bookId") bookId: Int, @Query("fileId") fileId: Int): StoryGuideStatus
+
+    @GET("mobile/books/files/{fileId}/story-guide")
+    suspend fun getStoryGuideContent(@Path("fileId") fileId: Int, @Query("format") format: String = "1"): Response<ResponseBody>
+
+    @POST("books/{bookId}/story-guide")
+    suspend fun buildStoryGuide(@Path("bookId") bookId: Int, @Body request: StoryGuideBuildRequest): Response<StoryGuideStatus>
+
+    @POST("books/{bookId}/story-guide/retry")
+    suspend fun retryStoryGuide(@Path("bookId") bookId: Int, @Body request: StoryGuideFileRequest): StoryGuideStatus
+
+    @POST("books/{bookId}/story-guide/cancel")
+    suspend fun cancelStoryGuide(@Path("bookId") bookId: Int, @Body request: StoryGuideFileRequest): StoryGuideStatus
+
 
     // --- Auth ---
     @POST("auth/login")
@@ -165,12 +198,14 @@ interface ApiService {
     ): com.bookorbit.core.model.HubAnnotationPage
 
     @GET("books/{bookId}/annotations")
-    suspend fun getAnnotations(@Path("bookId") bookId: Int): List<com.bookorbit.core.model.BookAnnotation>
+    suspend fun getAnnotations(@Path("bookId") bookId: Int, @Query("readerFileId") readerFileId: Int? = null,
+        @Tag owner: com.bookorbit.core.auth.SessionOwner? = null): List<com.bookorbit.core.model.BookAnnotation>
 
     @POST("books/{bookId}/annotations")
     suspend fun createAnnotation(
         @Path("bookId") bookId: Int,
         @Body body: com.bookorbit.core.model.CreateAnnotation,
+        @Tag owner: com.bookorbit.core.auth.SessionOwner? = null,
     ): com.bookorbit.core.model.BookAnnotation
 
     /** Patch body is a raw object so a note can be cleared with an explicit `null`. */
@@ -179,15 +214,18 @@ interface ApiService {
         @Path("bookId") bookId: Int,
         @Path("id") id: Int,
         @Body body: kotlinx.serialization.json.JsonObject,
+        @Tag owner: com.bookorbit.core.auth.SessionOwner? = null,
     ): com.bookorbit.core.model.BookAnnotation
 
     @DELETE("books/{bookId}/annotations/{id}")
-    suspend fun deleteAnnotation(@Path("bookId") bookId: Int, @Path("id") id: Int)
+    suspend fun deleteAnnotation(@Path("bookId") bookId: Int, @Path("id") id: Int,
+        @Tag owner: com.bookorbit.core.auth.SessionOwner? = null)
 
     @POST("books/files/{fileId}/sessions")
     suspend fun saveReadingSession(
         @Path("fileId") fileId: Int,
         @Body body: com.bookorbit.core.model.SaveReadingSession,
+        @Tag owner: com.bookorbit.core.auth.SessionOwner,
     )
 
     @POST("books/files/{fileId}/progress")
@@ -375,6 +413,9 @@ interface ApiService {
 
     @GET("user-statistics/reading-source-distribution")
     suspend fun getReadingSources(@Query("days") days: Int): com.bookorbit.core.model.SourceDistribution
+
+    @GET("user-statistics/session-timeline")
+    suspend fun getReadingHistory(@Query("year") year: Int, @Query("week") week: Int): com.bookorbit.core.model.ReadingHistory
 
     @GET("dashboard/widgets/reading-streak")
     suspend fun getReadingStreak(): com.bookorbit.core.model.ReadingStreakWidget
