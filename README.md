@@ -236,6 +236,19 @@ In the app, open **Settings → Device verification for AI → Register device k
 confirm certificate disclosure. The phone creates its own hardware-backed key and
 registers it for this server/account. You never paste its private key anywhere.
 
+**Two separate steps are required:** the administrator first allows the APK's
+exact package/signing-certificate pair on the server (steps 1–3); the user then
+presses **Register device key** on a physical Android phone. The button performs
+device-key enrollment, but does not add the APK to the server's trusted-app list.
+You do **not** embed a device key or any additional shared secret in the APK, and
+the APK's private signing key must never be included in the application.
+
+After both steps succeed, test the protected feature with an authorized account
+and a configured provider. This is the expected integration path, not a guarantee
+that every device or AI operation will work. Existing Story Guide viewing also
+requires server access in this version; persistent offline graph viewing is not
+implemented yet.
+
 If it fails, enable [debug logging](#debug-logging), reproduce once and save the log.
 The UI reports the failing stage, HTTP status and a bounded `APP_ATTEST_*` code.
 Use your server logs to distinguish app identity, certificate trust, device/boot,
@@ -246,6 +259,11 @@ tests and the server build passed. Synthetic enrollment/signature tests accept o
 exact identity only after adding it and still reject wrong identities, roots,
 challenges, software keys, body changes and replay. This is **not** real-phone
 enrollment or end-to-end photo/model acceptance. No production deployment was changed.
+The isolated tests used synthetic attestation certificates; they did not demonstrate
+successful enrollment by a real phone pressing the registration button. During the
+later authorized real-server screenshot session, login/library browsing succeeded,
+but Story Guide returned an access restriction. The complete allowlist → physical
+phone registration → protected-feature scenario on that deployment remains unverified.
 
 The shared identity policy covers routes using that guard, but enabling trust does
 not configure a model, grant account permissions, remove provider budgets, or
