@@ -42,6 +42,13 @@ internal class NativeNarrationPlayer(
         return true
     }
 
+    fun seekToSelection(position: ReadAlongPosition): Boolean {
+        if (!allowed()) return false
+        val target = queue.plan.timeline.selectionStart(position) ?: return false
+        super.seekTo(target.index, target.clipOffsetMs)
+        return true
+    }
+
     // System next/previous advances actual SMIL sections, skipping un-narrated text sections.
     override fun seekToNext() = nextChapter()
     override fun seekToNextMediaItem() = nextChapter()

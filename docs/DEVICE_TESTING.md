@@ -596,3 +596,17 @@ PLAYING, transitioning from SMIL item 2 at 5876ms to item 3 at 4ms. Evidence:
 Original fixtures are silent. Audible output, physical ABI execution, performance,
 battery, decoding every declared codec, release shrinking, offline native
 narration and producing a Cast-compatible encoded stream remain unverified.
+# 0.9.15: слушать из выделения (2026-11-26)
+
+- «Слушать отсюда» находится только под ⋮ выделения с точным SMIL anchor.
+  Неозвученный заголовок действия не имеет; кнопка начала главы удалена.
+- Retained-эмулятор без сети: выбор первой озвученной строки → Home → native
+  BUFFERING/PLAYING item 2 с 0 ms; повторный выбор второй строки → item 3.
+  `.local/contracts/selection-native-narration-offline.json`, screenshots
+  `selection-narration-{menu,playing,unnarrated-menu}.png`.
+- Финальный code915: selection UI 3, local narration 2, native clips 1,
+  streaming 3, Auto 1 прошли. Каталоги доказательств перечислены в
+  `.local/apks/working-0.9.15-20261126/build-info.json`.
+- Оба APK/lint и 559 JVM-тестов/flavor прошли; подпись прежняя, zipalign 16KiB
+  проверен. Архив `.local/apks/working-0.9.15-20261126/` не заменяет старые APK.
+- Это не физическая проверка слышимости, Bluetooth/OEM/Doze или SAF.

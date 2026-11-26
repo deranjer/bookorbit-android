@@ -12,8 +12,10 @@ class NativeNarrationSessionTest {
         var starts = 0
         var commands = 0
         var leaves = 0
+        var selections = 0
         override fun start(queue: NativeNarrationQueue, owner: ReadAlongOwner, saved: ReadAlongPosition?, section: Int) { starts++ }
         override fun command(action: String, rate: Double?) { commands++ }
+        override fun listenFrom(position: ReadAlongPosition): Boolean { selections++; return true }
         override fun leave() { leaves++ }
     }
     @Test fun `an audiobook replacement or newer narration request invalidates a pending start`() {
@@ -60,6 +62,21 @@ class NativeNarrationSessionTest {
         val pending = mockk<NativeNarrationQueue> { every { plan } returns source }
         assertFalse(session.start(ticket, pending, owner, null, 0))
         assertEquals(1, closed)
+        assertEquals(0, port.starts)
+    }
+
+    @Test fun `selection uses the existing owner session and invalidates a pending queue start`() {
+        val session = NativeNarrationSession()
+        val port = Port()
+        session.bind(port)
+        session.publish(NativeNarrationSession.State(owner, 5, ReaderEvent.ReadAlong(true, "paused")))
+        val ticket = session.ticket()
+        val target = ReadAlongPosition(0, "OPS/ch#one", "OPS/voice", 0.0)
+        assertFalse(session.listenFrom(owner.copy(fingerprint = "other"), target))
+        assertTrue(session.isCurrent(ticket))
+        assertTrue(session.listenFrom(owner, target))
+        assertFalse(session.isCurrent(ticket))
+        assertEquals(1, port.selections)
         assertEquals(0, port.starts)
     }
 }

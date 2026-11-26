@@ -1,7 +1,6 @@
 <resources>
     <string name="read_along_previous_fragment">Previous narrated fragment</string>
     <string name="read_along_next_fragment">Next narrated fragment</string>
-    <string name="read_along_from_chapter">Start narration from the current chapter</string>
     <string name="read_along_title">Read along</string>
     <string name="read_along_foreground">EPUB audio · while reading</string>
     <string name="read_along_play">Play read-along</string>

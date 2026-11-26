@@ -369,7 +369,9 @@ function attachDocHandlers(doc, index) {
     }, 0);
   });
 
+  let selectionRequest = 0;
   doc.addEventListener('selectionchange', () => {
+    const request = ++selectionRequest;
     clearTimeout(selectionTimer);
     selectionTimer = setTimeout(() => {
       const sel = doc.getSelection();
@@ -387,6 +389,12 @@ function attachDocHandlers(doc, index) {
         cfi = null;
       }
       post({ type: 'selection', text, cfi, rect: viewportRect(range) });
+      const selected = range.cloneRange();
+      void readAlong.positionForSelection(index, selected).then(narration => {
+        if (!narration || request !== selectionRequest) return;
+        if (!view?.renderer?.getContents?.().some(content => content.doc === doc && content.index === index)) return;
+        post({ type: 'selection', text, cfi, rect: viewportRect(selected), narration });
+      });
     }, 300);
   });
 }

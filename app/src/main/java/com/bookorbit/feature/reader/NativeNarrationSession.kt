@@ -13,6 +13,7 @@ class NativeNarrationSession @Inject constructor() {
     internal interface Port {
         fun start(queue: NativeNarrationQueue, owner: ReadAlongOwner, saved: ReadAlongPosition?, section: Int)
         fun command(action: String, rate: Double?)
+        fun listenFrom(position: ReadAlongPosition): Boolean = false
         fun leave()
     }
     private var port: Port? = null
@@ -37,6 +38,12 @@ class NativeNarrationSession @Inject constructor() {
         if (mutableState.value?.owner != owner) return false
         port?.command(action, rate) ?: return false
         return true
+    }
+    @MainThread internal fun listenFrom(owner: ReadAlongOwner, position: ReadAlongPosition): Boolean {
+        if (mutableState.value?.owner != owner) return false
+        val accepted = port?.listenFrom(position) ?: false
+        if (accepted) generation++
+        return accepted
     }
     @MainThread internal fun leaveForAudiobook() { generation++; port?.leave(); mutableState.value = null }
 }

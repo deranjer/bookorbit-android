@@ -1,4 +1,5 @@
 <resources>
+    <string name="read_along_from_selection">Listen from here</string>
     <string name="search_heading">What will you read next?</string>
     <string name="search_description">Find a title, rediscover an author, or recognize books in a photo.</string>
     <string name="search_photo_action">Find by photo · AI</string>

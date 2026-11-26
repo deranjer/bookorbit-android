@@ -1,4 +1,5 @@
 <resources>
+    <string name="read_along_from_selection">Слушать отсюда</string>
     <string name="search_heading">Что почитаем?</string>
     <string name="search_description">Найдите книгу, вернитесь к любимому автору или распознайте книги на фото.</string>
     <string name="search_photo_action">Найти по фото · ИИ</string>

@@ -41,9 +41,6 @@ internal fun ReadAlongBar(state: ReaderEvent.ReadAlong, onCommand: (String, Doub
             }
             if (state.error != null) Text(stringResource(R.string.read_along_audio_error),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(8.dp))
-            if (state.position != null || state.error != null) TextButton(onClick = { onCommand("restart", null) }, enabled = state.state != "loading") {
-                Text(stringResource(R.string.read_along_from_chapter))
-            }
         }
     }
 }

@@ -60,6 +60,10 @@ export class ReadAlongController {
       this.#overlay.dispatchEvent(new CustomEvent('highlight', { detail: { text: fragment } }));
     else this.#overlay.dispatchEvent(new CustomEvent('unhighlight'));
   }
+  async positionForSelection(index, range) {
+    try { return await this.#overlay?.positionForSelection(index, range) ?? null; }
+    catch { return null; }
+  }
   async command(action, rate) {
     if (!this.#overlay) return;
     try {

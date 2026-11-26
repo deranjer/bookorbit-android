@@ -78,6 +78,16 @@ class LocalNativeNarrationTest {
                 val saved = main { native.checkpoint()!! }
                 assertEquals("OPS/ch.xhtml#a", saved.fragment)
                 assertEquals(3.25, saved.audioSeconds, 0.01)
+                val selected = source.timeline.checkpoint(1, 0, 1.0)!!
+                main {
+                    assertFalse(native.seekToSelection(selected.copy(audioSeconds = 5.2)))
+                    assertTrue(native.seekToSelection(selected))
+                    native.play()
+                }
+                await("selection starts on existing player") { native.isPlaying && native.currentMediaItemIndex == 1 }
+                main { native.pause(); assertTrue(native.seekToSelection(source.timeline.checkpoint(0, 0, 1.0)!!)) }
+                await("paused selection rewinds to exact fragment") { native.currentMediaItemIndex == 0 && native.playbackState == Player.STATE_READY }
+                main { assertEquals(2.0, native.checkpoint()!!.audioSeconds, 0.01); assertEquals(queue.items.size, raw.mediaItemCount) }
                 main { native.seekTo(0, 2_850); native.play() }
                 await("offline natural SMIL transition") { native.currentMediaItemIndex == 1 && native.isPlaying }
                 main { native.pause() }

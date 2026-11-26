@@ -554,6 +554,34 @@ class MediaOverlay extends EventTarget {
     }
     this.#error(new Error('No playable media-overlay fragment in this section'))
   }
+  /** Resolve the selection's first word to its actual SMIL element, without starting audio. */
+  async positionForSelection(sectionIndex, range) {
+    const section = this.book.sections[sectionIndex]
+    if (!section?.mediaOverlay || !range || range.collapsed) return null
+    const entries = await this.#loadSMIL(section.mediaOverlay)
+    const doc = range.startContainer?.ownerDocument
+    if (!doc) return null
+    const start = range.startContainer.nodeType === 1
+      ? range.startContainer.childNodes[range.startOffset] ?? range.startContainer
+      : range.startContainer
+    let best = null
+    let ambiguous = false
+    for (const entry of entries) for (const item of entry.items) {
+      const [href, hash] = item.text.split('#')
+      if (href !== section.id) continue
+      const element = hash ? doc.getElementById(hash) : doc.documentElement
+      const begin = item.begin ?? 0
+      if (!element?.contains(start) || !Number.isFinite(begin) || begin < 0) continue
+      const candidate = { element, sectionIndex, fragment: item.text, audioSrc: entry.src, audioSeconds: begin }
+      if (best?.element === element) ambiguous = true
+      else if (!best || best.element.contains(element)) { best = candidate; ambiguous = false }
+      else if (!element.contains(best.element)) return null
+    }
+    // Prefer a more specific nested SMIL element; repeated/ambiguous clips are not guessed.
+    if (!best || ambiguous) return null
+    const { element, ...position } = best
+    return position
+  }
   pause() {
     this.#setState('paused')
     this.#audio?.pause()

@@ -48,7 +48,7 @@ sealed interface ReaderEvent {
 
     /** A tap on the page body (not on a link or highlight). [x] is 0..1 across the viewport. */
     data class Tap(val x: Double) : ReaderEvent
-    data class Selection(val text: String, val cfi: String?, val rect: ViewportRect?) : ReaderEvent
+    data class Selection(val text: String, val cfi: String?, val rect: ViewportRect?, val narration: ReadAlongPosition? = null) : ReaderEvent
     data object SelectionCleared : ReaderEvent
     data class AnnotationTap(val cfi: String, val rect: ViewportRect?) : ReaderEvent
 
@@ -121,7 +121,10 @@ object ReaderBridge {
             "error" -> ReaderEvent.Error(obj["message"]?.jsonPrimitive?.contentOrNull ?: "Reader error")
             "tap" -> obj["x"]?.jsonPrimitive?.doubleOrNull?.let { ReaderEvent.Tap(it) }
             "selection" -> obj["text"]?.jsonPrimitive?.contentOrNull?.let {
-                ReaderEvent.Selection(it, obj["cfi"]?.jsonPrimitive?.contentOrNull, parseRect(obj["rect"]))
+                ReaderEvent.Selection(it, obj["cfi"]?.jsonPrimitive?.contentOrNull, parseRect(obj["rect"]),
+                    obj["narration"]?.let { value -> runCatching {
+                        json.decodeFromJsonElement(ReadAlongPosition.serializer(), value).takeIf { it.valid() && !it.completed }
+                    }.getOrNull() })
             }
             "selectionCleared" -> ReaderEvent.SelectionCleared
             "searchResults" -> {

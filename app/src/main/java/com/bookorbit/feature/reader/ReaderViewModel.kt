@@ -64,7 +64,7 @@ class ReaderViewModel @Inject constructor(
     )
 
     /** Text the user has selected in the page, not yet saved as a highlight. */
-    data class PendingSelection(val text: String, val cfi: String)
+    data class PendingSelection(val text: String, val cfi: String, val narration: ReadAlongPosition? = null)
 
     /** What the floating highlight toolbar is acting on: a new selection, or an existing highlight. */
     data class ToolbarTarget(
@@ -115,11 +115,25 @@ class ReaderViewModel @Inject constructor(
 
     fun nativeReadAlongOwner(): ReadAlongOwner? = readAlongOwner
 
-    suspend fun nativeReadAlong(action: String, rate: Double?): Boolean {
+    suspend fun listenFromSelection(selection: PendingSelection, rate: Double) {
+        if (_ui.value.toolbar?.selection != selection) return
+        val position = selection.narration ?: return
+        dismissToolbar()
+        if (!nativeReadAlong("selection", rate, position))
+            _ui.update { it.copy(message = UiText.of(R.string.reader_native_narration_failed)) }
+    }
+
+    suspend fun nativeReadAlong(action: String, rate: Double?, fromSelection: ReadAlongPosition? = null): Boolean {
+        if (action == "selection" && fromSelection == null) return false
         val owner = readAlongOwner ?: return false
-        if (nativeNarration.command(owner, action, rate)) return true
+        if (fromSelection != null && nativeNarration.state.value?.owner == owner) {
+            if (!nativeNarration.listenFrom(owner, fromSelection))
+                _ui.update { it.copy(message = UiText.of(R.string.reader_native_narration_failed)) }
+            return true
+        }
+        if (fromSelection == null && nativeNarration.command(owner, action, rate)) return true
         val resolved = _ui.value.resolved ?: return false
-        if (action !in setOf("start", "resume", "restart") ||
+        if (action !in setOf("start", "resume", "restart", "selection") ||
             player.state.value.isCasting) return false
         val account = activityOwner ?: return false
         if (!session.owns(account)) return true
@@ -130,7 +144,9 @@ class ReaderViewModel @Inject constructor(
                 else nativeStreaming.open(bookId, selectedFileId, account)
             pending = plan
             if (!nativeNarration.isCurrent(ticket)) return true
-            val saved = if (action == "restart") null else readAlongPositions.load(owner)
+            if (fromSelection != null) require(plan.timeline.selectionStart(fromSelection) != null) { "Selected narration fragment changed" }
+            val saved = if (fromSelection != null) fromSelection.copy(rate = rate?.takeIf { it.isFinite() && it in 0.5..2.0 } ?: 1.0)
+                else if (action == "restart") null else readAlongPositions.load(owner)
             val queue = NativeNarrationQueue(plan, _ui.value.title.orEmpty())
             if (!player.prepareForNativeNarration {
                 nativeNarration.isCurrent(ticket) && session.owns(account) && !player.state.value.isCasting
@@ -341,9 +357,9 @@ class ReaderViewModel @Inject constructor(
         _ui.update { it.copy(annotations = annotationRepo.local(bookId), toolbar = null) }
     }
 
-    fun onSelection(text: String, cfi: String?, rect: ViewportRect?) {
+    fun onSelection(text: String, cfi: String?, rect: ViewportRect?, narration: ReadAlongPosition? = null) {
         if (cfi == null) return
-        _ui.update { it.copy(toolbar = ToolbarTarget(rect, selection = PendingSelection(text, cfi))) }
+        _ui.update { it.copy(toolbar = ToolbarTarget(rect, selection = PendingSelection(text, cfi, narration))) }
     }
 
     fun onSelectionCleared() {

@@ -75,6 +75,16 @@ internal class NativeNarrationPlayback(
         }
     }
 
+    override fun listenFrom(position: ReadAlongPosition): Boolean {
+        val current = wrapper ?: return false
+        val queue = queue ?: return false
+        if (!session.owns(queue.plan.owner) || !current.seekToSelection(position)) return false
+        if (current.playerError != null) current.prepare()
+        current.play()
+        update()
+        return true
+    }
+
     override fun command(action: String, rate: Double?) {
         val current = wrapper ?: return
         val queue = queue ?: return

@@ -75,6 +75,7 @@ fun HighlightToolbar(
     onReadingHelp: (() -> Unit)? = null,
     onTranslate: (() -> Unit)? = null,
     onDictionary: (() -> Unit)? = null,
+    onListenFromHere: (() -> Unit)? = null,
 ) {
     var more by remember { mutableStateOf(false) }
     var palette by remember { mutableStateOf(false) }
@@ -111,6 +112,8 @@ fun HighlightToolbar(
                     Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.reader_selection_more), tint = Color.White)
                 }
                 DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
+                    if (onListenFromHere != null) DropdownMenuItem(text = { Text(stringResource(R.string.read_along_from_selection)) },
+                        onClick = { more = false; onListenFromHere() })
                     DropdownMenuItem(text = { Text(stringResource(R.string.add_note)) }, onClick = { more = false; onNote() })
                     if (onReadingHelp != null) DropdownMenuItem(text = { Text(stringResource(R.string.help_title)) }, onClick = { more = false; onReadingHelp() })
                     if (onDelete != null) DropdownMenuItem(text = { Text(stringResource(R.string.delete_highlight)) }, onClick = { more = false; onDelete() })

@@ -119,7 +119,7 @@ fun ReaderScreen(
                 is ReaderEvent.SearchResults -> vm.onSearchResults(event.label, event.hits)
                 is ReaderEvent.SearchProgress -> vm.onSearchProgress(event.progress)
                 is ReaderEvent.SearchDone -> vm.onSearchDone(event.total, event.capped)
-                is ReaderEvent.Selection -> vm.onSelection(event.text, event.cfi, event.rect)
+                is ReaderEvent.Selection -> vm.onSelection(event.text, event.cfi, event.rect, event.narration)
                 ReaderEvent.SelectionCleared -> vm.onSelectionCleared()
                 is ReaderEvent.AnnotationTap -> vm.onAnnotationTap(event.cfi, event.rect)
             }
@@ -249,6 +249,13 @@ fun ReaderScreen(
                 },
                 onDictionary = (target.selection?.text ?: annotation?.text)?.takeIf { it.isNotBlank() }?.let { text ->
                     { readingTool = ReadingTool.DICTIONARY to text }
+                },
+                onListenFromHere = target.selection?.takeIf { it.narration != null && vm.nativeReadAlongOwner() != null }?.let { selected ->
+                    { scope.launch {
+                        controller.readAlong("pause")
+                        vm.listenFromSelection(selected, shownReadAlong.rate)
+                        controller.clearSelection()
+                    } }
                 },
             )
             }

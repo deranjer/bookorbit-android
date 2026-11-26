@@ -108,6 +108,51 @@ function engine(loadBlob = async () => new Blob(['synthetic']), sections) {
   return { overlay: new MediaOverlay(book, loadXML), audios, loaded };
 }
 
+function selectionRange(elements, id = 'one') {
+  const word = { nodeType: 3 };
+  const selected = { contains: node => node === word };
+  const doc = { getElementById: key => elements?.(key, word, selected) ?? (key === id ? selected : null) };
+  word.ownerDocument = doc;
+  return { startContainer: word, startOffset: 2, collapsed: false };
+}
+
+test('selection resolves exact SMIL fragment start without loading or playing audio', async () => {
+  const { overlay, loaded, audios } = engine();
+  const position = await overlay.positionForSelection(0, selectionRange(null, 'two'));
+  assert.deepEqual(position, { sectionIndex: 0, fragment: 'OEBPS/chapter.xhtml#two', audioSrc: 'OEBPS/one.mp3', audioSeconds: 1 });
+  assert.deepEqual(loaded, []);
+  assert.deepEqual(audios, []);
+  assert.equal(overlay.getPosition(), null);
+});
+
+test('unnarrated or collapsed selections never offer listening from a guessed text percentage', async () => {
+  const { overlay } = engine();
+  assert.equal(await overlay.positionForSelection(0, selectionRange(null, 'silent')), null);
+  assert.equal(await overlay.positionForSelection(0, { ...selectionRange(), collapsed: true }), null);
+  assert.equal(await overlay.positionForSelection(1, selectionRange()), null);
+});
+
+test('nested narration selects the most specific fragment and ambiguous anchors fail closed', async () => {
+  const { overlay } = engine();
+  let parent;
+  const nested = selectionRange((id, word, selected) => {
+    parent ??= { contains: node => node === word || node === selected };
+    return id === 'one' ? parent : id === 'two' ? selected : null;
+  }, 'silent');
+  assert.equal((await overlay.positionForSelection(0, nested)).fragment, 'OEBPS/chapter.xhtml#two');
+  const ambiguous = selectionRange((id, _word, selected) => id === 'one' || id === 'two' ? selected : null, 'silent');
+  assert.equal(await overlay.positionForSelection(0, ambiguous), null);
+});
+
+test('selection metadata lookup failure is nonfatal and does not start foreground audio', async () => {
+  const overlay = new Overlay();
+  overlay.positionForSelection = async () => { throw new Error('missing SMIL'); };
+  const ctl = new ReadAlongController(() => {});
+  ctl.attach({ mediaOverlay: overlay });
+  assert.equal(await ctl.positionForSelection(0, selectionRange()), null);
+  assert.deepEqual(overlay.calls, []);
+});
+
 const settle = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
 test('actual SMIL engine advances to next audio asset rather than skipping its clips', async () => {
   const { overlay, audios, loaded } = engine();

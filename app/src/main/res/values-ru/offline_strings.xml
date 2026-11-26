@@ -1,7 +1,6 @@
 <resources>
     <string name="read_along_previous_fragment">Предыдущий озвученный фрагмент</string>
     <string name="read_along_next_fragment">Следующий озвученный фрагмент</string>
-    <string name="read_along_from_chapter">Начать озвучку с текущей главы</string>
     <string name="read_along_title">Читать и слушать</string>
     <string name="read_along_foreground">Аудио EPUB · на экране чтения</string>
     <string name="read_along_play">Включить озвучку EPUB</string>

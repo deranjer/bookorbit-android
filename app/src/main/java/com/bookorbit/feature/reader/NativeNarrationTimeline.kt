@@ -76,6 +76,13 @@ class NativeNarrationTimeline(playlist: NativeNarrationPlaylist, expectedBookId:
 
     data class Location(val index: Int, val assetSeconds: Double, val clipOffsetMs: Long)
 
+    /** A WebView selection may request only the exact start of a unique narrated fragment. */
+    fun selectionStart(position: ReadAlongPosition): Location? {
+        if (!position.valid() || position.completed) return null
+        return clips.singleOrNull { it.sectionIndex == position.sectionIndex && it.fragment == position.fragment &&
+            it.audioHref == position.audioSrc && kotlin.math.abs(it.clipBeginSeconds - position.audioSeconds) < 0.000001 }?.let(::start)
+    }
+
     /** An un-narrated section advances to the next actual SMIL section, never a guessed audio time. */
     fun startAtSection(sectionIndex: Int): Location? = if (sectionIndex !in 0..100_000) null
         else clips.firstOrNull { it.sectionIndex >= sectionIndex }?.let(::start)

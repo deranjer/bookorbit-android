@@ -17,6 +17,17 @@ class NativeNarrationTimelineTest {
     private fun timeline(value: NativeNarrationPlaylist = playlist) = NativeNarrationTimeline(value, 5, 84)
     private val saved = ReadAlongPosition(0, "OPS/0.xhtml#two", "OPS/0.mp3", 11.724068, 1.25)
 
+    @Test fun `selection accepts only the exact start of a unique narrated fragment`() {
+        val start = saved.copy(audioSeconds = 10.0)
+        assertEquals(1, timeline().selectionStart(start)!!.index)
+        assertEquals(0L, timeline().selectionStart(start)!!.clipOffsetMs)
+        for (changed in listOf(saved, start.copy(fragment = "OPS/0.xhtml#missing"), start.copy(sectionIndex = 1),
+            start.copy(audioSrc = "OPS/2.mp3"), start.copy(completed = true))) assertNull(timeline().selectionStart(changed))
+        val first = playlist.items.first()
+        val duplicate = playlist.copy(items = listOf(first, first.copy(index = 1)))
+        assertNull(timeline(duplicate).selectionStart(ReadAlongPosition(0, first.fragment, first.audioHref, 0.0)))
+    }
+
     @Test fun `server playlist binds exact book and file identity and does not accept a default edition`() {
         for (value in listOf(playlist.copy(bookId = 6), playlist.copy(fileId = 85), playlist.copy(fileId = null)))
             assertTrue(runCatching { timeline(value) }.isFailure)

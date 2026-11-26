@@ -103,7 +103,6 @@ class ReaderController {
     fun goToFraction(value: Double) = command(buildJsonObject { put("type", "goToFraction"); put("value", value) }.toString())
     fun next() = command(buildJsonObject { put("type", "next") }.toString())
     fun prev() = command(buildJsonObject { put("type", "prev") }.toString())
-
     fun readAlong(action: String, rate: Double? = null) {
         webView?.post {
             // Native controls are the explicit user gesture; do not enable autoplay at reader creation.
