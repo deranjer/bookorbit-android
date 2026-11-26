@@ -207,6 +207,33 @@ Do not import production databases, secrets or books into development fixtures.
   как созданные напрямую графы/путеводители сохраняются локально и могут
   синхронизироваться с BookOrbit через существующий контракт. Наличие прямого
   провайдера не считать автоматической совместимостью с серверным Story Graph.
+  Срез 0.9.18 реализует настройки маршрута, OpenAI / Google Gemini, отдельные
+  model ID для помощи и будущего путеводителя. Токены в EncryptedSharedPreferences,
+  отдельные по server/user/provider; в UI только наличие и пустое поле замены,
+  без SavedState/Bundle и с secure dialog/password input. Save не делает сеть.
+  Прямая помощь ограничена одним выбранным фрагментом до 12000 символов, без
+  fileId/account/server/token BookOrbit в provider payload. Подтверждение показывает
+  провайдера/модель и предупреждает об оплате/ошибках/выведенных спойлерах.
+  Direct Story Guide намеренно пока unsupported: нет проверенного структурированного
+  контекста/границы спойлеров/локального хранения/контракта импорта в BookOrbit;
+  запасной серверный запрос в этом режиме запрещён. Это не полное закрытие пункта.
+  Проверено: оба APK/lint и 590 JVM-тестов/flavor без ошибок/пропусков; схемы
+  обоих провайдеров, отказ на truncated/refusal/blocked/null output, отсутствие
+  токена в URL/BookOrbit IDs в payload, scope server/user/provider, relogin,
+  повреждённые настройки без server fallback, отмена при logout/смене маршрута.
+  Платный POST использует one-shot body: даже 503 Retry-After: 0 не повторяет вызов.
+  Эмулятор: UI mock-запрос только после provider/model-specific подтверждения
+  1 тест × 2 (`20261126T123019938156Z`); настоящий Android Keystore, пустое поле
+  при повторном открытии и удаление токена без смены маршрута 1 × 2
+  (`20261126T123034196900Z`). Открытие/Save не вызывают сеть. FLAG_SECURE подтверждён
+  через dumpsys: `.local/contracts/ai-connection-secure-window.json`; в retained
+  fixture открыт только пустой dialog, API-ключ не вводился и маршрут не сохранялся.
+  Regression server Story Guide, selection/local narration/streaming/dictionary/stats
+  UI прошли; каталоги evidence в `.local/apks/working-0.9.18-20261126/build-info.json`.
+  Подпись и 16KiB zipalign проверены, старые архивы сохранены. Реальных платных
+  запросов, проверки доступности/цены моделей и production-изменений не выполнялось.
+  Моки подтверждают wire/consent/safety, не качество модели или защиту от всех
+  выведенных ею спойлеров. Полный пункт оставлен открытым из-за direct Story Guide.
 
 - [x] **Read-along: «Слушать отсюда» из выделения.** Реализовано в рабочем срезе
   0.9.15. Исходное требование: убрать из панели кнопку «Начать озвучку с текущей главы». Вместо неё

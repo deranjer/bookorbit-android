@@ -107,6 +107,8 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     var confirmClearDownloads by remember { mutableStateOf(false) }
     var confirmAttestation by remember { mutableStateOf(false) }
     var showDictionaries by remember { mutableStateOf(false) }
+    var showAiConnection by remember { mutableStateOf(false) }
+    val aiOwner by vm.aiOwners.collectAsStateWithLifecycle()
     val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) vm.setDownloadLocation(uri)
     }
@@ -118,6 +120,7 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
         }
     }
 
+    if (showAiConnection) com.bookorbit.feature.ai.AiConnectionDialog(vm.aiConnections, aiOwner) { showAiConnection = false }
     if (showDictionaries) androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showDictionaries = false },
         sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -165,6 +168,9 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             item { HorizontalDivider() }
 
             item { SectionHeader(stringResource(R.string.settings_reading)) }
+            item { TextButton(onClick = { showAiConnection = true }, modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(stringResource(R.string.ai_connection_title))
+            } }
             item { TextButton(onClick = { showDictionaries = true }, modifier = Modifier.padding(horizontal = 16.dp)) {
                 Text(stringResource(R.string.dictionary_manage))
             } }

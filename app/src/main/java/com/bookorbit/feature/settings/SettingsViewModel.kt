@@ -52,8 +52,10 @@ class SettingsViewModel @Inject constructor(
     private val userCaSettings: UserCaSettings,
     private val attestation: com.bookorbit.core.network.AndroidAttestation,
     val dictionaries: com.bookorbit.feature.dictionary.DictionaryRepository,
+    val aiConnections: com.bookorbit.feature.ai.AiConnectionStore,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
+    val aiOwners = session.owners
     val appInfo: StateFlow<AppInfo?> = appInfoRepository.appInfo
 
     private val _attestEnrolled = MutableStateFlow(attestation.isEnrolled())

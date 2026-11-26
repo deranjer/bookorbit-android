@@ -3,12 +3,16 @@ package com.bookorbit.feature.readinghelp
 import com.bookorbit.core.model.ReadingHelpEvent
 import com.bookorbit.core.model.ReadingHelpRequest
 import com.bookorbit.core.network.ApiService
+import com.bookorbit.core.auth.SessionManager
+import com.bookorbit.core.auth.SessionOwner
+import com.bookorbit.feature.ai.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -23,13 +27,28 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ReadingHelpRepository @Inject constructor(@com.bookorbit.core.network.MobileAiApi private val api: ApiService, private val json: Json) {
-    enum class Problem { RESTRICTED, FORBIDDEN, DISABLED, UNSUPPORTED, AUTH, BUDGET, READER_CAP, CAREFUL_OFF, TIMEOUT, REFUSED, TOO_LONG, NETWORK, PROVIDER }
-    data class Access(val enabled: Boolean = false, val careful: Boolean = false, val problem: Problem? = null)
+class ReadingHelpRepository @Inject constructor(@com.bookorbit.core.network.MobileAiApi private val api: ApiService, private val json: Json,
+    private val connections: AiConnectionStore? = null, private val direct: DirectReadingHelp? = null, private val session: SessionManager? = null) {
+    enum class Problem { RESTRICTED, FORBIDDEN, DISABLED, UNSUPPORTED, AUTH, BUDGET, READER_CAP, CAREFUL_OFF, TIMEOUT, REFUSED, TOO_LONG, NETWORK, PROVIDER, CONFIGURATION }
+    data class Access(val enabled: Boolean = false, val careful: Boolean = false, val problem: Problem? = null,
+        val connection: AiConnection? = null, val revision: Long? = null, val owner: SessionOwner? = null)
     class Failure(val problem: Problem) : IOException(problem.name)
 
     /** No valid passage is sent: the DTO must fail validation before a provider can be called. */
-    suspend fun access(): Access = try {
+    suspend fun access(): Access {
+        val owner = session?.owner()
+        val connection = if (connections != null) owner?.let { connections.connection(it) }
+            ?: return Access(problem = Problem.AUTH) else null
+        if (connection?.valid == false) return Access(problem = Problem.CONFIGURATION)
+        val revision = connection?.revision
+        if (connection?.route == AiRoute.DIRECT) return Access(
+            enabled = connection.hasToken && connection.helpModel.isNotBlank(), careful = true,
+            problem = Problem.CONFIGURATION.takeIf { !connection.hasToken || connection.helpModel.isBlank() },
+            connection = connection, revision = revision, owner = owner)
+        return serverAccess().copy(connection = connection, revision = revision, owner = owner)
+    }
+
+    private suspend fun serverAccess(): Access = try {
         val info = api.getAppInfo()
         if ("reading-help" !in info.features || info.readingHelp == null) Access(problem = Problem.UNSUPPORTED)
         else {
@@ -52,11 +71,28 @@ class ReadingHelpRepository @Inject constructor(@com.bookorbit.core.network.Mobi
     catch (e: Exception) { Access(problem = Problem.NETWORK) }
 
     /** Each collection is one explicitly confirmed request. Cancel collection to cancel the HTTP call. */
-    fun answer(request: ReadingHelpRequest): Flow<ReadingHelpEvent> = callbackFlow {
+    fun answer(request: ReadingHelpRequest, expectedRevision: Long? = null, expectedOwner: SessionOwner? = null): Flow<ReadingHelpEvent> = flow {
         request.validate()
+        if (expectedOwner != null && session?.owns(expectedOwner) != true) throw Failure(Problem.AUTH)
+        if (expectedRevision != null && expectedRevision != connections?.revision) throw Failure(Problem.CONFIGURATION)
         val access = access()
         if (!access.enabled) throw Failure(access.problem ?: Problem.PROVIDER)
+        if (access.revision != connections?.revision) throw Failure(Problem.CONFIGURATION)
         if (request.careful && !access.careful) throw Failure(Problem.CAREFUL_OFF)
+        val owner = access.owner
+        if (owner != null && session?.owns(owner) != true) throw Failure(Problem.AUTH)
+        val selected = if (access.connection?.route == AiRoute.DIRECT) direct?.answer(request, owner) ?: throw Failure(Problem.CONFIGURATION)
+            else serverAnswer(request)
+        try {
+            selected.collect { event ->
+                if (owner != null && session?.owns(owner) != true || access.revision != connections?.revision) throw CancellationException()
+                emit(event)
+            }
+        } catch (error: DirectReadingHelp.Failure) { throw Failure(Problem.PROVIDER) }
+    }
+
+    private fun serverAnswer(request: ReadingHelpRequest): Flow<ReadingHelpEvent> = callbackFlow {
+        request.validate()
         val call = api.readingHelp(request)
         call.enqueue(object : Callback<ResponseBody> {
             override fun onFailure(call: Call<ResponseBody>, t: Throwable) { close(Failure(Problem.NETWORK)) }

@@ -51,7 +51,7 @@ fun ReadingHelpSheet(fileId: Int, passage: String, repository: ReadingHelpReposi
             try {
                 val language = answerLanguage.takeIf { it.matches(Regex("[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*")) } ?: "en"
                 repository.answer(ReadingHelpRequest(kind, fileId, language, listOf(passage),
-                    term = term.takeIf { kind == "term" }, scope = "chapter".takeIf { kind == "term" }, careful = careful)).collect { event ->
+                    term = term.takeIf { kind == "term" }, scope = "chapter".takeIf { kind == "term" }, careful = careful), expectedRevision = access?.revision, expectedOwner = access?.owner).collect { event ->
                     when (event.type) {
                         "delta" -> answer += event.text
                         "done" -> { answer = event.text; completed = true }
@@ -66,6 +66,11 @@ fun ReadingHelpSheet(fileId: Int, passage: String, repository: ReadingHelpReposi
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(stringResource(R.string.help_title), style = MaterialTheme.typography.headlineMedium)
+            access?.let { available -> Text(when {
+                available.problem == ReadingHelpRepository.Problem.CONFIGURATION -> stringResource(R.string.ai_configuration_required)
+                available.connection?.route == com.bookorbit.feature.ai.AiRoute.DIRECT -> stringResource(R.string.ai_active_direct, available.connection.provider.displayName, available.connection.helpModel)
+                else -> stringResource(R.string.ai_active_server)
+            }, style = MaterialTheme.typography.bodySmall) }
             Text(stringResource(R.string.help_context), style = MaterialTheme.typography.bodyMedium)
             Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLow) {
                 SelectionContainer { Text(passage, Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium) }
@@ -98,7 +103,9 @@ fun ReadingHelpSheet(fileId: Int, passage: String, repository: ReadingHelpReposi
     }
     if (confirm) AlertDialog(onDismissRequest = { confirm = false },
         title = { Text(stringResource(R.string.help_confirm_title)) },
-        text = { Text(stringResource(R.string.help_confirm_body)) },
+        text = { Text(if (access?.connection?.route == com.bookorbit.feature.ai.AiRoute.DIRECT)
+            stringResource(R.string.ai_direct_confirm, access?.connection?.provider?.displayName.orEmpty(), access?.connection?.helpModel.orEmpty())
+            else stringResource(R.string.help_confirm_body)) },
         confirmButton = { TextButton(onClick = { confirm = false; start() }) { Text(stringResource(R.string.help_send)) } },
         dismissButton = { TextButton(onClick = { confirm = false }) { Text(stringResource(R.string.cancel)) } })
 }
@@ -117,4 +124,5 @@ private fun helpProblemString(problem: ReadingHelpRepository.Problem) = when (pr
     ReadingHelpRepository.Problem.TOO_LONG -> R.string.help_too_long
     ReadingHelpRepository.Problem.NETWORK -> R.string.guide_network
     ReadingHelpRepository.Problem.PROVIDER -> R.string.help_provider
+    ReadingHelpRepository.Problem.CONFIGURATION -> R.string.ai_configuration_required
 }

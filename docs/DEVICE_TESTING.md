@@ -641,3 +641,23 @@ narration and producing a Cast-compatible encoded stream remain unverified.
   16KiB zipalign проверен. Архив `.local/apks/working-0.9.17-20261126/`.
 - Это эмуляторная приёмка двух направлений словаря, не весь FreeDict и не проверка
   физического телефона. Ограничения импорта являются safety bounds, не квотой книг.
+# 0.9.18: подключение ИИ и прямая помощь (2026-11-26)
+
+- Серверный путь сохранён; прямой выбирается явно, не является on-device моделью.
+  Поддержаны форматы OpenAI Chat Completions и Google Gemini generateContent.
+  Model ID задаётся пользователем, сохранение не проверяет доступность/цену и не
+  делает платный запрос. Прямой Story Guide явно unsupported, server fallback нет.
+- Android Keystore + UI: ключ зашифрован в файле prefs, не появляется в повторно
+  открытом поле, удаление не переключает маршрут: 1 тест × 2
+  (`20261126T123034196900Z`). Изолированные test-pref/key aliases удалены,
+  реальные credentials retained fixture не менялись.
+- Прямой запрос только после подтверждения с провайдером/моделью: 1 UI mock-тест × 2
+  (`20261126T123019938156Z`). Выделенный текст отправлен только локальному
+  MockWebServer, BookOrbit запросов 0. Настоящим провайдерам текст не отправлялся.
+- Ручная проверка пустого settings dialog: FLAG_SECURE в dumpsys, API-токен не
+  вводился, маршрут не сохранялся. `.local/contracts/ai-connection-secure-window.json`.
+  Secure window намеренно не используется для скриншота секрета.
+- 590 JVM-тестов/flavor, оба APK/lint, прежняя подпись и zipalign 16KiB прошли.
+  Архив `.local/apks/working-0.9.18-20261126/`; regressions/evidence в build-info.
+- Live paid-provider, физическая приёмка, качество ответов, полная spoiler-safety
+  и структурированный direct Story Guide не приняты. Production не изменялся.

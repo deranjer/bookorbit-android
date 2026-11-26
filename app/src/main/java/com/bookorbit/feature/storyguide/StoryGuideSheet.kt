@@ -93,6 +93,7 @@ fun StoryGuideSheet(book: BookDetail, repository: StoryGuideRepository, onDismis
                             StoryGuideRepository.Problem.AUTH -> R.string.guide_auth
                             StoryGuideRepository.Problem.FORMAT -> R.string.guide_format
                             StoryGuideRepository.Problem.NETWORK -> R.string.guide_network
+                            StoryGuideRepository.Problem.DIRECT_UNSUPPORTED -> R.string.ai_guide_direct_unsupported
                         }), Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onErrorContainer)
                     }
                 }
