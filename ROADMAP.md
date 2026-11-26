@@ -1,97 +1,71 @@
-# BookOrbit Android — Roadmap
+# Roadmap
 
-A read of the current client against its own docs and code, turned into a priority list.
-Tiers are "orbits" — P0 sits closest to today, P3 furthest out. Originally drafted 10 Jul 2026,
-updated 11 Jul 2026 after Chromecast support shipped, updated 29 Jul 2026 after the
-download-location and update-check items shipped, re-prioritised 8 Oct 2026 after a feature-parity
-review against the web client (demo.bookorbit.app) and the server API.
+**Independent BookOrbit Client · updated November 26, 2026**
 
-## Already in orbit (shipped)
+This is the fork's active roadmap, not a promise that every inherited feature has
+been accepted on physical devices. The [detailed plan](docs/CLIENT_PLAN.md) contains
+requirements and validation boundaries; [device testing](docs/DEVICE_TESTING.md)
+contains the acceptance checklist.
 
-- **Auth** — username/password + OIDC, self-hosted server URL setup
-- **Library** — browse, search, smart scopes, collections, authors, series
-- **Dashboard** — continue reading, continue listening, recently added
-- **Book detail** — metadata, rating, read status, collection assignment
-- **EPUB reader** — foliate.js, CFI progress sync, themes, font settings
-- **PDF reader** — separate renderer with its own layout/zoom settings
-- **Audiobook player** — Media3/ExoPlayer, background playback, notification controls,
-  sleep timer (5–60 min presets + "end of chapter"), Chromecast support, Android Auto browse tree, chapter list and
-  chapter progress bar, reopens the last audiobook on launch
-- **Downloads** — offline files via WorkManager, cached book detail fallback, user-chosen local
-  storage folder via Storage Access Framework (falls back to app-private storage)
-- **Book Drop** — upload, server-side metadata fetch, review-and-finalize into library
-- **Offline write queue** — ratings, read-status, and reading/listening progress made offline are
-  queued in Room and auto-flushed by a WorkManager `SyncWorker` on reconnect
-- **Settings screen** — appearance (system/light/dark, with a real light `ColorScheme`, not just
-  system-dark repeated), Wi-Fi-only downloads, image cache / bulk downloads clearing, default
-  playback speed, and an About section showing app/server version and update availability
-- **In-book search** — search the open book, results by chapter with matches outlined in the page
-- **Highlights and notes (EPUB, MOBI, AZW3, FB2)** — select text to highlight in five colours, add notes, tap a
-  highlight to recolour/delete, browse all highlights from the reader; synced with the web annotations hub; work offline and sync when back online
-- **Reading sessions** — reading and listening time reported to the server (`source: android`) so mobile
-  activity counts toward web streaks, goals and statistics; queued offline in Room and flushed by `SyncWorker`
-- **Update check** — `AppInfo.updateAvailable`/`latestVersion` surfaced via a drawer badge on
-  Settings, a drawer footer line, and the Settings About section; refreshed on every app
-  foreground while signed in
+## Current checkpoints
 
-## Parity review (8 Oct 2026)
+| Version | Delivered slice | Still not implied |
+| --- | --- | --- |
+| 0.9.12–0.9.15 | Source-built software audio, shared-service online/offline SMIL, exact resume, selection-based listening, authenticated streaming seek | All codecs/devices, audible output, OEM/Bluetooth/Doze acceptance or transcoding |
+| 0.9.16–0.9.18 | Statistics periods/history, explicit offline dictionaries, protected server/direct AI connections | Full statistics parity or direct Story Guide |
+| 0.9.19–0.9.20 | Owner/file-scoped annotations and durable uncertain-CREATE handling | Server idempotency, reconciliation UI or comic geometry sync |
+| 0.9.21 | 305 dictionary catalog pairs; Ollama, OpenRouter and OpenAI-compatible text adapters | Every dictionary package, live provider/model acceptance or multimodal support |
+| 0.9.22 | Fullscreen AI setup, compact calendar, visible Story Guide entry and registration diagnostics | Removal of stock server restrictions or user acceptance of the new UI |
+| 0.9.23 | Opt-in bounded diagnostic logging and explicit file export | Full logcat/crash collection or a server security bypass |
 
-The remaining items below were originally chosen from this app's own docs. Comparing against the web
-client and the server (`bookorbit/bookorbit`) shows the largest gaps are not listed there. The server
-already exposes everything the P0/P1 items need, and `android` is an accepted reading-session source
-(`CLIENT_READING_SESSION_SOURCES = ios | watchos | android`).
+## Next priorities
 
-Server endpoints available but unused by this app:
+### 1. Resolve real-device failures
 
-- `books/{bookId}/annotations` (GET/POST/PATCH/DELETE; CFI or PDF rect) — highlights and notes,
-  three-way synced with Kobo, KOReader and web.
-- `books/{bookId}/bookmarks` and `audiobooks/{bookId}/bookmarks`.
-- `user-statistics/*` and `dashboard/widgets/*` (streak, goal, highlight of the day, Reading DNA,
-  neglected gems, monthly challenge, …).
-- `books/{id}/series-books` (declared in `ApiService` but not called).
+- [ ] Obtain and interpret the physical phone's registration stage/status/code.
+  Keep app trust, hardware attestation, TLS, authentication and provider configuration separate.
+- [ ] With separate deployment approval, validate the exact package/certificate
+  policy on the user's server version and register the physical phone.
+- [ ] Validate photo recognition and Story Guide end to end with explicit consent
+  and a configured provider. Do not count mocks or a visible button as acceptance.
+- [ ] Re-test streaming headset skip-back with the screen off, including real
+  Bluetooth/OEM/Doze behavior. Controlled Range/401/MediaSession tests already pass.
 
-## P0 — Parity core
+### 2. Complete reading and synchronization
 
-- **PDF highlights and bookmarks** — EPUB-family highlights/notes and bookmarks shipped (see below); PDF annotations
-  (page rectangles) and PDF bookmarks are still missing.
-- **Book detail depth** — files/editions with per-format progress, narrators, tappable author and
-  series, review, external ratings.
-- **Fix: synopsis renders raw HTML** (`<br />`, `<i>`), double status-bar inset on detail top bar,
-  no retry UI on paging errors, 3-column grid hard-coded.
+- [ ] Finish narration acceptance: spoken overlays, large EPUB/SAF, OS-kill recovery,
+  chapter navigation, device switching and non-overlapping reading/listening activity.
+- [ ] Finish annotation file-revision binding and safe uncertain-delivery reconciliation.
+- [ ] Resolve comic annotation geometry with a real supported server contract;
+  never disguise OCR coordinates as PDF rectangles or EPUB CFI.
+- [ ] Validate OCR selection/grouping/filtering and zoom/pan on complex real pages.
+- [ ] Finish offline translation and additional explicitly selected translation services.
 
-## P1 — Targeted refresh
+### 3. Expand AI deliberately
 
-- Dashboard: streak, goal and a Continue card shipped; highlight of the day and discover still to do.
-- Reading stats: shipped under You (totals, streak/goal, 30-day chart, 12-week heatmap, source split). Completion timeline and pace charts still to do.
-- Navigation: shipped (Home/Library/Search/Notes/You, no drawer). Statistics screen under You still to do.
-- Theme: shipped (AA-contrast blue palette in light and dark, tonal surfaces, optional Material You in Settings).
-- Tablet / foldable: navigation rail, readable-width content, and a two-pane list + detail (Library, Search, Notes, Authors/Series books and Downloads show the open book beside the list at 840dp+) shipped. Authors/Series books and Downloads join them, and the top bar sits above the list column only.
-- Player: chapter list, chapter progress, custom and per-book speed and bookmarks shipped (bookmarks are online-only).
-- Comics: CBR/CB7 now open in a native comic reader (shipped); CBZ still uses the foliate reader without comic controls, and CBR/CB7 need a server connection (no offline).
+- [ ] Design direct Story Guide/Graph generation: bounded chapter processing,
+  structured validation, spoiler boundaries, cancellation, storage and import/sync compatibility.
+- [ ] Design direct photo support with actual multimodal capability checks and
+  exact library matching. Text API compatibility alone is insufficient.
+- [ ] Add per-feature model choices only for implemented tasks; no silent route fallback.
+- [ ] Complete statistics parity only where the server provides reliable contracts.
 
-## P2 — Medium-term
+### 4. Finish UX and compatibility acceptance
 
-Real value, larger lift — worth scoping once P0/P1 land.
+- [ ] Obtain user acceptance of AI setup, calendar and Story Guide discoverability.
+- [ ] Agree visual style variants, then implement persistent preview/reset and
+  consistent shared design tokens without overwriting reader preferences.
+- [ ] Complete large-font, narrow/tablet/foldable, RTL and accessibility checks.
+- [ ] Finish edition metadata presentation, full UI localization review, OIDC,
+  non-destructive migrations, download interruption and SAF permission-revocation checks.
+- [ ] Resolve offline CBR/CB7 or retain an explicit server-rendering limitation.
 
-- **TTS and dictionary in the reader** — `tts.js` / `dict.js` are vendored but unwired.
-- **App lock (PIN / biometric)** — relevant given this is a self-hosted personal library that may
-  include shared devices.
-- **Barcode / ISBN scan-to-search** — fits naturally next to the existing search screen and Book
-  Drop's metadata fetch.
+## Boundaries that do not change
 
-## P3 — Later / exploratory
+No production server edits without separate approval. No Premium gates or book
+quotas. No permanent downloads caused by browsing/sync. Preserve exact edition/file
+identity and source clocks. Do not duplicate queues, sessions, events or annotation
+CREATEs after ambiguous delivery. Never replace missing contracts with guessed data.
 
-Real requests, but further out — sequence after the inner orbits settle.
-
-- **Home-screen widget** — Continue Reading / Continue Listening as a glanceable widget.
-- **Push notifications** — new books added, downloads complete, Book Drop finished processing.
-- **Wear OS companion** — playback controls on the wrist for audiobook listeners.
-- **Multi-server / account switching** — swap between servers without a full sign-out.
-- **Translations** — UI text now lives in `res/values/strings.xml` (and `plurals.xml`), so adding a language
-  is a matter of adding a `values-xx/` folder (Android Auto browse titles included). Chapter lengths in the car still use English unit letters ("1m", "50s"). The web client
-  is already translated via Crowdin; reusing its translations would need a mapping.
-
----
-
-Sources: README.md, website/docs/using-the-app.md, and a pass over
-`app/src/main/java/com/bookorbit` (`feature/`, `core/model/`).
+The [historical upstream roadmap](docs/history/UPSTREAM_ROADMAP.md) is retained for
+attribution and context; its old status and exploratory ideas are not current commitments.

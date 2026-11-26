@@ -1,5 +1,9 @@
 # Proposed opt-in Android attestation policy (BookOrbit 3.9.0)
 
+For the administrator walkthrough, including APK identity verification, source
+changes, rebuilding and phone registration, see
+[Allow this client on your own server](../../README.md#allow-this-client-on-your-own-server).
+
 ## Minimal hardcoded policy experiment (2026-11-26)
 
 The user requested testing the smaller alternative: add one exact identity directly

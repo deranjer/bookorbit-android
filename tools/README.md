@@ -17,7 +17,8 @@ The source namespace stays `com.bookorbit` to minimize unrelated fork churn.
 For a Google Cast-enabled build, use `:app:assembleFullDebug`. Both flavors
 share an installation ID, but are separate from upstream/official installations.
 
-0.9.4 uses AGP 9.5.2 built-in Kotlin and Gradle 9.9.2; Compose requires compile
+The current toolchain (migrated in 0.9.4) uses AGP 9.5.2 built-in Kotlin and
+Gradle 9.9.2; Compose requires compile
 SDK 37.2. Target SDK remains 36 and minimum SDK 26. The Dockerfile installs the
 compile platform. Deprecated API warnings are not hidden; both lint variants pass.
 
@@ -108,3 +109,18 @@ under `.local/instrumentation/`. The wrapper checks JUnit's actual result, becau
 `adb shell am instrument` can exit zero even when assertions fail. Story Guide's
 instrumented scenario uses only a synthetic MockWebServer guide, not a provider,
 production server or a bypass of the fixture server's attestation policy.
+
+## Diagnostic logging checks
+
+The application has a default-off Settings switch and explicit Android document
+export. Logs use allowlisted structured fields, not logcat or HTTP body logging.
+See the [README](../README.md#debug-logging) for user instructions.
+
+```sh
+python tools/android/run-instrumentation.py --class com.bookorbit.feature.settings.DiagnosticLogTest --repeat 3 --install
+```
+
+This test uses isolated preferences/directories, local MockWebServer responses and
+test-owned export files. It checks privacy, opt-in persistence, unchanged HTTP
+bodies, disable/clear behavior and storage-failure isolation. It does not enable
+logging for the retained account or send diagnostics to any external service.
