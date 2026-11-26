@@ -25,10 +25,15 @@
 ## What it does
 
 <div align="center">
-  <img src="docs/images/library.png" width="260" alt="Library with synthetic text and comic editions">
+  <img src="docs/images/library-en.png" width="260" alt="English library screen with book covers from a self-hosted server">
   &nbsp;&nbsp;
-  <img src="docs/images/book-details.png" width="260" alt="Book details with the Story Guide entry and retained offline edition">
-  <p><sub>0.9.22 development UI · Russian locale · synthetic fixture books, not a user's library.</sub></p>
+  <img src="docs/images/book-details-en.png" width="260" alt="English book details with the Story Guide entry">
+  <br>
+  <img src="docs/images/stats-en.png" width="260" alt="English reading statistics showing the screenshot account's empty history">
+  &nbsp;&nbsp;
+  <img src="docs/images/reader-en.png" width="260" alt="Opened EPUB cover in the native reader with English controls">
+  <p><sub>0.9.23 · English UI · self-hosted library, shown with the server owner's permission. Covers belong to their respective rights holders.</sub></p>
+  <p><sub>Statistics show the account's actual empty history before opening the book; no activity was seeded. The reader is shown on the EPUB cover, without changing pages.</sub></p>
 </div>
 
 | | Features |
@@ -56,6 +61,10 @@ This is not complete feature parity or physical-device acceptance; see the
 - **Direct AI currently means selected-text help only.** It does not enable photo
   search or direct Story Guide generation. Ollama runs wherever your configured
   endpoint lives; `127.0.0.1` means the phone, not your computer.
+- **Story Guide is not available offline yet.** Content is fetched from the server
+  when the panel opens; there is no persistent local graph cache. A visible entry
+  does not establish server access: the real-server screenshot session confirmed
+  library/book browsing, but Story Guide returned an access restriction.
 - **A decoder is not a transcoding server.** Local software fallback does not make
   Cast receivers support every format. The audited stock server has no playback
   transcoding contract.
@@ -232,6 +241,19 @@ In the app, open **Settings → Device verification for AI → Register device k
 confirm certificate disclosure. The phone creates its own hardware-backed key and
 registers it for this server/account. You never paste its private key anywhere.
 
+**Two separate steps are required:** the administrator first allows the APK's
+exact package/signing-certificate pair on the server (steps 1–3); the user then
+presses **Register device key** on a physical Android phone. The button performs
+device-key enrollment, but does not add the APK to the server's trusted-app list.
+You do **not** embed a device key or any additional shared secret in the APK, and
+the APK's private signing key must never be included in the application.
+
+After both steps succeed, test the protected feature with an authorized account
+and a configured provider. This is the expected integration path, not a guarantee
+that every device or AI operation will work. Existing Story Guide viewing also
+requires server access in this version; persistent offline graph viewing is not
+implemented yet.
+
 If it fails, enable [debug logging](#debug-logging), reproduce once and save the log.
 The UI reports the failing stage, HTTP status and a bounded `APP_ATTEST_*` code.
 Use your server logs to distinguish app identity, certificate trust, device/boot,
@@ -242,6 +264,11 @@ tests and the server build passed. Synthetic enrollment/signature tests accept o
 exact identity only after adding it and still reject wrong identities, roots,
 challenges, software keys, body changes and replay. This is **not** real-phone
 enrollment or end-to-end photo/model acceptance. No production deployment was changed.
+The isolated tests used synthetic attestation certificates; they did not demonstrate
+successful enrollment by a real phone pressing the registration button. During the
+later authorized real-server screenshot session, login/library browsing succeeded,
+but Story Guide returned an access restriction. The complete allowlist → physical
+phone registration → protected-feature scenario on that deployment remains unverified.
 
 The shared identity policy covers routes using that guard, but enabling trust does
 not configure a model, grant account permissions, remove provider budgets, or

@@ -2,6 +2,37 @@
 
 **Independent BookOrbit Client · November 26, 2026**
 
+## Real-server screenshot session: November 27, 2026
+
+- 0.9.23 full debug, Android API 36 emulator, isolated app data, English app locale.
+- With explicit owner authorization, signed in to the owner's self-hosted server
+  and browsed library/book metadata. Published only the library and book-detail
+  screens, with system bars cropped; no account name, endpoint or credentials shown.
+- Opened Dungeon Crawler Carl → Story Guide. The actual result was **Server access
+  restricted. Check device registration in Settings.** No graph content, character
+  relationships or spoiler-bound rendering was accepted on this deployment.
+- Did not open the reader, start playback, download a book, enroll a device key,
+  generate/update a guide, submit a photo/model request or modify server policy.
+  Authentication and ordinary metadata reads were the only server interactions.
+- Source inspection confirms the panel has no persistent offline graph cache.
+  Real-server graph access and offline graph acceptance remain open; do not count
+  the screenshot of the entry card as evidence that graphs or AI inference work.
+- Raw UI evidence remains ignored under `.local/device-screenshots/`; only reviewed
+  English screenshots are published under `docs/images/`.
+
+### Requested follow-up: statistics and an opened book
+
+- Captured Reading stats in English before opening the book. The screenshot account
+  had zero activity; the image preserves those values without seeded or fabricated data.
+- At the owner's subsequent request, opened Dungeon Crawler Carl in the native EPUB
+  reader, dismissed the first-run system/tap-zone hints, and showed the reader toolbar
+  on the cover. Did not turn pages, select text, annotate or invoke AI; exited the reader
+  after capture. Opening/closing the book may record a position or reading session for
+  this account; this follow-up is not covered by the initial metadata-only boundary above.
+- Published reviewed statistics and reader images without account/endpoint labels or
+  image EXIF. The reader screenshot demonstrates an opened EPUB cover and controls,
+  not spoken narration, offline acceptance or successful Story Guide access.
+
 This is the current English acceptance checklist. The complete dated test journal
 is preserved in [the source archive](history/DEVICE_TESTING.source-2026-11-26.md).
 Use the [plan](CLIENT_PLAN.md) for implementation status and the [README](../README.md)
