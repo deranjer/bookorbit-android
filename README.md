@@ -1,7 +1,7 @@
 <div align="center">
   <img src="store-assets/icon-512.png" width="88" alt="BookOrbit Client icon">
   <h1>BookOrbit Client</h1>
-  <p><strong>Your library. Your Android client.</strong></p>
+  <p>Read EPUBs and manga, or listen to audiobooks from your BookOrbit server.</p>
   <p>An independent, open-source Android client for self-hosted BookOrbit.</p>
   <p>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="AGPL-3.0 license"></a>
@@ -17,23 +17,26 @@
   </p>
 </div>
 
-> **Independent fork, not the official BookOrbit app.** Based on
+> This is an independent fork of
 > [deranjer/bookorbit-android](https://github.com/deranjer/bookorbit-android), with
-> upstream attribution and the AGPL license preserved. No client-side Premium gate,
-> download quota, or automatic whole-library download is added.
+> upstream attribution and the AGPL license preserved. It is not the official
+> BookOrbit app. The fork adds no client-side Premium gates or download quotas,
+> and does not automatically download your whole library.
 
 ## What it does
 
 <div align="center">
-  <img src="docs/images/library-en.png" width="260" alt="English library screen with book covers from a self-hosted server">
+  <img src="docs/images/library-en.png" width="220" alt="English library screen with book covers from a self-hosted server">
   &nbsp;&nbsp;
-  <img src="docs/images/book-details-en.png" width="260" alt="English book details with the Story Guide entry">
+  <img src="docs/images/book-details-en.png" width="220" alt="English book details with the Story Guide entry">
+  &nbsp;&nbsp;
+  <img src="docs/images/stats-en.png" width="220" alt="English reading statistics showing the screenshot account's empty history">
   <br>
-  <img src="docs/images/stats-en.png" width="260" alt="English reading statistics showing the screenshot account's empty history">
+  <img src="docs/images/reader-page10-en.png" width="260" alt="Dungeon Crawler Carl text in the EPUB reader, ten screen pages from the cover">
   &nbsp;&nbsp;
-  <img src="docs/images/reader-en.png" width="260" alt="Opened EPUB cover in the native reader with English controls">
-  <p><sub>0.9.23 · English UI · self-hosted library, shown with the server owner's permission. Covers belong to their respective rights holders.</sub></p>
-  <p><sub>Statistics show the account's actual empty history before opening the book; no activity was seeded. The reader is shown on the EPUB cover, without changing pages.</sub></p>
+  <img src="docs/images/manga-en.png" width="260" alt="JoJo's Bizarre Adventure manga open in the CBZ reader">
+  <p><sub>0.9.23 · English UI · self-hosted library, shown with the server owner's permission. Book text and artwork belong to their respective rights holders.</sub></p>
+  <p><sub>Statistics show the account's empty history before the reading session. EPUB pagination depends on the font and screen size.</sub></p>
 </div>
 
 | | Features |
@@ -41,77 +44,23 @@
 | **Read** | Native EPUB-family, PDF and comic readers; text settings, themes, bookmarks, highlights and notes. Opt-in on-demand EPUB chapters/resources. |
 | **Listen** | Media3 background audiobooks, HTTP Range streaming, multi-track queues, sleep timer and Android media controls. Source-built software audio decoding with platform-first fallback. |
 | **Read along** | Embedded EPUB/SMIL narration through the shared playback service, online or explicitly offline. Exact fragment highlighting, audio checkpoints and **Listen from here** in selection → ⋮. |
-| **Keep offline** | Download text, audio or both. A 75-track audiobook is one edition/action; adding another edition keeps existing downloads and positions. |
+| **Keep offline** | Download text, audio or both. |
 | **Look up words** | Downloadable FreeDict dictionaries: **305 catalog pairs**, searchable language chooser and private offline indexes. Dictionaries download only when requested. |
 | **Use AI** | Server Reading Help, photo search and Story Guide clients. Direct selected-text help with OpenAI, Gemini, OpenRouter, Ollama and OpenAI-compatible endpoints. |
 | **Track reading** | 7/30/90/365-day periods, previous-period comparison, compact calendar and weekly session history without inventing READ/LISTEN distinctions. |
 | **Troubleshoot** | Optional private debug logging, bounded local storage and explicit text-file export. No automatic log upload. |
 
-**Development status:** 0.9.23 adds diagnostic logging. Both APK/lint tasks,
-**627 JVM tests per flavor**, **34 Node checks** (including three policy checks)
-and **14 Python checks** passed. Two diagnostic instrumentation tests passed in
-each of three runs, and Android's file-picker export was checked on the emulator.
-This is not complete feature parity or physical-device acceptance; see the
-[validation checklist](docs/DEVICE_TESTING.md) for exact boundaries.
+Version 0.9.23 includes diagnostic logging. Both debug APK builds and lint tasks
+passed, along with 627 JVM tests per flavor, 34 Node checks (including three policy
+checks) and 14 Python checks. Two diagnostic instrumentation tests passed in each
+of three runs; log export through Android's file picker was checked on the emulator.
+Feature parity and physical-device testing are incomplete. The
+[validation checklist](docs/DEVICE_TESTING.md) records the tested scenarios and
+remaining checks.
 
-### Important limits
-
-- **Server trust is separate from login.** Stock BookOrbit restricts selected API
-  routes to approved applications. HTTPS and a valid account do not bypass that.
-- **Direct AI currently means selected-text help only.** It does not enable photo
-  search or direct Story Guide generation. Ollama runs wherever your configured
-  endpoint lives; `127.0.0.1` means the phone, not your computer.
-- **Story Guide is not available offline yet.** Content is fetched from the server
-  when the panel opens; there is no persistent local graph cache. A visible entry
-  does not establish server access: the real-server screenshot session confirmed
-  library/book browsing, but Story Guide returned an access restriction.
-- **A decoder is not a transcoding server.** Local software fallback does not make
-  Cast receivers support every format. The audited stock server has no playback
-  transcoding contract.
-- Offline CBZ works locally; CBR/CB7 still need server-rendered pages. PDF and other
-  non-streamed formats use complete temporary files.
-- Physical Bluetooth/OEM/Doze, audible output, SAF and migration/performance
-  acceptance remain separate from emulator and synthetic-media tests.
-
-See the [detailed plan](docs/CLIENT_PLAN.md), [AI compatibility](docs/AI_COMPATIBILITY.md)
-and [audio compatibility](docs/AUDIO_COMPATIBILITY.md) before assuming a feature is
-available on your deployment.
-
-## Build & install
-
-### Docker: no host JDK or Android SDK required
-
-From this repository's root:
-
-```sh
-bash tools/android/gradle.sh :app:assembleFdroidDebug
-```
-
-APK: `app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk`.
-
-```sh
-# Optional: build with Google's Cast SDK.
-bash tools/android/gradle.sh :app:assembleFullDebug
-
-# Install on a device you explicitly selected with adb.
-adb -s DEVICE_SERIAL install -r app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk
-```
-
-| Variant | Cast SDK | Debug installation ID |
-| --- | --- | --- |
-| `fdroid` | Excluded | `io.github.monkecode.bookorbitclient.debug` |
-| `full` | Included | `io.github.monkecode.bookorbitclient.debug` |
-
-The flavors replace one another, but do not replace the official or upstream app.
-Release builds use `io.github.monkecode.bookorbitclient` and require your own
-release-signing configuration. Debug APKs are for development; no new public binary
-release is implied by a source push. Ignored `.local/apks/` archives are not GitHub
-downloads and do not ship signing keys.
-
-**Android Studio:** open this repository root. Minimum Android API is 26, target
-API is 36, and the current Compose toolchain requires compile SDK 37.2. The pinned
-Docker workflow is the reference build environment. More setup, fixtures and
-emulator commands: [Local development](tools/README.md).
+For server requirements and unfinished work, see the
+[detailed plan](docs/CLIENT_PLAN.md), [AI compatibility](docs/AI_COMPATIBILITY.md)
+and [audio compatibility](docs/AUDIO_COMPATIBILITY.md).
 
 ## Connect your server
 
@@ -135,11 +84,19 @@ isolated fixture server is described in [tools/README.md](tools/README.md).
 - **Book details → Story Guide · AI:** open the card below Read/Listen. Opening
   reads status/content; creating or updating a guide is a separate confirmed job.
 
+Server Reading Help, photo search and Story Guide need
+[server trust setup](#allow-this-client-on-your-own-server). Direct selected-text
+help uses your provider connection instead.
+
 Direct credentials stay encrypted and scoped to the server/account/provider.
 Changing a custom endpoint drops its previous token. Custom HTTP endpoints require
 explicit opt-in. There is no automatic provider/route fallback or paid POST replay.
 
 ## Allow this client on your own server
+
+This setup is for **server Reading Help, photo search and Story Guide**, which use
+BookOrbit's protected AI routes. Ordinary library browsing and direct-provider
+selected-text help do not need it.
 
 This removes the **official-app-only identity restriction for one explicitly trusted
 build**, not all authentication or device-security checks. It is intended only for
@@ -274,69 +231,49 @@ The shared identity policy covers routes using that guard, but enabling trust do
 not configure a model, grant account permissions, remove provider budgets, or
 implement missing client features.
 
-## Debug logging
+## Development
 
-In **Settings → About → Debug logging**, enable recording, reproduce the issue,
-then choose **Save logs** and select a destination in Android's file picker.
+### Build & install
 
-- Off by default; the switch persists on this device until disabled.
-- Structured events only: timestamps, app/Android versions, request categories,
-  HTTP outcomes, attestation stages/codes and player error codes.
-- No tokens, passwords, cookies, URLs, account/book IDs, certificates, request or
-  response bodies, book text or photos. This does not collect Android logcat or
-  arbitrary exception messages.
-- Up to **512 KiB** is retained privately, excluded from backup. Turning logging off
-  stops recording but keeps existing records; **Clear logs** removes the app's
-  retained records, not files you previously exported. Records are device-wide,
-  without account identifiers, rather than a separate log for each login.
-- Export is explicit, not an automatic upload. Review timestamps and technical
-  metadata before sharing. It does not disable attestation or enable server dev mode.
+#### Docker
 
-HTTP timings cover response headers, not complete audio/SSE consumption. These are
-targeted diagnostics, not a complete network trace or crash recorder.
-
-## Development & verification
-
-### CI and debug prereleases
-
-Ordinary PR/push/manual **Android Build** runs have no persistent signing secrets.
-Their downloadable APK artifacts use a temporary runner key, not the published
-development certificate, and cannot update installations signed with that certificate.
-
-To publish, dispatch **Debug Prerelease** on `main`. It requires an exact merged-PR
-commit, runs the checks/build without the private key, then signs both APKs in a
-separate `debug-release` environment job and attaches them, checksums and source/run
-metadata to a clearly marked prerelease. The signing job does not check out or run
-repository build scripts. A failed release stays a draft; assets are not overwritten.
-
-The persistent development keystore is an **environment secret**, available only
-to main deployments in that release environment, not a repository secret. The stable
-release/Play workflows use the separate `stable-release` environment and are not
-triggered by normal pushes. Both release environments require manual approval by
-the repository owner before their jobs can access secrets; administrator bypass of
-the approval gate is disabled. The owner may approve a release they initiated, so
-this is a manual checkpoint, not independent two-person review. Independent PR
-approval is not currently required because there is no second repository reviewer.
-Before approving, inspect the release commit, workflow changes and pending job;
-do not approve an unexpected environment request from an ordinary build.
-Administrators can change these protections; branch
-protection alone cannot prohibit an administrator creating a release manually.
+From this repository's root:
 
 ```sh
-bash tools/android/gradle.sh \
-  :app:testFdroidDebugUnitTest :app:testFullDebugUnitTest \
-  :app:assembleFdroidDebug :app:assembleFullDebug \
-  :app:assembleFdroidDebugAndroidTest \
-  :app:lintFdroidDebug :app:lintFullDebug
-
-python -m unittest discover -s tools/android -p 'test_*.py'
-node --test tools/android/test_read_along.mjs tools/android/test_epub_streaming.mjs \
-  tools/android/test_reader_appearance.mjs tools/android/test_reader_paging.mjs
+bash tools/android/gradle.sh :app:assembleFdroidDebug
 ```
 
-Tests use isolated servers and original synthetic books/media, not production books
-or reading history. Mocks validate protocol, cancellation and consent, not model
-quality, actual audible output or physical-device reliability.
+APK: `app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk`.
+
+```sh
+# Optional: build with Google's Cast SDK.
+bash tools/android/gradle.sh :app:assembleFullDebug
+
+# Install on a device you explicitly selected with adb.
+adb -s DEVICE_SERIAL install -r app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk
+```
+
+| Variant | Cast SDK | Debug installation ID |
+| --- | --- | --- |
+| `fdroid` | Excluded | `io.github.monkecode.bookorbitclient.debug` |
+| `full` | Included | `io.github.monkecode.bookorbitclient.debug` |
+
+The flavors replace one another, but do not replace the official or upstream app.
+Release builds use `io.github.monkecode.bookorbitclient` and require your own
+release-signing configuration. Debug APKs are for development; no new public binary
+release is implied by a source push. Ignored `.local/apks/` archives are not GitHub
+downloads and do not ship signing keys.
+
+**Android Studio:** open this repository root. Minimum Android API is 26, target
+API is 36, and the current Compose toolchain requires compile SDK 37.2. The pinned
+Docker workflow is the reference build environment. More setup, fixtures and
+emulator commands: [Local development](tools/README.md).
+
+### Debug logging
+
+Enable **Settings → About → Debug logging**, reproduce the issue, then choose
+**Save logs**. Logging is off by default, stays on the device and excludes credentials
+and book contents. Review the exported file before sharing it.
 
 | Documentation | Purpose |
 | --- | --- |

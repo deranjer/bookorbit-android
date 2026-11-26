@@ -33,6 +33,21 @@
   image EXIF. The reader screenshot demonstrates an opened EPUB cover and controls,
   not spoken narration, offline acceptance or successful Story Guide access.
 
+### Requested follow-up: interior EPUB page and manga
+
+- Replaced the README cover-reader reference with an interior Dungeon Crawler Carl
+  screenshot, counting ten reflowed screen pages from the cover at the current settings.
+  This is not a print-edition page number. Edge taps stopped advancing at the opening
+  chapter; horizontal swipes advanced the text. The failed tap attempts are not counted
+  as successful navigation. This tap behavior needs a separate regression investigation.
+- Opened JoJo's Bizarre Adventure: Part 1, Phantom Blood, Vol. 3 in the native CBZ
+  reader and captured its displayed page **6 / 324**, including the reader controls.
+  The archive loaded through the normal temporary-cache path; no permanent offline
+  download was requested and no OCR/AI operation was started.
+- These requested reading actions can update this screenshot account's positions and
+  sessions. Reviewed images omit account/server details and contain no EXIF. No server
+  trust-policy changes or protected AI acceptance are implied by these screenshots.
+
 This is the current English acceptance checklist. The complete dated test journal
 is preserved in [the source archive](history/DEVICE_TESTING.source-2026-11-26.md).
 Use the [plan](CLIENT_PLAN.md) for implementation status and the [README](../README.md)
