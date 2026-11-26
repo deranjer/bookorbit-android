@@ -103,6 +103,14 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val attestEnrolled by vm.attestEnrolled.collectAsStateWithLifecycle()
     val attestBusy by vm.attestBusy.collectAsStateWithLifecycle()
     val attestError by vm.attestError.collectAsStateWithLifecycle()
+    val diagnosticEnabled by vm.diagnosticEnabled.collectAsStateWithLifecycle()
+    val diagnosticBusy by vm.diagnosticBusy.collectAsStateWithLifecycle()
+    val diagnosticFailed by vm.diagnosticFailed.collectAsStateWithLifecycle()
+    var confirmDiagnostics by remember { mutableStateOf(false) }
+    var confirmLogExport by remember { mutableStateOf(false) }
+    val logExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+        if (uri != null) vm.exportDiagnostics(uri)
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmClearDownloads by remember { mutableStateOf(false) }
@@ -149,6 +157,14 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
         dismissButton = { TextButton(onClick = { confirmAttestation = false }) { Text(stringResource(android.R.string.cancel)) } },
     )
 
+    if (confirmDiagnostics) AlertDialog(onDismissRequest = { confirmDiagnostics = false },
+        title = { Text(stringResource(R.string.diagnostics_switch)) }, text = { Text(stringResource(R.string.diagnostics_consent)) },
+        confirmButton = { TextButton(onClick = { confirmDiagnostics = false; vm.setDiagnosticEnabled(true) }) { Text(stringResource(R.string.diagnostics_enable)) } },
+        dismissButton = { TextButton(onClick = { confirmDiagnostics = false }) { Text(stringResource(R.string.cancel)) } })
+    if (confirmLogExport) AlertDialog(onDismissRequest = { confirmLogExport = false },
+        title = { Text(stringResource(R.string.diagnostics_export)) }, text = { Text(stringResource(R.string.diagnostics_export_notice)) },
+        confirmButton = { TextButton(onClick = { confirmLogExport = false; logExporter.launch("bookorbit-diagnostics-${System.currentTimeMillis()}.txt") }) { Text(stringResource(R.string.diagnostics_export)) } },
+        dismissButton = { TextButton(onClick = { confirmLogExport = false }) { Text(stringResource(R.string.cancel)) } })
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         LazyColumn(modifier = Modifier.fillMaxWidth().padding(padding)) {
             item { SectionHeader(stringResource(R.string.appearance)) }
@@ -416,6 +432,9 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
             }
             item { HorizontalDivider() }
             item { SectionHeader(stringResource(R.string.about)) }
+            item { DiagnosticSettingsPanel(diagnosticEnabled, diagnosticBusy, diagnosticFailed,
+                { if (it) confirmDiagnostics = true else vm.setDiagnosticEnabled(false) },
+                { confirmLogExport = true }, vm::clearDiagnostics) }
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Text(

@@ -20,8 +20,9 @@ import javax.inject.Singleton
 @Singleton
 class DirectReadingHelp internal constructor(private val store: AiConnectionStore, private val session: SessionManager,
     private val client: OkHttpClient) {
-    @Inject constructor(store: AiConnectionStore, session: SessionManager) : this(store, session,
+    @Inject constructor(store: AiConnectionStore, session: SessionManager, diagnostics: com.bookorbit.core.diagnostics.DiagnosticLog) : this(store, session,
         OkHttpClient.Builder().retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false)
+            .addInterceptor(com.bookorbit.core.diagnostics.DiagnosticInterceptor(diagnostics))
             .callTimeout(90, TimeUnit.SECONDS).build())
 
     class Failure : IOException("Direct AI request failed")

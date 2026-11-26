@@ -3,4 +3,5 @@
 <full-backup-content>
     <exclude domain="sharedpref" path="bookorbit_secure_prefs.xml" />
     <exclude domain="sharedpref" path="android_attestation.xml" />
+    <exclude domain="sharedpref" path="diagnostic_logging.xml" />
 </full-backup-content>

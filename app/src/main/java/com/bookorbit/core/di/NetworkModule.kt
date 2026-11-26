@@ -1,6 +1,5 @@
 package com.bookorbit.core.di
 
-import com.bookorbit.BuildConfig
 import android.content.Context
 import coil.ImageLoader
 import com.bookorbit.core.network.ApiService
@@ -20,7 +19,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
+import com.bookorbit.core.diagnostics.DiagnosticInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit
@@ -41,21 +40,10 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideLoggingInterceptor(): HttpLoggingInterceptor =
-        HttpLoggingInterceptor().apply {
-            level = if (BuildConfig.DEBUG) {
-                HttpLoggingInterceptor.Level.BASIC
-            } else {
-                HttpLoggingInterceptor.Level.NONE
-            }
-        }
-
-    @Provides
-    @Singleton
     @RefreshClient
     fun provideRefreshClient(
         cookieJar: PersistentCookieJar,
-        logging: HttpLoggingInterceptor,
+        logging: DiagnosticInterceptor,
         userCaTrust: UserCaTrust,
     ): OkHttpClient = userCaTrust.applyTo(OkHttpClient.Builder())
         .cookieJar(cookieJar)
@@ -72,7 +60,7 @@ object NetworkModule {
         baseUrlInterceptor: BaseUrlInterceptor,
         authInterceptor: AuthInterceptor,
         authenticator: TokenAuthenticator,
-        logging: HttpLoggingInterceptor,
+        logging: DiagnosticInterceptor,
         userCaTrust: UserCaTrust,
         attestation: com.bookorbit.core.network.AndroidAttestation,
     ): OkHttpClient = userCaTrust.applyTo(OkHttpClient.Builder())
@@ -94,7 +82,7 @@ object NetworkModule {
     fun provideImageClient(
         cookieJar: PersistentCookieJar,
         authInterceptor: AuthInterceptor,
-        logging: HttpLoggingInterceptor,
+        logging: DiagnosticInterceptor,
         userCaTrust: UserCaTrust,
     ): OkHttpClient = userCaTrust.applyTo(OkHttpClient.Builder())
         .cookieJar(cookieJar)

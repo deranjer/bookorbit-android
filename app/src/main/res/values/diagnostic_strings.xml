@@ -1,0 +1,14 @@
+<resources>
+    <string name="diagnostics_switch">Debug logging</string>
+    <string name="diagnostics_description">Record private, structured app diagnostics for troubleshooting.</string>
+    <string name="diagnostics_consent">Enable logging on this device? Records timestamps, app/Android versions, request categories, HTTP statuses, attestation stages and player error codes. No URLs, tokens, passwords, certificates, book text, photos or request bodies. This setting persists until turned off and does not change server security.</string>
+    <string name="diagnostics_enable">Enable logging</string>
+    <string name="diagnostics_retention">Off by default. Up to 512 KiB stays on this device, excluded from backup. Turning off stops recording; Clear logs removes existing records. This is not a full Android logcat dump.</string>
+    <string name="diagnostics_export">Save logs</string>
+    <string name="diagnostics_clear">Clear logs</string>
+    <string name="diagnostics_export_notice">Choose where to save the text file. It includes activity timestamps and technical diagnostics. Review it before sharing. Nothing is uploaded automatically.</string>
+    <string name="diagnostics_cleared">Diagnostic logs cleared</string>
+    <string name="diagnostics_exported">Diagnostic logs saved</string>
+    <string name="diagnostics_failed">Could not update or save diagnostic logs</string>
+    <string name="diagnostics_dropped">Some events could not be recorded. Check free space or clear the log.</string>
+</resources>

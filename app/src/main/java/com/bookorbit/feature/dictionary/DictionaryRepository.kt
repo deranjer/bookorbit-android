@@ -25,8 +25,9 @@ data class InstalledDictionary(val pack: DictionaryPackage, val title: String, v
 @Singleton
 class DictionaryRepository internal constructor(private val root: File, private val client: OkHttpClient,
     private val bootstrap: () -> List<DictionaryPackage> = { BUNDLED_DICTIONARY_CATALOG }) {
-    @Inject constructor(@ApplicationContext context: Context) : this(File(context.filesDir, "dictionaries"),
+    @Inject constructor(@ApplicationContext context: Context, diagnostics: com.bookorbit.core.diagnostics.DiagnosticLog? = null) : this(File(context.filesDir, "dictionaries"),
         OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
+            .apply { if (diagnostics != null) addInterceptor(com.bookorbit.core.diagnostics.DiagnosticInterceptor(diagnostics)) }
             .retryOnConnectionFailure(false).callTimeout(120, TimeUnit.SECONDS).build(),
         { context.assets.open("dictionaries/catalog.json").bufferedReader().use { dictionaryCatalog(it.readText(), Json) } })
     init { require(root.isDirectory || root.mkdirs()) }

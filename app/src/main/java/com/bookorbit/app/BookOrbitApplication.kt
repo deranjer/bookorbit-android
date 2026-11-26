@@ -30,11 +30,13 @@ class BookOrbitApplication : Application(), Configuration.Provider, ImageLoaderF
 
     @Inject
     lateinit var syncScheduler: SyncScheduler
+    @Inject lateinit var diagnostics: com.bookorbit.core.diagnostics.DiagnosticLog
 
     override fun onCreate() {
         super.onCreate()
         // Load persisted server URL / token / user so the nav graph can gate on the result.
         sessionManager.bootstrap()
+        diagnostics.record(com.bookorbit.core.diagnostics.DiagnosticEntry(com.bookorbit.core.diagnostics.DiagnosticEvent.APP_STARTED))
         // Safety net: flush any offline writes that were queued but not yet scheduled before the
         // last process death (e.g. a crash between the local Room write and the enqueue call).
         syncScheduler.schedule()

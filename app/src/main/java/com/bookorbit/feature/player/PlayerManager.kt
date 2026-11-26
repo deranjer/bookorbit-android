@@ -59,6 +59,7 @@ class PlayerManager @Inject constructor(
     private val restoreCandidates: RestoreCandidateFinder,
     private val sessions: ReadingSessionTracker,
     private val session: com.bookorbit.core.auth.SessionManager,
+    private val diagnostics: com.bookorbit.core.diagnostics.DiagnosticLog,
 ) {
     data class UiState(
         val currentBook: BookDetail? = null,
@@ -120,6 +121,8 @@ class PlayerManager @Inject constructor(
         }
 
         override fun onPlayerError(error: PlaybackException) {
+            diagnostics.record(com.bookorbit.core.diagnostics.DiagnosticEntry(com.bookorbit.core.diagnostics.DiagnosticEvent.PLAYBACK_FAILED,
+                playerCode = error.errorCode))
             Log.e(TAG, "playback error bookId=${_state.value.currentBook?.id} code=${error.errorCodeName}", error)
             _state.update { it.copy(buffering = false, isPlaying = false, playerError = describePlayerError(error)) }
         }

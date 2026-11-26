@@ -32,6 +32,7 @@ class CustomAiConnectionUiTest {
 
     private fun exercise(provider: AiProvider) {
         val context = compose.activity
+        val diagnostics = com.bookorbit.core.diagnostics.DiagnosticLog(context)
         val name = "custom-ai-ui-${UUID.randomUUID()}"
         val alias = "$name-key"
         try {
@@ -42,7 +43,7 @@ class CustomAiConnectionUiTest {
             MockWebServer().use { endpoint -> MockWebServer().use { bookorbit ->
                 val base = endpoint.url(if (provider == AiProvider.OLLAMA) "/proxy/" else "/proxy/v1/").toString()
                 val api = Retrofit.Builder().baseUrl(bookorbit.url("/")).addConverterFactory(Json.asConverterFactory("application/json".toMediaType())).build().create(ApiService::class.java)
-                val repository = ReadingHelpRepository(api, Json, store, DirectReadingHelp(store, session), session)
+                val repository = ReadingHelpRepository(api, Json, store, DirectReadingHelp(store, session, diagnostics), session)
                 var settings by mutableStateOf(true)
                 compose.setContent { MaterialTheme {
                     if (settings) AiConnectionDialog(store, session.owner()) { settings = false }
@@ -79,6 +80,7 @@ class CustomAiConnectionUiTest {
                 assertFalse(body.getValue("stream").jsonPrimitive.boolean)
             } }
         } finally {
+            diagnostics.close()
             context.getSharedPreferences(name, Context.MODE_PRIVATE).edit().clear().commit()
             context.deleteSharedPreferences(name); context.deleteSharedPreferences("$name-owner")
             KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(alias)

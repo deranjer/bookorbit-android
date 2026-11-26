@@ -41,13 +41,14 @@ class AndroidAttestation internal constructor(
     private val client: OkHttpClient,
     private val read: (String) -> String?,
     private val write: (String, String?) -> Unit,
+    private val diagnostics: com.bookorbit.core.diagnostics.DiagnosticLog? = null,
 ) {
     @Inject internal constructor(@ApplicationContext context: Context, session: SessionManager, keys: AndroidAttestKeys,
-        json: Json, @RefreshClient main: OkHttpClient) : this(session, keys, json,
+        json: Json, @RefreshClient main: OkHttpClient, diagnostics: com.bookorbit.core.diagnostics.DiagnosticLog) : this(session, keys, json,
         main.newBuilder().apply { interceptors().removeAll { it is BaseUrlInterceptor || it is AuthInterceptor } }
             .authenticator(Authenticator.NONE).retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false).cache(null).build(),
         { context.getSharedPreferences("android_attestation", Context.MODE_PRIVATE).getString(it, null) },
-        { key, value -> check(context.getSharedPreferences("android_attestation", Context.MODE_PRIVATE).edit().putString(key, value).commit()) })
+        { key, value -> check(context.getSharedPreferences("android_attestation", Context.MODE_PRIVATE).edit().putString(key, value).commit()) }, diagnostics)
 
     private val mutation = Mutex()
     private data class Owner(val server: String, val userId: Int) {
@@ -97,10 +98,16 @@ class AndroidAttestation internal constructor(
                 stage = AttestationStage.STORAGE
                 write(owner.storageKey, json.encodeToString(AttestRegistration.serializer(), AttestRegistration(alias, key.keyId)))
                 installed = true
+                diagnostics?.record(com.bookorbit.core.diagnostics.DiagnosticEntry(com.bookorbit.core.diagnostics.DiagnosticEvent.ATTESTATION_COMPLETED))
                 previous?.let { runCatching { keys.delete(it.alias) } }
             } finally { if (!installed) runCatching { keys.delete(alias) } }
           } catch (error: kotlinx.coroutines.CancellationException) { throw error }
-          catch (error: Exception) { throw attestationFailure(stage, error) }
+          catch (error: Exception) {
+              val failure = attestationFailure(stage, error)
+              diagnostics?.record(com.bookorbit.core.diagnostics.DiagnosticEntry(com.bookorbit.core.diagnostics.DiagnosticEvent.ATTESTATION_FAILED,
+                  stage = failure.stage, problem = failure.problem, status = failure.httpStatus, serverCode = failure.serverCode))
+              throw failure
+          }
         }
     }
 
