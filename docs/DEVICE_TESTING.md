@@ -18,7 +18,20 @@
   Real-server graph access and offline graph acceptance remain open; do not count
   the screenshot of the entry card as evidence that graphs or AI inference work.
 - Raw UI evidence remains ignored under `.local/device-screenshots/`; only reviewed
-  English library/detail images are published under `docs/images/`.
+  English screenshots are published under `docs/images/`.
+
+### Requested follow-up: statistics and an opened book
+
+- Captured Reading stats in English before opening the book. The screenshot account
+  had zero activity; the image preserves those values without seeded or fabricated data.
+- At the owner's subsequent request, opened Dungeon Crawler Carl in the native EPUB
+  reader, dismissed the first-run system/tap-zone hints, and showed the reader toolbar
+  on the cover. Did not turn pages, select text, annotate or invoke AI; exited the reader
+  after capture. Opening/closing the book may record a position or reading session for
+  this account; this follow-up is not covered by the initial metadata-only boundary above.
+- Published reviewed statistics and reader images without account/endpoint labels or
+  image EXIF. The reader screenshot demonstrates an opened EPUB cover and controls,
+  not spoken narration, offline acceptance or successful Story Guide access.
 
 This is the current English acceptance checklist. The complete dated test journal
 is preserved in [the source archive](history/DEVICE_TESTING.source-2026-11-26.md).

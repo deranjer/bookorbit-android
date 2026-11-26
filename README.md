@@ -28,7 +28,12 @@
   <img src="docs/images/library-en.png" width="260" alt="English library screen with book covers from a self-hosted server">
   &nbsp;&nbsp;
   <img src="docs/images/book-details-en.png" width="260" alt="English book details with the Story Guide entry">
+  <br>
+  <img src="docs/images/stats-en.png" width="260" alt="English reading statistics showing the screenshot account's empty history">
+  &nbsp;&nbsp;
+  <img src="docs/images/reader-en.png" width="260" alt="Opened EPUB cover in the native reader with English controls">
   <p><sub>0.9.23 · English UI · self-hosted library, shown with the server owner's permission. Covers belong to their respective rights holders.</sub></p>
+  <p><sub>Statistics show the account's actual empty history before opening the book; no activity was seeded. The reader is shown on the EPUB cover, without changing pages.</sub></p>
 </div>
 
 | | Features |
