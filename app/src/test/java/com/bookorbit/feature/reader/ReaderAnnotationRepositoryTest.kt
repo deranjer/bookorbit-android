@@ -31,6 +31,7 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import retrofit2.HttpException
@@ -54,7 +55,7 @@ private class FakeOpDao : PendingAnnotationOpDao {
     }
 
     override suspend fun all() = rows.sortedBy { it.id }
-    override suspend fun firstOwned(userId: Int) = all().firstOrNull { it.userId == userId }
+    override suspend fun firstOwned(userId: Int) = all().firstOrNull { it.userId == userId && it.kind !in listOf(AnnotationOp.CREATE_UNCERTAIN, AnnotationOp.CREATE_UNCERTAIN_DELETE) }
     override suspend fun forBook(bookId: Int) = all().filter { it.bookId == bookId }
     override suspend fun forOwnedBook(bookId: Int, userId: Int) = all().filter { it.bookId == bookId && it.userId == userId }
     override suspend fun unownedCount(bookId: Int) = rows.count { it.bookId == bookId && it.userId == null }
@@ -78,7 +79,7 @@ private class FakeOpDao : PendingAnnotationOpDao {
         rows.removeAll { it.annotationId == annotationId && it.kind in kinds && it.userId == userId }
     }
 
-    override suspend fun minCreateId() = rows.filter { it.kind == AnnotationOp.CREATE }.minOfOrNull { it.annotationId }
+    override suspend fun minCreateId() = rows.filter { it.kind in listOf(AnnotationOp.CREATE, AnnotationOp.CREATE_UNCERTAIN, AnnotationOp.CREATE_UNCERTAIN_DELETE) }.minOfOrNull { it.annotationId }
 }
 
 /** In-memory stand-in for the cached server copy of each book's highlights. */
@@ -187,12 +188,14 @@ class ReaderAnnotationRepositoryTest {
     }
 
     @Test
-    fun `flush keeps everything queued when offline`() = runTest {
+    fun `unconfirmed create is preserved without an automatic retry`() = runTest {
         createOne()
         repo.delete(1, 42)
         coEvery { api.createAnnotation(any(), any(), any()) } throws IOException("offline")
-        assertTrue(repo.flushPending())
-        assertEquals(2, dao.rows.size)
+        assertFalse(repo.flushPending())
+        assertEquals(AnnotationOp.CREATE_UNCERTAIN, dao.rows.single().kind)
+        assertFalse(repo.flushPending())
+        coVerify(exactly = 1) { api.createAnnotation(any(), any(), any()) }
     }
 
     @Test
@@ -487,6 +490,47 @@ class ReaderAnnotationRepositoryTest {
         coEvery { api.updateAnnotation(1, 42, any(), any()) } returns onServer(42).copy(bookId = 2)
         assertTrue(repo.flushPending())
         assertEquals(1, dao.rows.size)
+    }
+
+    @Test fun `lost create acknowledgement is not replayed after repository reopen or relogin`() = runTest {
+        createOne()
+        coEvery { api.createAnnotation(any(), any(), any()) } throws IOException("response lost after acceptance")
+        assertFalse(repo.flushPending())
+        val reopened = ReaderAnnotationRepository(api, dao, cache, Json, mockk(relaxed = true), session)
+        signedIn = me
+        repeat(3) { assertFalse(reopened.flushPending()) }
+        coVerify(exactly = 1) { api.createAnnotation(any(), any(), any()) }
+        val row = reopened.local(1, 9).single()
+        assertEquals("a line", row.text)
+        assertEquals("delivery-uncertain", row.positionStatus)
+        assertNull(row.cfi)
+        createOne()
+        assertEquals(listOf(-1, -2), dao.rows.map { it.annotationId })
+    }
+
+    @Test fun `deletion during an unacknowledged create preserves source and deletion intent`() = runTest {
+        createOne()
+        coEvery { api.createAnnotation(any(), any(), any()) } coAnswers {
+            repo.delete(1, -1)
+            throw IOException("response lost")
+        }
+        assertFalse(repo.flushPending())
+        assertEquals(AnnotationOp.CREATE_UNCERTAIN_DELETE, dao.rows.single().kind)
+        assertEquals("a line", dao.rows.single().text)
+        assertEquals("delivery-uncertain-delete", repo.local(1, 9).single().positionStatus)
+        assertFalse(repo.flushPending())
+        coVerify(exactly = 1) { api.createAnnotation(any(), any(), any()) }
+        coVerify(exactly = 0) { api.deleteAnnotation(any(), any(), any()) }
+    }
+
+    @Test fun `explicit unauthorised create rejection can retry with renewed authorization`() = runTest {
+        createOne()
+        coEvery { api.createAnnotation(any(), any(), any()) } throws HttpException(Response.error<Any>(401, "".toResponseBody()))
+        assertTrue(repo.flushPending())
+        assertEquals(AnnotationOp.CREATE, dao.rows.single().kind)
+        coEvery { api.createAnnotation(any(), any(), any()) } returns onServer(7)
+        assertFalse(repo.flushPending())
+        assertTrue(dao.rows.isEmpty())
     }
 
     @Test fun `reader projection and owner are passed as query and local tag without extra server DTO fields`() = kotlinx.coroutines.runBlocking {

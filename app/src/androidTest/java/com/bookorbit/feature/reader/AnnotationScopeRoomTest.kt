@@ -25,6 +25,42 @@ import java.util.UUID
 
 /** A private Room database and no-op scheduling: never runs the retained fixture SyncWorker. */
 class AnnotationScopeRoomTest {
+    @Test fun lostCreateResponseCannotReplayAfterDiskDatabaseReopen() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val name = "annotation-delivery-test-${UUID.randomUUID()}"
+        val alias = "$name-key"
+        fun open() = Room.databaseBuilder(context, BookOrbitDatabase::class.java, "$name.sqlite").build()
+        var db = open()
+        try {
+            val storage = SecureStorage(context, name, alias, "$name-owner")
+            val session = SessionManager(storage, Json).apply {
+                setServerUrl("https://fixture.example"); signIn("fake-token", AuthUser(1, "first")); activeDataScope = dataScope
+            }
+            MockWebServer().use { server ->
+                val client = annotationClient(OkHttpClient.Builder().callTimeout(2, java.util.concurrent.TimeUnit.SECONDS).build())
+                val api = Retrofit.Builder().baseUrl(server.url("/api/v1/")).client(client)
+                    .addConverterFactory(Json.asConverterFactory("application/json".toMediaType())).build().create(ApiService::class.java)
+                fun repository() = ReaderAnnotationRepository(api, db.pendingAnnotationOpDao(), db.annotationCacheDao(), Json, SyncScheduler {}, session)
+                repository().create(1, 9, "epubcfi(/6/2)", "saved source", "yellow", "saved note", "chapter")
+                server.enqueue(MockResponse().setSocketPolicy(okhttp3.mockwebserver.SocketPolicy.DISCONNECT_AFTER_REQUEST))
+                assertFalse(repository().flushPending())
+                assertNotNull(server.takeRequest(3, java.util.concurrent.TimeUnit.SECONDS))
+                assertEquals(AnnotationOp.CREATE_UNCERTAIN, db.pendingAnnotationOpDao().forOwnedBook(1, 1).single().kind)
+                db.close(); db = open()
+                server.enqueue(MockResponse().setResponseCode(503))
+                repeat(3) { assertFalse(repository().flushPending()) }
+                val saved = repository().local(1, 9).single()
+                assertEquals("saved source", saved.text); assertEquals("saved note", saved.note)
+                assertNull(saved.cfi); assertEquals("delivery-uncertain", saved.positionStatus)
+                assertEquals(1, server.requestCount)
+            }
+        } finally {
+            db.close(); context.deleteDatabase("$name.sqlite")
+            context.deleteSharedPreferences(name); context.deleteSharedPreferences("$name-owner")
+            KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(alias)
+        }
+    }
+
     @Test fun scopedQueuesAndProjectedCacheSurviveRepositoryReopen() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val name = "annotation-scope-test-${UUID.randomUUID()}"

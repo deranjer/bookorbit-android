@@ -103,7 +103,7 @@ class ReaderAnnotationRepository @Inject constructor(
 
     /** Only CFI-anchored annotations are usable in the EPUB-family reader (PDF ones carry a page rect). */
     private suspend fun view(bookId: Int, fileId: Int, owner: SessionOwner, base: List<BookAnnotation>): List<BookAnnotation> {
-        val pending = ops.forOwnedBook(bookId, owner.userId).filter { it.kind != AnnotationOp.CREATE || it.bookFileId == fileId }
+        val pending = ops.forOwnedBook(bookId, owner.userId).filter { !it.isCreate() || it.bookFileId == fileId }
         if (this.owner(owner) == null) return emptyList()
         return overlayPendingOps(base.filter { it.bookId == bookId && it.cfi != null && it.positionStatus != "failed" &&
             (it.jumpFileId == null || it.jumpFileId == fileId) }, pending)
@@ -156,7 +156,7 @@ class ReaderAnnotationRepository @Inject constructor(
         val owner = requireNotNull(owner(expectedOwner))
         queueLock.withLock {
             require(this.owner(owner) != null)
-            val create = if (id < 0) ops.findOwned(AnnotationOp.CREATE, id, owner.userId)?.takeIf { it.bookId == bookId } else null
+            val create = if (id < 0) findCreate(id, owner.userId)?.takeIf { it.bookId == bookId } else null
             if (create != null) {
                 // Not on the server yet: fold the edit into the queued create.
                 ops.update(change(create))
@@ -171,9 +171,13 @@ class ReaderAnnotationRepository @Inject constructor(
         val owner = requireNotNull(owner(expectedOwner))
         queueLock.withLock {
             require(this.owner(owner) != null)
-            if (id < 0 && ops.findOwned(AnnotationOp.CREATE, id, owner.userId)?.bookId == bookId) {
+            val create = if (id < 0) findCreate(id, owner.userId)?.takeIf { it.bookId == bookId } else null
+            if (create?.kind == AnnotationOp.CREATE) {
                 // Never reached the server: just cancel the create.
                 ops.deleteOwned(id, listOf(AnnotationOp.CREATE), owner.userId)
+            } else if (create != null) {
+                // Keep both the source and deletion intent until a definite server id is known.
+                ops.update(create.copy(kind = AnnotationOp.CREATE_UNCERTAIN_DELETE))
             } else {
                 serverId(id, owner)?.let { queueDelete(bookId, it, owner.userId) }
             }
@@ -183,6 +187,19 @@ class ReaderAnnotationRepository @Inject constructor(
 
     /** The server id for an id the reader shows: a placeholder maps to its highlight once created. */
     private fun serverId(id: Int, owner: SessionOwner): Int? = if (id < 0) createdIds[Placeholder(owner.serverUrl, owner.userId, id)] else id
+
+    private fun PendingAnnotationOpEntity.isCreate() = kind in listOf(AnnotationOp.CREATE, AnnotationOp.CREATE_UNCERTAIN, AnnotationOp.CREATE_UNCERTAIN_DELETE)
+
+    private suspend fun findCreate(id: Int, userId: Int): PendingAnnotationOpEntity? =
+        ops.findOwned(AnnotationOp.CREATE, id, userId) ?: ops.findOwned(AnnotationOp.CREATE_UNCERTAIN, id, userId)
+            ?: ops.findOwned(AnnotationOp.CREATE_UNCERTAIN_DELETE, id, userId)
+
+    private suspend fun prepareCreate(op: PendingAnnotationOpEntity): PendingAnnotationOpEntity? = queueLock.withLock {
+        val current = ops.get(op.id)?.takeIf { it.kind == AnnotationOp.CREATE && it.userId == op.userId && it.bookId == op.bookId }
+            ?: return@withLock null
+        ops.update(current.copy(kind = AnnotationOp.CREATE_UNCERTAIN))
+        current
+    }
 
     private suspend fun queueUpdate(
         bookId: Int,
@@ -213,9 +230,10 @@ class ReaderAnnotationRepository @Inject constructor(
     suspend fun flushPending(): Boolean = flushLock.withLock {
         val owner = owner() ?: return@withLock false
         val user = owner.userId
-        var op = ops.firstOwned(user)
-        while (op != null) {
+        while (true) {
+            val queued = ops.firstOwned(user) ?: break
             if (this.owner(owner) == null) return@withLock false
+            val op = if (queued.kind == AnnotationOp.CREATE) prepareCreate(queued) ?: continue else queued
             try {
                 val sent = send(op, owner)
                 if (op.kind == AnnotationOp.CREATE || op.kind == AnnotationOp.UPDATE) {
@@ -234,13 +252,16 @@ class ReaderAnnotationRepository @Inject constructor(
                     ops.delete(op.id)
                     if (e.code() == 404 && op.kind != AnnotationOp.CREATE) dropFromCache(op.bookId, op.annotationId, owner)
                 } else {
-                    return@withLock true
+                    if (op.kind == AnnotationOp.CREATE && e.code() == 401) queueLock.withLock {
+                        ops.get(op.id)?.takeIf { it.kind == AnnotationOp.CREATE_UNCERTAIN }?.let { ops.update(it.copy(kind = AnnotationOp.CREATE)) }
+                    }
+                    if (op.kind != AnnotationOp.CREATE || e.code() == 401) return@withLock true
                 }
             } catch (e: Exception) {
                 // Offline (or server down): leave the rest queued, in order.
-                return@withLock this.owner(owner) != null
+                if (this.owner(owner) == null) return@withLock false
+                if (op.kind != AnnotationOp.CREATE) return@withLock true
             }
-            op = ops.firstOwned(user)
         }
         false
     }
@@ -256,7 +277,8 @@ class ReaderAnnotationRepository @Inject constructor(
         val now = ops.get(op.id)
         if (op.kind == AnnotationOp.CREATE && createdId != null) {
             createdIds[Placeholder(owner.serverUrl, owner.userId, op.annotationId)] = createdId
-            if (now == null) {
+            if (now == null || now.kind == AnnotationOp.CREATE_UNCERTAIN_DELETE) {
+                if (now != null) ops.delete(op.id)
                 queueDelete(op.bookId, createdId, op.userId)
                 return@withLock
             }

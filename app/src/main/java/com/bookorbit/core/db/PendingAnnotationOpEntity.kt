@@ -11,6 +11,9 @@ import androidx.room.Update
 /** What a queued highlight change does. */
 object AnnotationOp {
     const val CREATE = "create"
+    // Written before network dispatch. Unknown success must never become another automatic POST.
+    const val CREATE_UNCERTAIN = "create-uncertain"
+    const val CREATE_UNCERTAIN_DELETE = "create-uncertain-delete"
     const val UPDATE = "update"
     const val DELETE = "delete"
 }
@@ -57,7 +60,7 @@ interface PendingAnnotationOpDao {
     @Query("SELECT * FROM pending_annotation_ops ORDER BY id ASC")
     suspend fun all(): List<PendingAnnotationOpEntity>
 
-    @Query("SELECT * FROM pending_annotation_ops WHERE userId = :userId ORDER BY id ASC LIMIT 1")
+    @Query("SELECT * FROM pending_annotation_ops WHERE userId = :userId AND kind NOT IN ('create-uncertain', 'create-uncertain-delete') ORDER BY id ASC LIMIT 1")
     suspend fun firstOwned(userId: Int): PendingAnnotationOpEntity?
 
     @Query("SELECT * FROM pending_annotation_ops WHERE bookId = :bookId ORDER BY id ASC")
@@ -88,7 +91,7 @@ interface PendingAnnotationOpDao {
     suspend fun deleteOwned(annotationId: Int, kinds: List<String>, userId: Int)
 
     /** The lowest placeholder id in use, so the next one can go below it. */
-    @Query("SELECT MIN(annotationId) FROM pending_annotation_ops WHERE kind = 'create'")
+    @Query("SELECT MIN(annotationId) FROM pending_annotation_ops WHERE kind IN ('create', 'create-uncertain', 'create-uncertain-delete')")
     suspend fun minCreateId(): Int?
 }
 

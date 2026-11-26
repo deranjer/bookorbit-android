@@ -180,10 +180,11 @@ fun HighlightsSheet(
         } else {
             LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp)) {
                 items(annotations, key = { it.id }) { a ->
+                    val uncertain = a.positionStatus?.startsWith("delivery-uncertain") == true
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onJump(a) }
+                            .clickable(enabled = a.cfi != null) { onJump(a) }
                             .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -195,6 +196,9 @@ fun HighlightsSheet(
                                 .background(highlightColor(a.color)),
                         )
                         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                            if (uncertain) Text(
+                                stringResource(if (a.positionStatus == "delivery-uncertain-delete") R.string.reader_annotation_uncertain_delete else R.string.reader_annotation_uncertain),
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                             a.chapterTitle?.takeIf { it.isNotBlank() }?.let {
                                 Text(
                                     it,
@@ -204,19 +208,21 @@ fun HighlightsSheet(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
-                            Text(a.text, style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                            if (uncertain) androidx.compose.foundation.text.selection.SelectionContainer {
+                                Text(a.text, style = MaterialTheme.typography.bodyMedium)
+                            } else Text(a.text, style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
                             a.note?.takeIf { it.isNotBlank() }?.let {
                                 Text(
                                     it,
                                     style = MaterialTheme.typography.bodySmall,
                                     fontStyle = FontStyle.Italic,
                                     color = MaterialTheme.colorScheme.primary,
-                                    maxLines = 3,
+                                    maxLines = if (uncertain) Int.MAX_VALUE else 3,
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
                         }
-                        IconButton(onClick = { onDelete(a) }) {
+                        IconButton(enabled = !uncertain, onClick = { onDelete(a) }) {
                             Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.delete_highlight))
                         }
                     }

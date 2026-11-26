@@ -1,3 +1,5 @@
 <resources>
+    <string name="reader_annotation_uncertain">Delivery unconfirmed. The text and note are kept here; no automatic POST retry or jump. Check server highlights before creating another copy. Automatic reconciliation is not supported yet.</string>
+    <string name="reader_annotation_uncertain_delete">Creation and deletion unconfirmed. Source text and deletion intent are kept here; no automatic POST retry. Check the server before changing it.</string>
     <string name="reader_legacy_annotation_scope">Old highlights without a verified owner are kept locally. They will not be shown or sent as another account. Server highlights are reloaded for this edition.</string>
 </resources>
