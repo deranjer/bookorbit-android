@@ -610,3 +610,16 @@ narration and producing a Cast-compatible encoded stream remain unverified.
 - Оба APK/lint и 559 JVM-тестов/flavor прошли; подпись прежняя, zipalign 16KiB
   проверен. Архив `.local/apks/working-0.9.15-20261126/` не заменяет старые APK.
 - Это не физическая проверка слышимости, Bluetooth/OEM/Doze или SAF.
+# 0.9.16: периоды и история статистики (2026-11-26)
+
+- Retained fixture: переключены 30/7 дней, проверены дневные итоги в UTC,
+  предыдущий период и недельная история с названиями книг/источниками/часами.
+  Screenshots `statistics-{period30,period7,history-list}.png`.
+- Сеть отключена до Refresh: явные ошибки статистики и истории, без выдуманных
+  нулей. Сеть восстановлена, повтор успешен (`statistics-offline.png`).
+- Финальный code916: UI period/partial failure и lazy list 3000 строк прошли
+  2 раза (`20261126T113809788266Z`). 571 JVM-тест/flavor, оба APK/lint,
+  подпись и 16KiB zipalign прошли. Архив `.local/apks/working-0.9.16-20261126/`.
+- Daily timezone берётся из профиля сервера; история явно UTC ISO week.
+  READ/LISTEN здесь не различается контрактом, формат M4B не является доказательством
+  LISTEN. Длительности истории не добавляются к daily totals. Физической приёмки нет.

@@ -38,6 +38,9 @@ class SessionManager @Inject constructor(
     private val json: Json,
 ) {
     private var generation = 0L
+    private val _owners = MutableStateFlow<SessionOwner?>(null)
+    /** Unlike SignedIn equality, this also changes on same-user relogin or server replacement. */
+    val owners: StateFlow<SessionOwner?> = _owners.asStateFlow()
 
     @Synchronized
     fun owner(): SessionOwner? {
@@ -94,6 +97,7 @@ class SessionManager @Inject constructor(
             accessToken.isNullOrBlank() || user == null -> SessionState.SignedOut
             else -> SessionState.SignedIn(user)
         }
+        _owners.value = owner()
     }
 
     /** Scope the open database was created for (see [dataScope]); null until it is first opened. */
@@ -121,6 +125,7 @@ class SessionManager @Inject constructor(
         if (_state.value is SessionState.Loading || _state.value is SessionState.NeedsServer) {
             _state.value = SessionState.SignedOut
         }
+        _owners.value = owner()
     }
 
     /** Reverts to the no-server state (used when a setup-status probe fails during onboarding). */
@@ -130,6 +135,7 @@ class SessionManager @Inject constructor(
         serverUrl = null
         storage.remove(SecureStorage.KEY_SERVER_URL)
         _state.value = SessionState.NeedsServer
+        _owners.value = null
     }
 
     @Synchronized
@@ -141,6 +147,7 @@ class SessionManager @Inject constructor(
         storage.putString(SecureStorage.KEY_ACCESS_TOKEN, token)
         storage.putString(SecureStorage.KEY_USER, json.encodeToString(AuthUser.serializer(), user))
         _state.value = SessionState.SignedIn(user)
+        _owners.value = owner()
     }
 
     /** Called by [com.bookorbit.core.network.TokenRefresher] after a successful silent refresh. */
@@ -163,5 +170,6 @@ class SessionManager @Inject constructor(
         } else {
             _state.value = SessionState.SignedOut
         }
+        _owners.value = null
     }
 }

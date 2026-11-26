@@ -1,0 +1,20 @@
+<resources>
+    <string name="stats_period_days">%1$d дн.</string>
+    <string name="stats_refresh">Обновить</string>
+    <string name="stats_partial">Часть статистики недоступна. Обновите, чтобы повторить.</string>
+    <string name="stats_all_time">Прогресс за всё время · текущие серия и цель</string>
+    <string name="stats_previous">Предыдущий такой же период: %1$s</string>
+    <string name="stats_timezone">Дневные итоги · %1$s</string>
+    <string name="stats_chart_group">Один столбец: до %1$d дней</string>
+    <string name="stats_source_window">Последние %1$d дней · диапазон сервера по UTC</string>
+    <string name="stats_history">История сессий</string>
+    <string name="stats_history_note">Недели по UTC. Здесь сервер не разделяет чтение и прослушивание. Длительности сессий могут пересекаться и не добавляются к дневным итогам.</string>
+    <string name="stats_week_previous">Предыдущая неделя</string>
+    <string name="stats_week_next">Следующая неделя</string>
+    <string name="stats_history_failed">История сессий недоступна.</string>
+    <string name="stats_history_empty">За эту неделю сессий нет.</string>
+    <string name="stats_history_limit">Сервер возвращает не более 3000 сессий за неделю. Список может быть неполным.</string>
+    <string name="stats_duration_hours">%1$d ч %2$d мин</string>
+    <string name="stats_duration_minutes">%1$d мин</string>
+    <string name="stats_duration_under_minute">&lt;1 мин</string>
+</resources>

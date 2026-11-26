@@ -16,11 +16,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -44,20 +46,28 @@ import com.bookorbit.feature.dashboard.StatsStrip
 import java.time.DayOfWeek
 import java.time.LocalDate
 
-/** Your reading at a glance: totals, streak and goal, a 30-day bar chart, a 12-week heatmap, and where you read. */
+/** Daily aggregates and session history remain separate server views. */
 @Composable
 fun StatsScreen(vm: StatsViewModel = hiltViewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
 
-    when {
-        ui.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
-        ui.failed -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(R.string.couldn_t_load_your_reading), color = MaterialTheme.colorScheme.error)
-                Button(onClick = vm::refresh, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.retry)) }
+    StatsContent(ui, vm::selectPeriod, vm::refresh, vm::moveWeek, vm::loadHistory)
+}
+
+@Composable
+internal fun StatsContent(ui: StatsViewModel.UiState, onPeriod: (Int) -> Unit, onRefresh: () -> Unit,
+    onWeek: (Int) -> Unit, onHistoryRetry: () -> Unit) {
+    LazyColumn(Modifier.fillMaxSize()) {
+        item {
+            FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                STATS_PERIODS.forEach { days -> FilterChip(selected = ui.days == days, onClick = { onPeriod(days) },
+                    label = { Text(stringResource(R.string.stats_period_days, days)) }) }
+                TextButton(onClick = onRefresh) { Text(stringResource(R.string.stats_refresh)) }
             }
-        }
-        else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
+            if (ui.loading) CircularProgressIndicator(Modifier.padding(16.dp))
+            if (ui.failed || ui.partial) Text(stringResource(if (ui.failed) R.string.couldn_t_load_your_reading else R.string.stats_partial),
+                modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error)
+            Text(stringResource(R.string.stats_all_time), Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.labelLarge)
             ui.summary?.let { s ->
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Tile(stringResource(R.string.started), s.startedBooks.toString(), Modifier.weight(1f))
@@ -72,26 +82,61 @@ fun StatsScreen(vm: StatsViewModel = hiltViewModel()) {
             StatsStrip(streak = ui.streak, goal = ui.goal)
 
             if (ui.daily.isNotEmpty()) {
-                val last30 = ui.daily.entries.toList().takeLast(30)
-                val total = last30.sumOf { it.value }
-                SectionTitle(stringResource(R.string.last_30_days))
+                val values = ui.daily.values.toList()
+                val total = values.sum()
+                SectionTitle(stringResource(R.string.stats_period_days, ui.days))
                 Text(
-                    stringResource(R.string.total_a_day, formatSeconds(total), formatSeconds(total / 30)),
+                    stringResource(R.string.total_a_day, formatSeconds(total), formatSeconds(total / ui.days)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
-                BarChart(last30.map { it.value }, Modifier.fillMaxWidth().padding(16.dp).height(110.dp))
+                ui.previousSeconds?.let { previous -> Text(stringResource(R.string.stats_previous, formatSeconds(previous)),
+                    Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodyMedium) }
+                Text(stringResource(R.string.stats_timezone, ui.timezone.orEmpty()), Modifier.padding(horizontal = 16.dp),
+                    style = MaterialTheme.typography.bodySmall)
+                val group = if (ui.days > 90) 14 else if (ui.days > 30) 7 else 1
+                Text(stringResource(R.string.stats_chart_group, group), Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall)
+                BarChart(values.chunked(group).map { it.sum() }, Modifier.fillMaxWidth().padding(16.dp).height(110.dp))
 
                 SectionTitle(stringResource(R.string.reading_heatmap))
-                Heatmap(ui.daily, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                Heatmap(ui.daily.entries.toList().takeLast(84).associate { it.toPair() }, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
             }
 
-            ui.sources?.takeIf { it.totalSeconds > 0 }?.let {
+            ui.sources?.let {
                 SectionTitle(stringResource(R.string.where_you_read))
+                Text(stringResource(R.string.stats_source_window, ui.days), Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall)
                 SourceSplit(it, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
             }
+            SectionTitle(stringResource(R.string.stats_history))
+            Text(stringResource(R.string.stats_history_note), Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodySmall)
+            FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { onWeek(-1) }, enabled = ui.week.minusWeeks(1).isoYear >= 1970) { Text(stringResource(R.string.stats_week_previous)) }
+                TextButton(onClick = { onWeek(1) }, enabled = ui.week < historyMonday()) { Text(stringResource(R.string.stats_week_next)) }
+            }
+            Text("${ui.week} — ${ui.week.plusDays(6)} · UTC", Modifier.padding(horizontal = 16.dp))
+            if (ui.historyLoading) CircularProgressIndicator(Modifier.padding(16.dp))
+            if (ui.historyFailed) {
+                Text(stringResource(R.string.stats_history_failed), Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.error)
+                TextButton(onClick = onHistoryRetry, modifier = Modifier.padding(horizontal = 16.dp)) { Text(stringResource(R.string.retry)) }
+            }
+            ui.history?.let {
+                if (it.items.isEmpty()) Text(stringResource(R.string.stats_history_empty), Modifier.padding(16.dp))
+                if (it.items.size == 3000) Text(stringResource(R.string.stats_history_limit), Modifier.padding(16.dp))
+            }
         }
+        items(ui.history?.items.orEmpty(), key = { it.sessionId }) { row ->
+            Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Column(Modifier.padding(12.dp)) {
+                    Text(row.bookTitle, style = MaterialTheme.typography.titleSmall)
+                    Text(historyTime(row.startedAt), style = MaterialTheme.typography.bodySmall)
+                    Text(formatSeconds(row.durationSeconds), style = MaterialTheme.typography.bodyMedium)
+                    row.bookSource?.let { source -> Text(SOURCE_LABELS[source.lowercase()]?.let { stringResource(it) } ?: source,
+                        style = MaterialTheme.typography.bodySmall) }
+                }
+            }
+        }
+        item { Spacer(Modifier.height(24.dp)) }
     }
 }
 
@@ -220,13 +265,20 @@ private fun SourceSplit(dist: SourceDistribution, modifier: Modifier) {
     }
 }
 
+@Composable
 private fun formatSeconds(seconds: Long): String {
     val h = seconds / 3600
     val m = (seconds % 3600) / 60
     return when {
-        h > 0 -> "${h}h ${m}m"
-        m > 0 -> "${m}m"
-        seconds > 0 -> "<1m"
-        else -> "0m"
+        h > 0 -> stringResource(R.string.stats_duration_hours, h, m)
+        m > 0 -> stringResource(R.string.stats_duration_minutes, m)
+        seconds > 0 -> stringResource(R.string.stats_duration_under_minute)
+        else -> stringResource(R.string.stats_duration_minutes, 0)
     }
 }
+
+private fun historyTime(value: String): String = runCatching {
+    java.time.format.DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.SHORT)
+        .withLocale(java.util.Locale.getDefault()).withZone(java.time.ZoneOffset.UTC)
+        .format(java.time.Instant.parse(value)) + " UTC"
+}.getOrDefault(value)

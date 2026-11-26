@@ -410,6 +410,9 @@ interface ApiService {
     @GET("user-statistics/reading-source-distribution")
     suspend fun getReadingSources(@Query("days") days: Int): com.bookorbit.core.model.SourceDistribution
 
+    @GET("user-statistics/session-timeline")
+    suspend fun getReadingHistory(@Query("year") year: Int, @Query("week") week: Int): com.bookorbit.core.model.ReadingHistory
+
     @GET("dashboard/widgets/reading-streak")
     suspend fun getReadingStreak(): com.bookorbit.core.model.ReadingStreakWidget
 
