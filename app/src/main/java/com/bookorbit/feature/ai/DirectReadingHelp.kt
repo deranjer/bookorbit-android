@@ -27,13 +27,14 @@ class DirectReadingHelp internal constructor(private val store: AiConnectionStor
     class Failure : IOException("Direct AI request failed")
 
     /** One confirmed request, one call. No server fallback, retries, cookies or BookOrbit identifiers. */
-    fun answer(request: ReadingHelpRequest, expectedOwner: SessionOwner? = null): Flow<ReadingHelpEvent> = callbackFlow {
+    fun answer(request: ReadingHelpRequest, expectedOwner: SessionOwner? = null, expectedRevision: Long? = null): Flow<ReadingHelpEvent> = callbackFlow {
         request.validate()
         require(request.kind in setOf("term", "recap-note"))
         require(request.passages.size == 1 && request.passages.single().length <= 12_000)
         val owner = expectedOwner ?: session.owner() ?: throw Failure()
         if (!session.owns(owner)) throw Failure()
         val credentials = store.credentials(owner)
+        if (expectedRevision != null && credentials.revision != expectedRevision) throw Failure()
         val call = client.newCall(directHelpRequest(credentials, request))
         val configuration = launch { store.changes.collect { if (!store.current(credentials)) call.cancel() } }
         val ownership = launch { session.owners.collect { if (it != owner) call.cancel() } }
@@ -72,10 +73,15 @@ internal fun directHelpRequest(credentials: DirectAiCredentials, request: Readin
     }.toString()
     val body = buildJsonObject {
         when (credentials.provider) {
-            AiProvider.OPENAI -> {
+            AiProvider.OPENAI, AiProvider.OPENROUTER, AiProvider.OPENAI_COMPATIBLE, AiProvider.OLLAMA -> {
                 put("model", credentials.model)
-                put("max_completion_tokens", 2048)
-                put("store", false)
+                put("stream", false)
+                when (credentials.provider) {
+                    AiProvider.OPENAI -> { put("max_completion_tokens", 2048); put("store", false) }
+                    AiProvider.OLLAMA -> putJsonObject("options") { put("num_predict", 2048) }
+                    else -> put("max_tokens", 2048)
+                }
+                if (credentials.provider == AiProvider.OPENROUTER) putJsonObject("provider") { put("allow_fallbacks", false) }
                 putJsonArray("messages") {
                     add(buildJsonObject { put("role", "system"); put("content", instruction) })
                     add(buildJsonObject { put("role", "user"); put("content", data) })
@@ -91,9 +97,20 @@ internal fun directHelpRequest(credentials: DirectAiCredentials, request: Readin
         }
     }
     return Request.Builder().apply {
+        val base = validatedAiBaseUrl(credentials.provider, credentials.baseUrl, credentials.allowInsecure)
         when (credentials.provider) {
-            AiProvider.OPENAI -> { url("https://api.openai.com/v1/chat/completions"); header("Authorization", "Bearer ${credentials.token}") }
-            AiProvider.GOOGLE -> { url("https://generativelanguage.googleapis.com/v1beta/models/${credentials.model}:generateContent"); header("x-goog-api-key", credentials.token) }
+            AiProvider.OPENAI, AiProvider.OPENROUTER, AiProvider.OPENAI_COMPATIBLE -> {
+                url(base.newBuilder().addPathSegments("chat/completions").build())
+                if (credentials.token.isNotBlank()) header("Authorization", "Bearer ${credentials.token}")
+            }
+            AiProvider.OLLAMA -> {
+                url(base.newBuilder().addPathSegments("api/chat").build())
+                if (credentials.token.isNotBlank()) header("Authorization", "Bearer ${credentials.token}")
+            }
+            AiProvider.GOOGLE -> {
+                url(base.newBuilder().addPathSegment("models").addPathSegment("${credentials.model}:generateContent").build())
+                header("x-goog-api-key", credentials.token)
+            }
         }
         post(SingleAttemptJsonBody(body.toString().toByteArray(Charsets.UTF_8), "application/json".toMediaType()))
     }.build()
@@ -101,13 +118,22 @@ internal fun directHelpRequest(credentials: DirectAiCredentials, request: Readin
 
 internal fun directHelpText(provider: AiProvider, body: String): String {
     val root = Json.parseToJsonElement(body).jsonObject
+    require(root["error"] == null || root["error"] == JsonNull)
     val text = when (provider) {
-        AiProvider.OPENAI -> {
+        AiProvider.OPENAI, AiProvider.OPENROUTER, AiProvider.OPENAI_COMPATIBLE -> {
             val choice = root.getValue("choices").jsonArray.single().jsonObject
+            require(choice["error"] == null || choice["error"] == JsonNull)
             require(choice["finish_reason"]?.jsonPrimitive?.content == "stop")
             val message = choice.getValue("message").jsonObject
             require(message["refusal"] == null || message["refusal"] == JsonNull)
+            require(message["tool_calls"] == null || message["tool_calls"] == JsonNull || message["tool_calls"]?.jsonArray?.isEmpty() == true)
             requireNotNull(message.getValue("content").jsonPrimitive.contentOrNull)
+        }
+        AiProvider.OLLAMA -> {
+            require(root["done"]?.jsonPrimitive?.booleanOrNull == true && root["done_reason"]?.jsonPrimitive?.content == "stop")
+            val message = root.getValue("message").jsonObject
+            require(message["tool_calls"] == null || message["tool_calls"] == JsonNull || message["tool_calls"]?.jsonArray?.isEmpty() == true)
+            requireNotNull(message["content"]?.jsonPrimitive?.contentOrNull)
         }
         AiProvider.GOOGLE -> {
             val candidate = root.getValue("candidates").jsonArray.single().jsonObject

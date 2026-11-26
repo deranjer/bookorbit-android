@@ -1,0 +1,4272 @@
+[
+  {
+    "name": "afr-deu",
+    "headwords": "3800",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/afr-deu/0.3.3/freedict-afr-deu-0.3.3.src.tar.xz",
+        "checksum": "a93220695b1b5b43ea00b1058a5db0b329ec167fa546e7e3d0c829560b4823514e301721c579d7a7d1530afe1c3a4dd8d96ecd21a6517eb5b0f02de517d987b1",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "114868",
+        "version": "0.3.3"
+      }
+    ]
+  },
+  {
+    "name": "afr-eng",
+    "headwords": "5129",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/afr-eng/0.2.2/freedict-afr-eng-0.2.2.src.tar.xz",
+        "checksum": "bd09d1107f79dc0d07e07eef7902e5551411b5f7a635ab8ab10832592902b457003bdc9b13896c2e46fb372210ba41ef8de36df87284070dd8f12ab02b09bfe4",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "125376",
+        "version": "0.2.2"
+      }
+    ]
+  },
+  {
+    "name": "ara-eng",
+    "headwords": "52996",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ara-eng/0.6.3/freedict-ara-eng-0.6.3.src.tar.xz",
+        "checksum": "d911846859d6a6a92f2e04f0f255951ae22f3ad1f14e5dfa42c9267236b93c6e1135b02809491bd9772d8d47d76b512ae52425c266c0cc4fbb958eed06fb4995",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "817392",
+        "version": "0.6.3"
+      }
+    ]
+  },
+  {
+    "name": "bre-fra",
+    "headwords": "27034",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/bre-fra/0.8.3/freedict-bre-fra-0.8.3.src.tar.xz",
+        "checksum": "689b74822eaf8891a3c95c27c2cc6d38a67a88c615d34724fec9d0856d3bc6b4c23658a7381dd1ed3474370462c6b187a0c7d20ff41945de48b6f188c01d5905",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "584772",
+        "version": "0.8.3"
+      }
+    ]
+  },
+  {
+    "name": "cat-eng",
+    "headwords": "23590",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/cat-eng/2025.11.23/freedict-cat-eng-2025.11.23.src.tar.xz",
+        "checksum": "932a1ae9aab62855da027acad6a58c75dc9f017c5f0082f4c0a7ad75284a794b9928a22770517c909291460f09870c2ef7a9c81319631ba21071ece6d0ae76a0",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "793248",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "cat-fin",
+    "headwords": "10395",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/cat-fin/2025.11.23/freedict-cat-fin-2025.11.23.src.tar.xz",
+        "checksum": "70d72ff95e00872d84d5bc52910916ba349566bc5379a888a99de79cc10eac22e149be06a96bf155e02581753ef195df8de28f58e1d734ffa9351c9061f5b882",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "416052",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "cat-fra",
+    "headwords": "21681",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/cat-fra/2025.11.23/freedict-cat-fra-2025.11.23.src.tar.xz",
+        "checksum": "12c0f2a5e79d68ecfd4475df9b33fb67a024a251367a1e2b2198180984577237d65d3648369e2c01379f7c87dd6a746ef9ebaddbdd8edfa56a5938e2560eef61",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "742804",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "cat-ita",
+    "headwords": "13087",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/cat-ita/2025.11.23/freedict-cat-ita-2025.11.23.src.tar.xz",
+        "checksum": "0a9ba91548ea96f0a8864ec5c36848154f4f6799abb8bc1490bbd284292028575be68d9e7d8da670bddcf2b300c435e9bf362ed5a2c9f7ff48653621a7c54473",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "503320",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "cat-pol",
+    "headwords": "10008",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/cat-pol/2025.11.23/freedict-cat-pol-2025.11.23.src.tar.xz",
+        "checksum": "5eeb578d560cd2713ec0612b71f24cfd17d0b1baab681d1fc4730de4e43ed3584a891c55fe17122d84d94860ed2559912e3cbf005866120d635786a8f4c6e4f4",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "404576",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "cat-por",
+    "headwords": "11855",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/cat-por/2025.11.23/freedict-cat-por-2025.11.23.src.tar.xz",
+        "checksum": "1bb9bc6d623daa0bf5e4581c70c4fe94c999cf680ec5c6eb53c2997f989987e587f46a04fb4c0ab7cc2de4d1f14ef623f4c254709f6c5827e4383fe53ff7831b",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "451716",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "cat-rus",
+    "headwords": "10390",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/cat-rus/2025.11.23/freedict-cat-rus-2025.11.23.src.tar.xz",
+        "checksum": "7f78d17d1ebd4d568ede9dd0a0f5468adb7d0721d14007543b1501e5e4ef0f39fd35286565882f26869ae96bf96be76f6d9c105424790a981b7bb4b22454122b",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "435808",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "cat-spa",
+    "headwords": "27177",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/cat-spa/2025.11.23/freedict-cat-spa-2025.11.23.src.tar.xz",
+        "checksum": "744919882088a01f093c36c89b41a5a2f2f05b0b32778e2076f2b0fcc267dc30d8e17ad01f4fd2320a93c91e9f5527285e3bdad99854f907da199802665b920f",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "906848",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-bul",
+    "headwords": "16621",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-bul/2025.11.23/freedict-ces-bul-2025.11.23.src.tar.xz",
+        "checksum": "04821864139891325e675103e4e217b968e830b28e8855529226718265f5f3255c936718330a93ab98fcac0293af46dd23115360a968c246ff36c1b7c9147bc0",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "574548",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-cat",
+    "headwords": "17052",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-cat/2025.11.23/freedict-ces-cat-2025.11.23.src.tar.xz",
+        "checksum": "f11bf3eac4d66a09780bd05a0c8a0ffc81ef5ba013b11c3652ec40429ab265c47c35c320da911b03c4edf1f3898d7c26159afab40047bea0efd2222bb015beac",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "559836",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-dan",
+    "headwords": "15663",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-dan/2025.11.23/freedict-ces-dan-2025.11.23.src.tar.xz",
+        "checksum": "1e2cf2b0b38c4fe4088f53ea0e023e6831471751bfe711eb1d5bf6bec15a3be2dd65aca4c1ac4118b7957de80ff0d48d9a813351e1f2caa4d5619e52f6bf15f1",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "520740",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-deu",
+    "headwords": "17730",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-deu/2025.11.23/freedict-ces-deu-2025.11.23.src.tar.xz",
+        "checksum": "37d0dc831352a85573159016ae09b33753fcf4c87facbfabfe410897c537550ce6a5445831a57762960d51d54298ed9ba9e75ec24f8ec873663bfe2f2b4705bd",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "610540",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-eng",
+    "headwords": "488",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-eng/0.2.3/freedict-ces-eng-0.2.3.src.tar.xz",
+        "checksum": "b788bc9a87dc3be54a7ae2f9fd07b26862e82e70752ac7b260c0034af2fe909b7ddea070867467df2908f731db21520296448db3705104aa8683922efaed65c7",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "61788",
+        "version": "0.2.3"
+      }
+    ]
+  },
+  {
+    "name": "ces-fin",
+    "headwords": "10505",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-fin/2025.11.23/freedict-ces-fin-2025.11.23.src.tar.xz",
+        "checksum": "68e2a0ea01d34381d4e2ba0961f563fffe74e4a1b9ba74b3cedeb15980214762bd42dab5ce4c835e0a812166d1724c6fdb0b03c825cf3b4cdd7f3aa4713494bb",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "384872",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-fra",
+    "headwords": "15265",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-fra/2025.11.23/freedict-ces-fra-2025.11.23.src.tar.xz",
+        "checksum": "d4565005bfdb93c39460c6cd47f60adfe73877afef1432fd8c8a7de655d09a8bae12f7f232d1714fcccc19805d72e68bfcd4c9f4d8d569f801a6053d7a2d727d",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "549804",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-gle",
+    "headwords": "12813",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-gle/2025.11.23/freedict-ces-gle-2025.11.23.src.tar.xz",
+        "checksum": "6c80f3cefb9722ae98a47eb3bce2de2017422645ac025e1fbc5da426639718fabc008c4b1c5b18d1b163b21c050c7ccdef18620541b99bf8ccb652836aff1821",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "448480",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-ind",
+    "headwords": "11792",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-ind/2025.11.23/freedict-ces-ind-2025.11.23.src.tar.xz",
+        "checksum": "5d3aea04e4ad76b7f6df29dec3121ad001c39685d1e83547d9156177c1bde23e1e405c920c06d3e22dd926df8dfd9bceecb18745ed1c92caf038298c8f9d83a5",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "421812",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-jpn",
+    "headwords": "10335",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-jpn/2025.11.23/freedict-ces-jpn-2025.11.23.src.tar.xz",
+        "checksum": "24f3b65ba73d75502d2665d4cb27a8c9daefdce2b7bd67ded04b5a0cc158d1d6ad33a757793984973ea557d142e6b38d07237dfcf8fb399d8a0f9e303591f911",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "397388",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-nld",
+    "headwords": "10383",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-nld/2025.11.23/freedict-ces-nld-2025.11.23.src.tar.xz",
+        "checksum": "c9f637e61d5cb5d17e73c5efe54327a84171f75c61ec421fd6f249ffae9f9d5281e1f16f01e03c5459e62503024d4590b715d17db8f21d3f2005889f25223239",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "380940",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-nor",
+    "headwords": "11164",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-nor/2025.11.23/freedict-ces-nor-2025.11.23.src.tar.xz",
+        "checksum": "503f8733f73404e45fc35dcdcd1e686d6b9a02ea87a46572f82d6eb804994472156860434fe8079df991cdb859ea723595b3f2f89b6e6f505ba924c1f9edd416",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "394912",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-pol",
+    "headwords": "10396",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-pol/2025.11.23/freedict-ces-pol-2025.11.23.src.tar.xz",
+        "checksum": "4bcef0a92e6926543a200f46e279f5739da33d3759642fd3e8149fe8a7345f01c5932250ca824932f4d406f528926c380815bb769ff2e2be473979b0d764bd41",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "378988",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-por",
+    "headwords": "16783",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-por/2025.11.23/freedict-ces-por-2025.11.23.src.tar.xz",
+        "checksum": "63d3ba8f749f1e4d0091fd627010c5ee6d39226b9468f5c009d70c99152fa18936aa62ea9df54f6c3ba7070ac4bcde830e5973ca72a133f7d23bd1e1fc572e6a",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "555440",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-rus",
+    "headwords": "10296",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-rus/2025.11.23/freedict-ces-rus-2025.11.23.src.tar.xz",
+        "checksum": "867d2f7a3d43d2f511873ff6651907772eb26c4749500397ec012711daed50b9099dce01e0500b8df363c2f8a7bd3cc3c6033441eb1063d0af801ca86cab91b4",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "386260",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-spa",
+    "headwords": "12308",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-spa/2025.11.23/freedict-ces-spa-2025.11.23.src.tar.xz",
+        "checksum": "41319aa6f31fb1a5bdba2d17cc344f794ea1be03d63d8c79e8816ab500a133da2ec6235b96b3aa082d06583852a6075abed9a4d4fdc57d803edb4d2678498d5e",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "432668",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-swe",
+    "headwords": "11455",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-swe/2025.11.23/freedict-ces-swe-2025.11.23.src.tar.xz",
+        "checksum": "1e3da37d762ee8b78f8da2269860e6d9c13d2c88a58d1853b2aa6638fb3474de4ebf9b4664649660b0dc997d41c612541c0c686b1b6d3511a15872cab35ef2dc",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "407872",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ces-tur",
+    "headwords": "15465",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ces-tur/2025.11.23/freedict-ces-tur-2025.11.23.src.tar.xz",
+        "checksum": "7a08800b5893efe0d15f11cd8355c2e26d9a1c76ff1aebee4300612f8ba6eeb1be42b56b0f2099033002458c21f7e535e9aa3c88adb491110a139903ff2ae4a2",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "524176",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ckb-kmr",
+    "headwords": "7845",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ckb-kmr/0.2/freedict-ckb-kmr-0.2.src.tar.xz",
+        "checksum": "f588c6f77d2874805e66f15331e3aeaa5a2e0569929e847a37accf0569dd8f0d046c24e8619329b7ee92d2c9eb1d37063a06fc35a54f27f9eb79de88186c1fdb",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "252180",
+        "version": "0.2"
+      }
+    ]
+  },
+  {
+    "name": "cym-eng",
+    "headwords": "12630",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/cym-eng/0.2.3/freedict-cym-eng-0.2.3.src.tar.xz",
+        "checksum": "80269798abf4de7c2bf838b50653c1995d3fa992e424aae3732726773a10f74338454a5d090774c728177597dae0537c19f83ef64916b1bead690a096d6e19a4",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "189628",
+        "version": "0.2.3"
+      }
+    ]
+  },
+  {
+    "name": "dan-eng",
+    "headwords": "5097",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/dan-eng/0.3.1/freedict-dan-eng-0.3.1.src.tar.xz",
+        "checksum": "a35b9f20caf8e03ce73563bf50b715037867ddfbf0a40e8bf72c68774ce009e5dea83ce5654b168a6aa292a560690ce88b7f07b61fd610ce7c2be29f4486f93a",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "126940",
+        "version": "0.3.1"
+      }
+    ]
+  },
+  {
+    "name": "deu-bul",
+    "headwords": "10557",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-bul/2025.11.23/freedict-deu-bul-2025.11.23.src.tar.xz",
+        "checksum": "128ff3df356e27735b058b385f8712b24045b599597f0abd58b54117383f2229d948898b4c33ada15349e55d6c88940a3382b02e0697f99ddc2fc97025d7c8e8",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "620092",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "deu-cat",
+    "headwords": "15227",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-cat/2025.11.23/freedict-deu-cat-2025.11.23.src.tar.xz",
+        "checksum": "321bde240e2aebdee415f4cf536eb6418b45e325827c44aa8673976328b25d6621608e031e9556a85c68e4f49dcc494e1eaaf7e5cc410e00b81fe82d7ae35d3b",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "883532",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "deu-ces",
+    "headwords": "19866",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-ces/2025.11.23/freedict-deu-ces-2025.11.23.src.tar.xz",
+        "checksum": "34572ca8de3e2e0f7cf187d749421bc91ac60795a48e9b482cc3fb91569ccb77837ff63d9199e546fbf7d7a9cab5e9bfc128f0c52813f7894fe862caac6564d1",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "1117220",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "deu-dan",
+    "headwords": "12645",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-dan/2025.11.23/freedict-deu-dan-2025.11.23.src.tar.xz",
+        "checksum": "022560ba9f9bd07e7bde1cdc2385289e83288800898ea448e5a9e464aea1f01ef23ad2bc902ccd82d3d930533124667d6d1929c4997ab24b5f10dfd1e4aa72e6",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "714052",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "deu-ell",
+    "headwords": "10792",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-ell/2025.11.23/freedict-deu-ell-2025.11.23.src.tar.xz",
+        "checksum": "92e37149f37a0826e781d8d1deb438af0499bffec7c267dc6590892434fd2687726944dbee3f3a18d3543bdbc55e9370e20ad70e093cba7bddb2e588cb9faddb",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "667256",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "deu-eng",
+    "headwords": "517534",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-eng/1.9-fd1/freedict-deu-eng-1.9-fd1.src.tar.xz",
+        "checksum": "31c7143ae53074a5f357b80f4a6ccce8fa26f77a237476edca1353d5783293a0a8aef3a47f087de3e0c38f5aa7064196b7347886e1049116dc2964c6532397bc",
+        "date": "2022-04-20",
+        "platform": "src",
+        "size": "18183480",
+        "version": "1.9-fd1"
+      }
+    ]
+  },
+  {
+    "name": "deu-fin",
+    "headwords": "13028",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-fin/2025.11.23/freedict-deu-fin-2025.11.23.src.tar.xz",
+        "checksum": "b42f4f14dc6fe3e44cc7c3281a2e831f1f681812c31a54b48326b104da6d6311d26ed8609a9315ba67c4297d068bd0c8b51ed944a3aed0ed9bb4dcef64c84be7",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "744272",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "deu-fra",
+    "headwords": "59631",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-fra/2025.11.23/freedict-deu-fra-2025.11.23.src.tar.xz",
+        "checksum": "ef87052072a0c2e48449264706b5c222444b9e05a7480394f67df5b964fd554eb2e60b391c89012b7a4d7d5cc437f750e4c3700254767907dcc02c0697b6f04c",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "3036424",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "deu-gle",
+    "headwords": "13246",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-gle/2025.11.23/freedict-deu-gle-2025.11.23.src.tar.xz",
+        "checksum": "16a5126cadd4819e1350dcd17e49169817aa8efba99aee226abecd87b528f2670f14be6b54865843fd2ca63071a1f572a1c3d576261fe2df835ccfd82189a883",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "720100",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "deu-ind",
+    "headwords": "10131",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-ind/2025.11.23/freedict-deu-ind-2025.11.23.src.tar.xz",
+        "checksum": "5bed8f9de0baa0c9ab8261b41552e8f5d36ba5e5b907a9c5d5869e8ab5d3242de4f34f3f36d452a85a76db89636f6988726186d3eb0db1a55a3db8a37d8ff36e",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "596364",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "deu-ita",
+    "headwords": "4443",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-ita/0.2.1/freedict-deu-ita-0.2.1.src.tar.xz",
+        "checksum": "210d8e2b4ed8bc6d3de10336d2fad5431fc39dd63e0f857a75eb759e69d5f81a5f5f97db555a56818b4ec5ae2259821723ecaea5850abc870cb02b87c2330baf",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "101700",
+        "version": "0.2.1"
+      }
+    ]
+  },
+  {
+    "name": "deu-jpn",
+    "headwords": "10203",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-jpn/2025.11.23/freedict-deu-jpn-2025.11.23.src.tar.xz",
+        "checksum": "ab723dafafb076298a06e5d6d8ca9f8efda4e879bdc444c4f1c161aa742ac9188d57194def419c0e3adc01fbb4908c2e97934d2b15fffc53fa482c4513288895",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "625544",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "deu-kur",
+    "headwords": "22567",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-kur/0.2.2/freedict-deu-kur-0.2.2.src.tar.xz",
+        "checksum": "08753817aecc06fac8a909e1581813b736a32b67d1ff8d28d979b90532404872d8eb4c3c34d496dd55d836634c7bdf72a7f1ef147a035e8b7003ebf38fddd2d2",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "351180",
+        "version": "0.2.2"
+      }
+    ]
+  },
+  {
+    "name": "deu-lit",
+    "headwords": "10282",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-lit/2024.10.10/freedict-deu-lit-2024.10.10.src.tar.xz",
+        "checksum": "773cb0e603bebb04581238db0e85417d2ca50ab4675ae94e7ca3070dadb6a1f36e9d46aee6d697d6096bff1a2fd2f6d8a86f289211ffc344d380b763b1bf5c3f",
+        "date": "2024-10-11",
+        "platform": "src",
+        "size": "590308",
+        "version": "2024.10.10"
+      }
+    ]
+  },
+  {
+    "name": "deu-nld",
+    "headwords": "12784",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-nld/0.1.5/freedict-deu-nld-0.1.5.src.tar.xz",
+        "checksum": "01212c674fc1630739b440ca160acb9734f1709037a34ea70b13fff4b976d0f68338ce6cfdba4343d7c72a1face2fc47def224ac51b6c9a6c78e436ab8754a5d",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "260852",
+        "version": "0.1.5"
+      }
+    ]
+  },
+  {
+    "name": "deu-pol",
+    "headwords": "23168",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-pol/2025.11.23/freedict-deu-pol-2025.11.23.src.tar.xz",
+        "checksum": "dcd50fc480766da5d70fbb5a64b5e320c21e173e0ed4f72fa8c088da81ee5e3ca9f96ebd83c7e102f6ec70855ead402f591d5d91aa48684c16baa586ec23182f",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "1277024",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "deu-por",
+    "headwords": "8722",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-por/0.2.3/freedict-deu-por-0.2.3.src.tar.xz",
+        "checksum": "52091c1ba289cf9bc587579ca70d272eabe1ac850eb82858c6c5e98053fa40fe6b1b8954e5e922e6e0344fac45560606ceee91e739d36b83883601ae3ad63ec0",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "172380",
+        "version": "0.2.3"
+      }
+    ]
+  },
+  {
+    "name": "deu-rus",
+    "headwords": "26809",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-rus/2025.11.23/freedict-deu-rus-2025.11.23.src.tar.xz",
+        "checksum": "7d4e69d1373f71bb97cd2ea2e240affccf17b419ce9b19b3c946dda5356c07988f803fe32281a7f9cd745fff946c8ed2f42f52227391676b9ba4a53e0d56fe83",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "1456744",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "deu-spa",
+    "headwords": "36744",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-spa/2025.11.23/freedict-deu-spa-2025.11.23.src.tar.xz",
+        "checksum": "37d5e623cf6c8ccb419d85b463953ec91577013a1737771895521f6d0fc5a5ed3e9253ae9b5e80faae1d8124d9b2c1efd65e65a3e3754289f56ea966df50b028",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "1922240",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "deu-swe",
+    "headwords": "46539",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-swe/2025.11.23/freedict-deu-swe-2025.11.23.src.tar.xz",
+        "checksum": "df4d4bdd2f8aca645f0f17635a3c86d302557410e6888099d2ec19ce7b790281b64a86d9498c8850b18f627ea88dbbc07e242c99876acec5dc43af9d43b3079c",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "2424284",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "deu-tur",
+    "headwords": "36219",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/deu-tur/0.2.2/freedict-deu-tur-0.2.2.src.tar.xz",
+        "checksum": "fd89fe69395190f4450dfda94033f20d7210c18d6dddd9b900e21ef0951ec05368c08d0f845cf1e231c17e2ebc8cafd827f72d44d14d7dcd152926ca0709ca07",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "546588",
+        "version": "0.2.2"
+      }
+    ]
+  },
+  {
+    "name": "ell-bul",
+    "headwords": "12979",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-bul/2025.11.23/freedict-ell-bul-2025.11.23.src.tar.xz",
+        "checksum": "a0cdad28e1d3498a14a9ddf1fd9e431cb446ba67c396268e5c287b6b154ed121cfa3b5e423b6210d23f4c05dc9c76673a2c5a6f25689024138aea296212a1591",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "339492",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ell-cat",
+    "headwords": "14414",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-cat/2025.11.23/freedict-ell-cat-2025.11.23.src.tar.xz",
+        "checksum": "7d39b42b57ff9f0b531712ec29a568e485c8775f22e9e3ff9064eb22be26b67bcde8ff9675b654d1a78fff5110704f71cd5b681b0b0132cacf5f5125bcdd6e86",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "343536",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ell-ces",
+    "headwords": "11884",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-ces/2025.11.23/freedict-ell-ces-2025.11.23.src.tar.xz",
+        "checksum": "7cdb90db2107ed95742facce0f3799ad969730045b4fbb5a0be0bec83f6eb66bb67ff904f6041359710bab7a5b00a7ecc5e02b1c42d6296ece027c1f170095a3",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "310324",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ell-dan",
+    "headwords": "11739",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-dan/2025.11.23/freedict-ell-dan-2025.11.23.src.tar.xz",
+        "checksum": "303b0ac906919116740875ac7c628f73ae8970cdb808e979369c523d92cc79c2d9e699de749e08450f0b0d332ff1a1e1baf2dca551ef4e5eaa2c48e2211c18a7",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "300156",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ell-deu",
+    "headwords": "11417",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-deu/2025.11.23/freedict-ell-deu-2025.11.23.src.tar.xz",
+        "checksum": "3b0234d586558c7899515c66b66b370f04e5e0c526a5a973dc903dc882ee245fed501da516ede99c755e77375193a2a77f3a166692adbb9c31e26bae30f448e5",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "318200",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ell-eng",
+    "headwords": "41714",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-eng/2025.11.23/freedict-ell-eng-2025.11.23.src.tar.xz",
+        "checksum": "61b64a5a89cc32f42ae99d9de14c38b6683fcdacc645aa1693d2f37c5944e49ab1a221138442c7fda0369f05c586f45567560dc606786a66dc0be15ab2c70300",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "873576",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ell-fin",
+    "headwords": "13556",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-fin/2025.11.23/freedict-ell-fin-2025.11.23.src.tar.xz",
+        "checksum": "e1411c50a3d601d0922810e2d1c69b7d8f1362fe1bef6e794622c1f3d52a25f875146dba3a019e08a0c31ba782cabb7d16d05390f6930d5ad5b3285e62659952",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "339700",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ell-fra",
+    "headwords": "32246",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-fra/2025.11.23/freedict-ell-fra-2025.11.23.src.tar.xz",
+        "checksum": "9bb915c104ae66b35618efc53e1b24d746d8ffe3fbb8730bfd040f54bbe73055a67aa0c514eeee053853261c2f13dc877af570cd70d3d4c37c0b1c9e427e9026",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "681448",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ell-gle",
+    "headwords": "19124",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-gle/2025.11.23/freedict-ell-gle-2025.11.23.src.tar.xz",
+        "checksum": "07c3b00f82c383cece64dfee6c5eec930ea9216e7e7a7a0ca176b8e3665a0231f12def06add11dbf3e949b29a7832c6d92cd680fe88d27fc2c53218299bd2757",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "424804",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ell-ind",
+    "headwords": "18161",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-ind/2025.11.23/freedict-ell-ind-2025.11.23.src.tar.xz",
+        "checksum": "981397a3936cbc8dadfc6a9cd2580e0a82c64f2afcb4bacd4d755f65eaec4625a42a9821e29ec325d9379cdbde6c5e6882582098d4adb0bc5df8cff15b05d9d0",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "398460",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ell-ita",
+    "headwords": "11318",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-ita/2024.10.10/freedict-ell-ita-2024.10.10.src.tar.xz",
+        "checksum": "48f905521a5776d78582c0b53b96f8ec5bb6a1920dbe06ecc6138390e0ab47f3ba48ec66a8009b87c5071946c347f2977e0aa16602a4539958f413f3348b5482",
+        "date": "2024-10-11",
+        "platform": "src",
+        "size": "288592",
+        "version": "2024.10.10"
+      }
+    ]
+  },
+  {
+    "name": "ell-jpn",
+    "headwords": "12751",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-jpn/2025.11.23/freedict-ell-jpn-2025.11.23.src.tar.xz",
+        "checksum": "8c65606faeba7083ecbcf0c50d9957ea2db5648103c6689db44a071a25bdd74f2737c2b46d0b11c3e1579697ec2ba0998eb139763558aefc13e577ac0aa9bd99",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "335444",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ell-lat",
+    "headwords": "13060",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-lat/2022.04.06/freedict-ell-lat-2022.04.06.src.tar.xz",
+        "checksum": "204a6cc7d8f99007bd97a3f253224be0715cf653883db8ff935e7e7eec4fd0f34b33225ef4c3c693e4506f16db6818b29fda57dc11d064896ec7c0cf7fd2466d",
+        "date": "2022-04-20",
+        "platform": "src",
+        "size": "224184",
+        "version": "2022.04.06"
+      }
+    ]
+  },
+  {
+    "name": "ell-lit",
+    "headwords": "14575",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-lit/2025.11.23/freedict-ell-lit-2025.11.23.src.tar.xz",
+        "checksum": "be010b0585d0a6f15c0d8cd046c468ef0b9e8d9d5ef25eaad77ee7df63500ec103424a8bfe5d33ecbb3057cbc9ef2c7735b43d4db2675ad2b372a1de51bfa2ad",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "341172",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ell-nld",
+    "headwords": "12236",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-nld/2025.11.23/freedict-ell-nld-2025.11.23.src.tar.xz",
+        "checksum": "adff06d95c89ca64a599dd172d536cd7eb1cfc3eece47d152201a22c4dfb75ae8be638ca8c864a1940a041ddb7d86480137b217add6b0fbebe357530fa863029",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "315008",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ell-nor",
+    "headwords": "11103",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-nor/2025.11.23/freedict-ell-nor-2025.11.23.src.tar.xz",
+        "checksum": "90853a1d8715bfd7766545cbc79309a4bc9f5152d70e5365440432fe82189926239e9d990dd1ab3260e737b9bf28eaac13d2a9bc5156c60b863fd923abcd64f2",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "281356",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ell-pol",
+    "headwords": "12358",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-pol/2022.11.18/freedict-ell-pol-2022.11.18.src.tar.xz",
+        "checksum": "0e453e87dd21e971c3f2702eb09a8a407ea34dd05087968aa96d609f378a8fb8e62935069f73a7571f24bd79a882ae734625e2e1b1b62d9a2c7028c324440686",
+        "date": "2022-12-06",
+        "platform": "src",
+        "size": "267680",
+        "version": "2022.11.18"
+      }
+    ]
+  },
+  {
+    "name": "ell-por",
+    "headwords": "13929",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-por/2025.11.23/freedict-ell-por-2025.11.23.src.tar.xz",
+        "checksum": "f8717c1ba61d782970ddf5003fbbef03f98e836a8a04c65b287031bdc147ba00e145c5291a9fa29b7641188b599f2f2e83e8d856de397406dd7732eb3b4c177e",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "341360",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ell-rus",
+    "headwords": "14709",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-rus/2024.10.10/freedict-ell-rus-2024.10.10.src.tar.xz",
+        "checksum": "7d868ce0da8f61e4652997699a710710382354e4627f6afd039796309d6c941ec2f18885984fa040ea40bd281d3080373e74ca2a53ddef59b1b6395bfdbd083a",
+        "date": "2024-10-11",
+        "platform": "src",
+        "size": "375616",
+        "version": "2024.10.10"
+      }
+    ]
+  },
+  {
+    "name": "ell-spa",
+    "headwords": "10702",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-spa/2023.05.29/freedict-ell-spa-2023.05.29.src.tar.xz",
+        "checksum": "88610dd03136015bec9e6089cb29c739879df6aa991c5e06af01142e056efd5450d300d21e1469939d9d1ccbd8adc54472a3a133ae090d3e8aa91355bc51d896",
+        "date": "2024-01-05",
+        "platform": "src",
+        "size": "243000",
+        "version": "2023.05.29"
+      }
+    ]
+  },
+  {
+    "name": "ell-swe",
+    "headwords": "12411",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-swe/2025.11.23/freedict-ell-swe-2025.11.23.src.tar.xz",
+        "checksum": "31d217d6c7f5adfa48f263165b0836daa69aac83792107efdb4b546e5d7ca93fad90e01accc5e8bba66eef72a28f7e06c6f9bd78aca245b1e17677874e7ac5e3",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "315560",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ell-tur",
+    "headwords": "10277",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ell-tur/2025.11.23/freedict-ell-tur-2025.11.23.src.tar.xz",
+        "checksum": "ebdd923ffaf96a78860031cfaea6e1ea3d852a00a682a7b7bde0cc90ef03a827d955e5dfe7a9430f95d21bc5b79064ebc50e27043c054d136f6a2d8391505a4b",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "280132",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "eng-afr",
+    "headwords": "6397",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-afr/0.1.3/freedict-eng-afr-0.1.3.src.tar.xz",
+        "checksum": "c14df62dca69cba1a17925466e1396de9051c6cdedd23e961be5cd6daa865f9d8187bddc5fe3784440e52bb6e59d34c140b65765f0a139675e313847ec9c5629",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "129504",
+        "version": "0.1.3"
+      }
+    ]
+  },
+  {
+    "name": "eng-ara",
+    "headwords": "87424",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-ara/0.6.3/freedict-eng-ara-0.6.3.src.tar.xz",
+        "checksum": "2604f6ce902e719c61fcf391bef02cdbf5eb60f5acd4f601b243933081689c0cfc4e169400f84bdda95a77110d545ddba444739d9d05b6d5d2a12b7aeab1bbd1",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "883268",
+        "version": "0.6.3"
+      }
+    ]
+  },
+  {
+    "name": "eng-bul",
+    "headwords": "37030",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-bul/2025.11.23/freedict-eng-bul-2025.11.23.src.tar.xz",
+        "checksum": "316859b70c026b99b174e5a4f22c388ff4d706afdb535050e3313589e6687c386a7f59d7731fee37a3cc6b1809de702a41b03041de3cc42cd64f6ec3385bd899",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "2427848",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "eng-cat",
+    "headwords": "35163",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-cat/2025.11.23/freedict-eng-cat-2025.11.23.src.tar.xz",
+        "checksum": "4c79e60d8eda53de60030c55e71304293ee5625cf7e5de1ef338d39f9dfb6d207b591bb006f2f847cc7ee00b6acded17c49562e88232c18e153f0ffc295bb0b5",
+        "date": "2026-02-12",
+        "platform": "src",
+        "size": "2014080",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "eng-ces",
+    "headwords": "150004",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-ces/0.1.3/freedict-eng-ces-0.1.3.src.tar.xz",
+        "checksum": "2e739e90962d37f260800d526dbe6ab97879b83ad218d294e542830c7d8ffbf9762a40c37a4509c8dcbc4534829de9fcb4b872d3ec91fc7c25c9096e8d759816",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "2432892",
+        "version": "0.1.3"
+      }
+    ]
+  },
+  {
+    "name": "eng-cym",
+    "headwords": "12630",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-cym/0.2.3/freedict-eng-cym-0.2.3.src.tar.xz",
+        "checksum": "0fc366e3799c6e7f9b1d67458af2a1533f58bceb0d66735b367f9ee1efbca41ca9367701f72341d1584eeb105f09b2cdce9c9464d6ed91b1f564926fdcb7e698",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "196296",
+        "version": "0.2.3"
+      }
+    ]
+  },
+  {
+    "name": "eng-dan",
+    "headwords": "411",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-dan/0.1.0/freedict-eng-dan-0.1.0.src.tar.xz",
+        "checksum": "2b52a0926faea63b8670c9fdd91e280dcf555b05902445964a76f5a4f6d06f79fe615f7f678f24625c6d91953889a4ea7a19b37bb5cdad9e517800b19bc92574",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "61100",
+        "version": "0.1.0"
+      }
+    ]
+  },
+  {
+    "name": "eng-deu",
+    "headwords": "460315",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-deu/1.9-fd1/freedict-eng-deu-1.9-fd1.src.tar.xz",
+        "checksum": "e44d3a3697d2bfe93cadef70284355bdd9d41cae818722d26e9eda8e4268ce63c37cee4d623c4be8028467fc212d49b388fdb395c0a253d285aed1bd424f80a9",
+        "date": "2022-04-19",
+        "platform": "src",
+        "size": "16742600",
+        "version": "1.9-fd1"
+      }
+    ]
+  },
+  {
+    "name": "eng-ell",
+    "headwords": "20973",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-ell/0.1.1/freedict-eng-ell-0.1.1.src.tar.xz",
+        "checksum": "a075ab0d15944bf7200058ed588837ee816c297d6b902ec487ce46bb58c99b2d06ed509582210dc2c1bfbd5150318a940e28ca53145abcc646dab9d2f8629c9c",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "443916",
+        "version": "0.1.1"
+      }
+    ]
+  },
+  {
+    "name": "eng-fin",
+    "headwords": "75586",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-fin/2025.11.23/freedict-eng-fin-2025.11.23.src.tar.xz",
+        "checksum": "8962f5460a5e1782f2fc34b2fcff872171fb27110544eb5e4cd14e07c714a39e1c143bd248dccf6c8f89906340e50e2637fafcb2d90dc45ea22e85d34d61049d",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "4724592",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "eng-fra",
+    "headwords": "8799",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-fra/0.1.6/freedict-eng-fra-0.1.6.src.tar.xz",
+        "checksum": "7b7decb42f36617958303b8640616acc06e82aecd955e78949b67e083a7dbbdc4c668fee9cfcda20f219897767f64daabc942b3c3c01ed1f5e8d6ee56262e8a7",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "212948",
+        "version": "0.1.6"
+      }
+    ]
+  },
+  {
+    "name": "eng-gle",
+    "headwords": "1359",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-gle/0.3.2/freedict-eng-gle-0.3.2.src.tar.xz",
+        "checksum": "9c3a32740e003f23874fbc48c1ad6f800979216f08103fd223eeff00b352042a3dd0d11b5f7408b41c568bf101ae5b427a2f0e374ff455efb43adeb58b5aeaf0",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "77332",
+        "version": "0.3.2"
+      }
+    ]
+  },
+  {
+    "name": "eng-hin",
+    "headwords": "25642",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-hin/1.6/freedict-eng-hin-1.6.src.tar.xz",
+        "checksum": "3e2d30fa5b7bdb67f076362113491f87c119ca6b1542f455aec69411dafe3003e80ab1775a9df188ecaae3373a8ec61a61e93c05eace31844493c467b6f22ec4",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "1574616",
+        "version": "1.6"
+      }
+    ]
+  },
+  {
+    "name": "eng-hrv",
+    "headwords": "59194",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-hrv/0.2.2/freedict-eng-hrv-0.2.2.src.tar.xz",
+        "checksum": "dec93c6f203981f83095718fd7a15a46c5db370069bd9e9d5a084e167841ae4c9836344e23af82316344daf24d859851dfaa9e02723ba7cc3b60aee2e312eb63",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "1002676",
+        "version": "0.2.2"
+      }
+    ]
+  },
+  {
+    "name": "eng-hun",
+    "headwords": "89679",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-hun/0.2.1/freedict-eng-hun-0.2.1.src.tar.xz",
+        "checksum": "d71d57999396885ffeef6e5a485f53f66a394dfba6f648aa06a55572b5a3b6408a835054f2562e3c74136de9999aaca9b2e0e4d8bc73b51748e8703783c191fa",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "1869568",
+        "version": "0.2.1"
+      }
+    ]
+  },
+  {
+    "name": "eng-ind",
+    "headwords": "15262",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-ind/2025.11.23/freedict-eng-ind-2025.11.23.src.tar.xz",
+        "checksum": "17317f98733674082cfc84821bc5fb8d4df845dab14c2774aa14b346c5f01b5f34dec91eb01bcccb8b093391a5695a7d6231f679f679f9c83f60eeef0a58e64c",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "996576",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "eng-ita",
+    "headwords": "53258",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-ita/2025.11.23/freedict-eng-ita-2025.11.23.src.tar.xz",
+        "checksum": "4499f7451fb7211eca463ef38b315841264bc32f1d121464d06f5c5cf267fd6597f3a0b917f267983051d96df454b0619bf11750206d33faf2144f0d4c08abec",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "2962524",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "eng-jpn",
+    "headwords": "38419",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-jpn/2025.11.23/freedict-eng-jpn-2025.11.23.src.tar.xz",
+        "checksum": "b7206479585bf102e43ae8b982a1bd60cd8602bef64edd326826c30f322b63b8519bc284d080a28b7482fbb971b1081b5aed4fd65317f827a05454065166bb1b",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "2334184",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "eng-kur",
+    "headwords": "10011",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-kur/2025.11.23/freedict-eng-kur-2025.11.23.src.tar.xz",
+        "checksum": "39c36cf0b82a672e166e3abce8154c115ed4af3c4d27896f46c6d565cef47549bbaff9f454ddef36a3e15828fe90576fa0ef13cf7d58a533cd20d76527f1ff05",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "662972",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "eng-lat",
+    "headwords": "3026",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-lat/0.1.2/freedict-eng-lat-0.1.2.src.tar.xz",
+        "checksum": "2673b2f451dc7e46149a2a2900d0a6100f30cff2e7fed7d891a8186a60ea94f423034dadddffded2f2a1cd93e219e37919353ac040889951c46d4516151e835e",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "102636",
+        "version": "0.1.2"
+      }
+    ]
+  },
+  {
+    "name": "eng-lit",
+    "headwords": "6255",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-lit/0.7.2/freedict-eng-lit-0.7.2.src.tar.xz",
+        "checksum": "9d3e4ac822dbbc805a63c55739fe7562351822b293c3762c5c082c2d79e7f32d06e67d5ebace3a5619b3cc1c2fd1ce3ca02b3a6369ee9a62378dc70b404dcc70",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "258580",
+        "version": "0.7.2"
+      }
+    ]
+  },
+  {
+    "name": "eng-nld",
+    "headwords": "7714",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-nld/0.2/freedict-eng-nld-0.2.src.tar.xz",
+        "checksum": "3bd7466e4dc3b4e6c1e8ccd508588ea5e92b6ea80675e398e1832ab9c741b02eb001b26ec09dd347de85a2fa5426944fa135baab08386ad3c7d2fca20764bd78",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "246536",
+        "version": "0.2"
+      }
+    ]
+  },
+  {
+    "name": "eng-nor",
+    "headwords": "11427",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-nor/2025.11.23/freedict-eng-nor-2025.11.23.src.tar.xz",
+        "checksum": "54acf1bab8e8e57159cf863b723921bcb41c3e584aee0668f4b57860390e77a4f419b559fbdf05e198af38bb5f1a1cb268e6db32c2f0f410c068a200cde65270",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "773148",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "eng-pol",
+    "headwords": "16362",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-pol/0.2.1/freedict-eng-pol-0.2.1.src.tar.xz",
+        "checksum": "da1b9846cfcbc8292e40152e93f942886abfa663cd9cef2fd3335789114d25ba02ecea1cddaadaaa6fd82bc8901285dff6a21f85851eb06a6f89884681d803ef",
+        "date": "2024-10-12",
+        "platform": "src",
+        "size": "741840",
+        "version": "0.2.1"
+      }
+    ]
+  },
+  {
+    "name": "eng-por",
+    "headwords": "15766",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-por/0.3/freedict-eng-por-0.3.src.tar.xz",
+        "checksum": "6806b4cc09825bcbcb00606df9e241afaa0fd96dec1c66aea3a5c7f55aad58fc1fe0509d0a58cf61970ace246e14643699e57492d69f0edaa0a295464419b73a",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "354072",
+        "version": "0.3"
+      }
+    ]
+  },
+  {
+    "name": "eng-rom",
+    "headwords": "990",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-rom/0.6.3/freedict-eng-rom-0.6.3.src.tar.xz",
+        "checksum": "7472514703e208ae64315a3cc18c360c4de0912381213eb3dc0521460aa48aeaa3412202e2755c48e71202cc185980e3ab099041a57ba14eed17f4bbb8cbf2cf",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "80580",
+        "version": "0.6.3"
+      }
+    ]
+  },
+  {
+    "name": "eng-rus",
+    "headwords": "62181",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-rus/2025.11.23/freedict-eng-rus-2025.11.23.src.tar.xz",
+        "checksum": "fdee5ebdbe59c2a4293b875def3befdfddd990f95ecd10eb289eff22d815ed6d31267ca4695af66811ef368dd72b16342210475e044c995831e7931ce0e4bcfe",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "3948540",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "eng-spa",
+    "headwords": "64258",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-spa/2025.11.23/freedict-eng-spa-2025.11.23.src.tar.xz",
+        "checksum": "622e8fec6c4178cb4c21e4577701c5325670f825331b07a185b4c6b810603c337e80429738a97581f68f668667910e7ad36f27332eaee2828f1f906537852fe3",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "3715012",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "eng-srp",
+    "headwords": "590",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-srp/0.1.3/freedict-eng-srp-0.1.3.src.tar.xz",
+        "checksum": "db65d786b5a965fb1151a987de6308daeb85dd8af49179b9fdb1e06a60887e43647147bfe05f0f9c05b477ea9b93ec7cc07da2663d4c05e7bae9e5e21d2df551",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "65088",
+        "version": "0.1.3"
+      }
+    ]
+  },
+  {
+    "name": "eng-swe",
+    "headwords": "44077",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-swe/2025.11.23/freedict-eng-swe-2025.11.23.src.tar.xz",
+        "checksum": "ba08420434e6cdff8fd9ce697347aa4ecb214fabba7b67e7eafdc88f013d09fea0959a57c59b2b4dfce1664955078d3390111a4be4fd97ce1a946e3a8d408b5d",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "2579240",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "eng-swh",
+    "headwords": "1450",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-swh/0.2.2/freedict-eng-swh-0.2.2.src.tar.xz",
+        "checksum": "2dedf1884253fc0df65967d4242a9ba9ea4bd184592bd11cb00998ef0eb29249c97d2989c98024a4813b6a2070845971003fe74aa6a919f510088d5e7bdd0315",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "63128",
+        "version": "0.2.2"
+      }
+    ]
+  },
+  {
+    "name": "eng-tur",
+    "headwords": "36589",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-tur/0.3/freedict-eng-tur-0.3.src.tar.xz",
+        "checksum": "48f65bbe0be36c49498aa29e67d268532ad40ab1b4d7f2767f859eaa915491b33b62b498053052368fa839b77116c6b668f61879ee0113d1f409e6f4f45257a3",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "2915280",
+        "version": "0.3"
+      }
+    ]
+  },
+  {
+    "name": "eng-zho",
+    "headwords": "26660",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/eng-zho/2025.11.23/freedict-eng-zho-2025.11.23.src.tar.xz",
+        "checksum": "25aed0f1d7de68919aa9da1ba92d67f566ae4ea81660f42071c81fc21e56d4b210d61df379315678648c45ca7e52c4a0ba2eec009fbaab7c72e7472489e1fc4c",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "1600448",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "epo-eng",
+    "headwords": "63895",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/epo-eng/2024.10.06%2Bfd1/freedict-epo-eng-2024.10.06%2Bfd1.src.tar.xz",
+        "checksum": "e38a29346d475a1b80269adc223a7eca62a7856abafce0d2928bfa8d5e7137d2154779035e9ada34ec23f7d47ce923a03f641f6b16f888cd2fcfc4907f5a0041",
+        "date": "2026-07-03",
+        "platform": "src",
+        "size": "839688",
+        "version": "2024.10.06+fd1"
+      }
+    ]
+  },
+  {
+    "name": "fin-bul",
+    "headwords": "16253",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-bul/2025.11.23/freedict-fin-bul-2025.11.23.src.tar.xz",
+        "checksum": "e229d17f72224f77dadd60360a75c6cc3fc174087904faa86b2ad53465e9f7bdb192d8e35c342c769ec045121189362f0432530ca5cef86eec01539ca40aeb25",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "772652",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-cat",
+    "headwords": "21862",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-cat/2025.11.23/freedict-fin-cat-2025.11.23.src.tar.xz",
+        "checksum": "e3e1c91ea6c1d311f62c01c852f66baa975d54f6487b32b09dd15878b0c13518b16728322b56bb82d6ca61b4d4fe9544118a82f4232a302a2975c3128ca7b6a7",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "958688",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-ces",
+    "headwords": "12477",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-ces/2025.11.23/freedict-fin-ces-2025.11.23.src.tar.xz",
+        "checksum": "ee0c541b7bf4bf75d64c753e012351668afb79c9b34fb7ea0ab2fcfc92c967548741fa75b6dadc9832c4921a4fdf6fd8b9e1e1017598cbe00e7f86072d2f694b",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "605340",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-dan",
+    "headwords": "14080",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-dan/2025.11.23/freedict-fin-dan-2025.11.23.src.tar.xz",
+        "checksum": "bb89a4d4b12cff0f288c3af58cec4312a5f87c079ae57167e6557a5dd414be5bd70d146e8d4d2876bfaa6441c594fa94cb82e64698f67c49a280f6856e1a1c0a",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "663216",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-deu",
+    "headwords": "12102",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-deu/2025.11.23/freedict-fin-deu-2025.11.23.src.tar.xz",
+        "checksum": "95d463a63f731963fdde6a7d47a64dcee4a485d8e59f176514cd59539a99b41fbeae6fbade8515a94c4e9deb360a7d86270eb20db9568222235434db940df71c",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "634064",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-ell",
+    "headwords": "19398",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-ell/2025.11.23/freedict-fin-ell-2025.11.23.src.tar.xz",
+        "checksum": "adad230f6a2563e1a593a4a2e63157a7f02fc5cad8fcf69029aedd7314956693ff5ec194f06af55790ff3098839f59cea3abc8fa8c5055379cd936153ef4933a",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "896048",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-eng",
+    "headwords": "42060",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-eng/2025.11.23/freedict-fin-eng-2025.11.23.src.tar.xz",
+        "checksum": "ae03329731fbd750eac2adb3620570390a8c392af1c1d04992ee85022de400510b42dc10c77bcd13838adb3f553544ec022c9ae6b1c11cbf82aac9667dd0cd56",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "1657088",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-fra",
+    "headwords": "12019",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-fra/2025.11.23/freedict-fin-fra-2025.11.23.src.tar.xz",
+        "checksum": "f25d9eecb76b88fb5ccc0c7585cb13ec1d81e9b375e37cac5b520393671ebc854725fd308ac3496bdc3d111ceccff0b14dcf007d030df1a0b0325746b3d18a70",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "609788",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-gle",
+    "headwords": "15633",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-gle/2025.11.23/freedict-fin-gle-2025.11.23.src.tar.xz",
+        "checksum": "8529a5c51390f09d8392a92dd765c6e802897bb625c29f65ccff0f0274a175356ff66a655bf839ba8815c07b207f94e14ffbcaca492d22b08c22bcd12e548fa2",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "730664",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-ind",
+    "headwords": "14025",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-ind/2025.11.23/freedict-fin-ind-2025.11.23.src.tar.xz",
+        "checksum": "f11a8c0d2df44b1a2d10a52bd31a19bdcfd1afc00ccc6cba2253edb184bb76c67d85a831412258770baca48817bf73ecbaa4acd839b2484de40adb2f93260720",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "673104",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-ita",
+    "headwords": "14843",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-ita/2025.11.23/freedict-fin-ita-2025.11.23.src.tar.xz",
+        "checksum": "924c78222163bf65da0436c5a630f90da9459e14cc07dbb1aeb2bbdf681963e5331b52c005d2a04bb4b6926737752f75dc83b888aee87a269467ca03f664e65f",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "706668",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-jpn",
+    "headwords": "14742",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-jpn/2025.11.23/freedict-fin-jpn-2025.11.23.src.tar.xz",
+        "checksum": "937dd1cfdf3491f526524f8890e32d4046382657e60ada80a09d7ee531f3fceabcc05d9438a59127cb4f1fea127b818825bd1dddbe6320a312a61ca08673c97d",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "722232",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-lat",
+    "headwords": "10980",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-lat/2025.11.23/freedict-fin-lat-2025.11.23.src.tar.xz",
+        "checksum": "2c1690329c64f7b613587ad8cc4c2a66cdc64135ac8b596c1853d7d4a4c3e4d3dc8bcdbc17e94c519d8f2d0710bedf2419adf961273a36eed4504d7ad109bf56",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "532928",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-lit",
+    "headwords": "12962",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-lit/2025.11.23/freedict-fin-lit-2025.11.23.src.tar.xz",
+        "checksum": "f1fdb81e21dd67513db46a878196925bc6c73d5076b0c86f9ffed31847e256bac27fa81834cd18f1d5908adc16440c89d79c691ec657aa004bd4b527f10ba633",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "613688",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-nld",
+    "headwords": "14158",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-nld/2025.11.23/freedict-fin-nld-2025.11.23.src.tar.xz",
+        "checksum": "7208e3049d83b29978a38caf8e8578916b1371b1f5113f8da51302503c872afbb703bf697aad0cdae84231685b2466b10b6cdbbcdf13f3d93a3ae6d24905d606",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "675672",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-nor",
+    "headwords": "14350",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-nor/2025.11.23/freedict-fin-nor-2025.11.23.src.tar.xz",
+        "checksum": "3c19d05a5f7987339e0b774863b6e9ee8f127595169dcd70bb82581951931db8420de86753374f6c3cac083bda172efe8e79d659d4983621257abb6597708707",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "662292",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-pol",
+    "headwords": "15057",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-pol/2025.11.23/freedict-fin-pol-2025.11.23.src.tar.xz",
+        "checksum": "e51ca9401e22455e2687c2ff86ba4f83c43108aaf14bd326044573759b965b174039dceacf7411a904c1d72ad78f50a373409ac208cf66b6a7da3350206bd871",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "716336",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-por",
+    "headwords": "14591",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-por/2025.11.23/freedict-fin-por-2025.11.23.src.tar.xz",
+        "checksum": "8eb0ea7c9dbfaab96f8363cbfb046d897b4f5f18f933a93eda765bdd47b836e5d6617c9901e45498a28d71f84a5991a0088cd62ef524e0d8d669a99a4772360d",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "696944",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-spa",
+    "headwords": "10568",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-spa/2025.11.23/freedict-fin-spa-2025.11.23.src.tar.xz",
+        "checksum": "0039a898e9ab065e185eb1e5b56ac07c5d067372f019c0f90a1b59a7a9ea28aa1e85f4aa24f2512d152191728ccce49e7562ae3d31d4d793c2eec24122d817af",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "549264",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-swe",
+    "headwords": "17229",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-swe/2025.11.23/freedict-fin-swe-2025.11.23.src.tar.xz",
+        "checksum": "28872bafb2773c429dfe2865c2d713842bdbf701e7e7d4a1e287b8a7ac763c35171f60cbab9152ec486d20a4b7d98c545702bb7705f0fba25d1d6069c1da2d02",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "828396",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fin-tur",
+    "headwords": "10317",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fin-tur/2025.11.23/freedict-fin-tur-2025.11.23.src.tar.xz",
+        "checksum": "a26260f9a45b7deb3a458087f6a41f48dbfe0329c13d2ac625d109d84f46144c58fb41ea2c6d99b5efd7cf1891a39432207b23ed1b998ec866df0b4067d4f028",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "536412",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-bre",
+    "headwords": "36017",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-bre/0.2.7/freedict-fra-bre-0.2.7.src.tar.xz",
+        "checksum": "5a68c26706e03a8b3b57555ce8f485c293f6772de4ccf27a7aa506a32f2121d5a97a80604f794ad8a17e09aa7446c9eafb2b6e60529bf85e17208405717bbf33",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "535396",
+        "version": "0.2.7"
+      }
+    ]
+  },
+  {
+    "name": "fra-bul",
+    "headwords": "17900",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-bul/2023.05.29/freedict-fra-bul-2023.05.29.src.tar.xz",
+        "checksum": "2611bd5bf7b69343b6f8efd80ed6eb926dfbac2595145d9d7c968e3854b6c0e1275a4c43c534961b6448ab0d0be47c4c34214b289a4408345f583a3dcc613408",
+        "date": "2024-01-05",
+        "platform": "src",
+        "size": "524088",
+        "version": "2023.05.29"
+      }
+    ]
+  },
+  {
+    "name": "fra-cat",
+    "headwords": "23678",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-cat/2025.11.23/freedict-fra-cat-2025.11.23.src.tar.xz",
+        "checksum": "98b3bf47844693bfb402c245a7f9761e6465e99cabd187133cb8bbbdc9b71a7b914b4a51fa064d1cd8a7b48700afc916cd43603caba53c559f67f4a1e9a4a168",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "796340",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-ces",
+    "headwords": "19331",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-ces/2025.11.23/freedict-fra-ces-2025.11.23.src.tar.xz",
+        "checksum": "c8bb4a450c54e4c48a666d50b373dbabb112d1783cf6574e1764fce304ce492fec885e1f502b2f9516b834c3fcb8c9c58872c1a076621237149a00de2898e40b",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "694856",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-dan",
+    "headwords": "13466",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-dan/2025.11.23/freedict-fra-dan-2025.11.23.src.tar.xz",
+        "checksum": "d43fc5e0fc1a170ce780759b7cfe1e0a29802af97e03cb95e1cd80751b3c2e0857c995476988306884321ca1e97b59813bf3d2c62c40842523ab6616cf92eaa4",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "546776",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-deu",
+    "headwords": "48578",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-deu/2025.11.23/freedict-fra-deu-2025.11.23.src.tar.xz",
+        "checksum": "cd1e85e9a0797411f769a14abc292ca438a790dd7ddc728630748ae536f5a957696201c955481e8c7943a3240fbf33a67e7f91d6b69561d3c28af9fca255ec55",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "1664304",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-ell",
+    "headwords": "14272",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-ell/2025.11.23/freedict-fra-ell-2025.11.23.src.tar.xz",
+        "checksum": "e76933bf36f2072ddc7b2eba964332f6f1b3d0ee0739369c4a96eb61e8cded2e63275655ae856c29df619f19f414c4c6d8de60dad8f4421ec15ef1215f9fc125",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "550760",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-eng",
+    "headwords": "8505",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-eng/0.4.1/freedict-fra-eng-0.4.1.src.tar.xz",
+        "checksum": "bf234cfc9aedea3e322ee9bc518f6b1addfcc4a96c6b9c42d2bd1de765ae2011b057888134c9c4361422d4632e289455c92c6c429fcfab566a95cdc49ac2a2fb",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "214980",
+        "version": "0.4.1"
+      }
+    ]
+  },
+  {
+    "name": "fra-fin",
+    "headwords": "17179",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-fin/2025.11.23/freedict-fra-fin-2025.11.23.src.tar.xz",
+        "checksum": "e8cf7e2d12cfc66760b40b75a67b9433c18d9b74b55e5427e63d9886f02925691565fed96ac837c0ec84f3489589d1a7054bd97baac397b7fa2c4a07e55cdfcd",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "646280",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-gle",
+    "headwords": "12637",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-gle/2025.11.23/freedict-fra-gle-2025.11.23.src.tar.xz",
+        "checksum": "22a19918e16578bdcebe4435b0f9ac4991a21740174abbf7d122beff28056d74fa2e3e2629a975826125410263ba150d006c517bb3a7b4cde341eb26ea23e63f",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "518800",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-ita",
+    "headwords": "67356",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-ita/2025.11.23/freedict-fra-ita-2025.11.23.src.tar.xz",
+        "checksum": "51e2593970d76c972ba5af75ccc72d09ebf2c018132106c3a2ad245f1a3acc8f506f7744873c62bb0d881701d8739269eb8f309d3e38e6d3ff40feade37e9584",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "1811304",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-jpn",
+    "headwords": "16724",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-jpn/2025.11.23/freedict-fra-jpn-2025.11.23.src.tar.xz",
+        "checksum": "091056aaaa4bc087610373774e9eec5596d25199bd2fa990c1c069cfdf99d3f4740718023ac43d348aefdb0b6f58e41fda4277225c397a6549530c8ad93887c8",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "619260",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-lat",
+    "headwords": "10302",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-lat/2025.11.23/freedict-fra-lat-2025.11.23.src.tar.xz",
+        "checksum": "d7f9309038dabfe2f5b44e14b135e8ebf4fb35566315a5b581482a7c67bcd9d83b4ac0c73137b79fcfd8b5c92792db89ee2e122757e4ca6ddd00f32b0719ac55",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "397280",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-lit",
+    "headwords": "12413",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-lit/2025.11.23/freedict-fra-lit-2025.11.23.src.tar.xz",
+        "checksum": "544aac8c4ce6596539bd2c021385cb484d5440f398c724f0a50922caa83aea92b460f126a4e23c01be71bbb84b91e750b0718f7311db735743717e40daa30932",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "490836",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-nld",
+    "headwords": "9604",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-nld/0.2/freedict-fra-nld-0.2.src.tar.xz",
+        "checksum": "ed0dbb91985247ea425617fd2ec03dce4d69ea36b062810386e5a449afc8bafcaa3b03b9cdff6f7953a443b56f212bba4ef59ce4c0f0a6ff55e0080469553021",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "277164",
+        "version": "0.2"
+      }
+    ]
+  },
+  {
+    "name": "fra-pol",
+    "headwords": "21689",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-pol/2025.11.23/freedict-fra-pol-2025.11.23.src.tar.xz",
+        "checksum": "33e22979be3e2f145c018f68ee5a481ea8001ccb3bec6a275735613b9f4acc3d700963750b2a55303c7d47986fe5e10c458937593772209026d1126151f0720f",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "770592",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-por",
+    "headwords": "26132",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-por/2025.11.23/freedict-fra-por-2025.11.23.src.tar.xz",
+        "checksum": "ba02e2853c5f7d958817cf48256a126bf715be60ae08e52c9cd199d773600b3388285cea97160ab23826c743e2e96195f118f25396fe9690503c4cb820083bfc",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "929568",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-rus",
+    "headwords": "24739",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-rus/2025.11.23/freedict-fra-rus-2025.11.23.src.tar.xz",
+        "checksum": "824aecb7aa2bb58fa933192f65dc45807f766fde8b197824b1fe642a51c2a67560977a82941f554a27639aec8bc18d489ccacf5884927ee26e683f48234aa0b8",
+        "date": "2026-02-11",
+        "platform": "src",
+        "size": "871448",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-spa",
+    "headwords": "52659",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-spa/2025.11.23/freedict-fra-spa-2025.11.23.src.tar.xz",
+        "checksum": "7277527d01981f2e965e4fd7ee331297c6f8b9a1cf828f097b7288fb858e167fe8190c1c640855a4aa358d30d0525ee10ffe6b5beebb5059d152681522acf260",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "1515388",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-swe",
+    "headwords": "19515",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-swe/2025.11.23/freedict-fra-swe-2025.11.23.src.tar.xz",
+        "checksum": "305a7dcc8074bdf5a6c6e9f3d29a4e4334e730763cd5bdbe15a8fa06e5d77b2360e0ef21af1fd4d75c5948840e94c86f7e36424d2dfcc50057a24713687b1057",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "714164",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-tur",
+    "headwords": "11628",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-tur/2025.11.23/freedict-fra-tur-2025.11.23.src.tar.xz",
+        "checksum": "7de06c4ec8e9f2a8312569b63bec3755dfea1ed132cdb914bbb72a690996a75ce0af0c78e1a85a6c4e6f3c5dd3cd97381da707c14771d8108d247b287de0634a",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "483240",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "fra-zho",
+    "headwords": "10947",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/fra-zho/2025.11.23/freedict-fra-zho-2025.11.23.src.tar.xz",
+        "checksum": "3a101af1bdd523e29f217dd8612ade44dbc73b65b4ea1358ac778ebe155a2cd8b02e3816cb1a9f1dd6500937fa35825d1544db57c5a8aedf71a365c57cdf188a",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "464676",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "gla-deu",
+    "headwords": "257",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/gla-deu/0.2.1/freedict-gla-deu-0.2.1.src.tar.xz",
+        "checksum": "b93df3883caebf5bb5fbd51e7532e807165718f9e6e1d957739de484c836dc95c5469de277c0564dcd606f90776e45ae9c13892cbdbcd1f6f08e3e533525a358",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "59524",
+        "version": "0.2.1"
+      }
+    ]
+  },
+  {
+    "name": "gle-eng",
+    "headwords": "1185",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/gle-eng/0.2/freedict-gle-eng-0.2.src.tar.xz",
+        "checksum": "36a670a580e929bfcfeee0bfc26d2724676fe46fddb4842bb6ee46534ac81e593edddb5b161e9eba8cfebf0923b6a6627b4b7cfbf03ff6cc947975484dba8f8b",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "69720",
+        "version": "0.2"
+      }
+    ]
+  },
+  {
+    "name": "gle-pol",
+    "headwords": "280",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/gle-pol/0.1.2/freedict-gle-pol-0.1.2.src.tar.xz",
+        "checksum": "b9da30f91f3527d7e34f4983a0d9851ef6c2f4aebce6731ae5549431b3fc210e8bfa5fe8f431f8a140e6b1a6d730ffd741597f75ba62019de8883dd49aeee5cd",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "59036",
+        "version": "0.1.2"
+      }
+    ]
+  },
+  {
+    "name": "hrv-eng",
+    "headwords": "79808",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/hrv-eng/0.1.2/freedict-hrv-eng-0.1.2.src.tar.xz",
+        "checksum": "d998fae0247e2600a349cea622a1faeb334fcee76c263e5e2179d95227429a7f49219108eebfac0aba76fb457742eaaa59670a10998e69cd77893402785a8eb9",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "1051444",
+        "version": "0.1.2"
+      }
+    ]
+  },
+  {
+    "name": "hun-eng",
+    "headwords": "139935",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/hun-eng/0.4.1/freedict-hun-eng-0.4.1.src.tar.xz",
+        "checksum": "ffb50243554de741a1de5abf173fbe729c6ebd14a0edad92742e495d08c6c40b62f9d744a6f13dc95c93b19cc4e8a31650aaeb67dfb849dbe0479b42d98be965",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "1985116",
+        "version": "0.4.1"
+      }
+    ]
+  },
+  {
+    "name": "isl-eng",
+    "headwords": "11219",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/isl-eng/0.1.1/freedict-isl-eng-0.1.1.src.tar.xz",
+        "checksum": "4b56479b2a519e738350dfb3789d2e4b14b7c5f463937245608894d290f1a8bb292efaa389714a12e24713ca30cae7ed0b39eaec285aeae6fe2b1617ba030f91",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "138152",
+        "version": "0.1.1"
+      }
+    ]
+  },
+  {
+    "name": "ita-bul",
+    "headwords": "20793",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-bul/2025.11.23/freedict-ita-bul-2025.11.23.src.tar.xz",
+        "checksum": "a61f06eeef80b7eed6f878f3979e53a3898475393f18a8cb072ec0f03c754e1d5011cfe0d20d4a67d756a7c9ba07ddc1c19ef28ec7da0d63f4c80d0859713b29",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "868764",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-cat",
+    "headwords": "22148",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-cat/2025.11.23/freedict-ita-cat-2025.11.23.src.tar.xz",
+        "checksum": "f5f5d1e6241678890f6b0c21165fffc8f0d65d921c15821ac793f4848ca79b47bcf39a5b439b7a1786689a4cc26e752eccdb300e655a8de216d780a432c523ce",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "862388",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-ces",
+    "headwords": "16819",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-ces/2025.11.23/freedict-ita-ces-2025.11.23.src.tar.xz",
+        "checksum": "fe1c334f2e3f049c3ae45e26bf78bdee02f5abfe809db6f5f18216940d51b574ea85983aedff43cb0c7f7e8598d99b1b98cbdf77264d233a184417315c2843f9",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "697600",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-dan",
+    "headwords": "18601",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-dan/2025.11.23/freedict-ita-dan-2025.11.23.src.tar.xz",
+        "checksum": "ee44d5027f81d0a6a3bcd3b2097b73e05b60311d9b7d8fd20214a6d717deb963f2f06f2230721b534bfccf0b0433b975e3515548052cd0df01362b473225df56",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "758972",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-deu",
+    "headwords": "2924",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-deu/0.2.1/freedict-ita-deu-0.2.1.src.tar.xz",
+        "checksum": "f5139162a94b28624194ce7b908fe30e0c193f85392736e6eb120f9032a0b10228275ee8d1030f0c5c90a517d903a440871b1648ba4316a327640b9f06763cb5",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "100400",
+        "version": "0.2.1"
+      }
+    ]
+  },
+  {
+    "name": "ita-ell",
+    "headwords": "20176",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-ell/2025.11.23/freedict-ita-ell-2025.11.23.src.tar.xz",
+        "checksum": "cbc1cc94f20a6a8d1197039698ec0a0ebd7b6b0f2e937bff66b5a169c1c084ace8cef8d622c1fb506af513e04517b64ed452c62bb4cd7da021cae6bdca38ccd6",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "829404",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-eng",
+    "headwords": "29660",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-eng/2025.11.23/freedict-ita-eng-2025.11.23.src.tar.xz",
+        "checksum": "86b505604204cfcc311fd03dd7e5aa2a73f6c9991c2d29af214dc22d6769c12449d810e07a39abfe70899c12dfb693c0fb447b0cc8ff69e9375eae5ffae07483",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "1203312",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-fin",
+    "headwords": "21510",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-fin/2025.11.23/freedict-ita-fin-2025.11.23.src.tar.xz",
+        "checksum": "c5ec6d01594d54e0e932e8388239e5b3a2558fdb95804e4cc97b480bd7e011973c4866cddf7f1d4ed4ac28e9a901e68d667b8de258bcf57bc202d18b75bedc4c",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "855128",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-gle",
+    "headwords": "17014",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-gle/2025.11.23/freedict-ita-gle-2025.11.23.src.tar.xz",
+        "checksum": "e006a7ea1f9e373e4c39de5461df3d60629d9553ea4311095e0e3c27c283ce425aa7c9b1b0f7b90bb19f63f3d873fc8940e8df76e1a0ba3f1dd83d89604a848b",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "710568",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-ind",
+    "headwords": "14546",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-ind/2025.11.23/freedict-ita-ind-2025.11.23.src.tar.xz",
+        "checksum": "4d331db3bb7d5979a2b8bc03a439b7d49835aa59776718b2671f029c2ce32ae34a923aa898ad38fed8dd0c5aca54b7aed82c2ff99e6750735a69e33569526ba2",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "626100",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-jpn",
+    "headwords": "20066",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-jpn/2025.11.23/freedict-ita-jpn-2025.11.23.src.tar.xz",
+        "checksum": "3cc606588810d87a999cdc9a435932e00d707cb1a8a9c9fdee15f775cd2bb7970452296a9a1d96fa3100875926d7fb3fdd53a24a0b45482d9aecf469c7c69dde",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "832276",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-lit",
+    "headwords": "12754",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-lit/2025.11.23/freedict-ita-lit-2025.11.23.src.tar.xz",
+        "checksum": "c45999a25895d17810ed2cca94e22450575a9bd16f46037d7ebf68faa405567f687e7605555256ddf6401058b2411e52d6619b94c102bf72220c64d35459a82b",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "561296",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-nld",
+    "headwords": "11235",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-nld/2025.11.23/freedict-ita-nld-2025.11.23.src.tar.xz",
+        "checksum": "84434f89d95134fb49ade0c059f347a4cea13b365b447e6d4d858ef598aa302f58594743017c9ded5c3398d73905007e95561d04710be1843c8e6822f1354a2b",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "511268",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-nor",
+    "headwords": "11240",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-nor/2025.11.23/freedict-ita-nor-2025.11.23.src.tar.xz",
+        "checksum": "dab6f7cd930040eb50410811b3aec8a9c31223e4130004795e6750cea9cf76e93da1199dad4154430567bb5c99b52ca09f0643b40aac2c901cc05eb80a77b235",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "500468",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-pol",
+    "headwords": "19191",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-pol/2025.11.23/freedict-ita-pol-2025.11.23.src.tar.xz",
+        "checksum": "58713860f50fefb9abb2bface76e01b2a35f5a5407de31cd87202c748d10981416e4055d2790047a3cae3b42db85d66ea453d79153267a4854eac74567298c65",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "774668",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-por",
+    "headwords": "12762",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-por/2025.11.23/freedict-ita-por-2025.11.23.src.tar.xz",
+        "checksum": "860d88b8bf8b81942f0ee5f77a559b2f6ae3020295ce6c27a214f0ba667405bca1d24545495d080d9423100dad7a9bc613568dfbbcf868ebfb021e43aa0ed66a",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "554216",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-rus",
+    "headwords": "14137",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-rus/2025.11.23/freedict-ita-rus-2025.11.23.src.tar.xz",
+        "checksum": "c6766e21a96cdd91804ec6985660f33d6c4743139e9afc641c295c8f207355e5480c7af396198010528fc9ffeb93c713f5deb07d367ec80910bdad1c8ec648f7",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "627576",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-spa",
+    "headwords": "14278",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-spa/2025.11.23/freedict-ita-spa-2025.11.23.src.tar.xz",
+        "checksum": "055f2001255bddeecbd1656f6702bb4543ea551c4914c34ff50926cf6d5eed54c86cbc97d208bcc17c48f116b6cdcf8304cf316a9c77211b9d43fd82e632e34d",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "595956",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-swe",
+    "headwords": "18483",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-swe/2025.11.23/freedict-ita-swe-2025.11.23.src.tar.xz",
+        "checksum": "7c828960b1f46f489b62d1bdd3b60908f2d5baec47ae55c6391eca57e0076b066322a2aa61d177ca86d865af352c4b50f420ee5db423b181db1bafac461b8925",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "748704",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "ita-tur",
+    "headwords": "18882",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/ita-tur/2025.11.23/freedict-ita-tur-2025.11.23.src.tar.xz",
+        "checksum": "effbbf052b1cd32716600f9dc28c09378acefe071d8e13bbeb9d9c42c9fe4af0680c1043c58efa62f3eefd431a8b4ba3161f7e6137e5e431c1d70c38ae080ade",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "775532",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "jpn-deu",
+    "headwords": "109546",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/jpn-deu/0.2.0/freedict-jpn-deu-0.2.0.src.tar.xz",
+        "checksum": "6a254b34bd1fafccbb74897c94bd845440f7bbaf7fe0ed18741ec12bd2958e648faca99b380e014d074993b4ce7eaaa693aadabc91e38bf5fd22c200f745f385",
+        "date": "2018-08-22",
+        "platform": "src",
+        "size": "4698912",
+        "version": "0.2.0"
+      }
+    ]
+  },
+  {
+    "name": "jpn-eng",
+    "headwords": "173747",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/jpn-eng/0.1/freedict-jpn-eng-0.1.src.tar.xz",
+        "checksum": "53275587dbace704c31c52c3f28bceb4ed81653c6853f203e782b612bc0d15ff0bfa2ef1855cb208e66e80cf3410fa96c4b7c595cd6297a85541b75300adb854",
+        "date": "2018-08-23",
+        "platform": "src",
+        "size": "6149000",
+        "version": "0.1"
+      }
+    ]
+  },
+  {
+    "name": "jpn-fra",
+    "headwords": "14891",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/jpn-fra/0.1/freedict-jpn-fra-0.1.src.tar.xz",
+        "checksum": "162f4b0f1a6e3baaf96f477ea4b9a21bb1397c6b9fdc5c03ff7b10521313f9c8fee2c602133fe4ccd432d2b431bc669ca007cf2d1dd6cce220806056c34b75bc",
+        "date": "2018-08-23",
+        "platform": "src",
+        "size": "628224",
+        "version": "0.1"
+      }
+    ]
+  },
+  {
+    "name": "jpn-rus",
+    "headwords": "6742",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/jpn-rus/0.1/freedict-jpn-rus-0.1.src.tar.xz",
+        "checksum": "8294e275d54b5589c44dfdfc3da3147f382a21b5960d901f56bc011695eae876bd7181dd1bcdfc9e350850a9879a0993c3321c4b9cad47fee03e4178fca51ba8",
+        "date": "2018-08-23",
+        "platform": "src",
+        "size": "291428",
+        "version": "0.1"
+      }
+    ]
+  },
+  {
+    "name": "kha-deu",
+    "headwords": "995",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/kha-deu/0.1.4/freedict-kha-deu-0.1.4.src.tar.xz",
+        "checksum": "aad0dcf500cc3083812b9a1f61d8a06545c74e908e455ca64baf5f11b6726d87845a7c53f4da87a1d0ebcd8bdcb70b45e694a517f26ed80b8f22a0ec33757caf",
+        "date": "2019-11-23",
+        "platform": "src",
+        "size": "71960",
+        "version": "0.1.4"
+      }
+    ]
+  },
+  {
+    "name": "kha-eng",
+    "headwords": "2280",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/kha-eng/0.2.2/freedict-kha-eng-0.2.2.src.tar.xz",
+        "checksum": "72bd09aaeed7bf59ded38f69dd36070e30b85c8bac32d53767e1365138a50b8be729cb4ec8d4c3ab33b0237000c5f261ed1066f17f3d3c4d22339cf61d5e94cc",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "98324",
+        "version": "0.2.2"
+      }
+    ]
+  },
+  {
+    "name": "kur-deu",
+    "headwords": "22035",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/kur-deu/0.1.2/freedict-kur-deu-0.1.2.src.tar.xz",
+        "checksum": "7a5765c224d8dc9eda67b01e479a5afd042c1f4c619b22564a937ba58629136a59dfbc055fc72239b9334eb998939ebf47a0196e267c0d3dbce9a2c99cfb6c86",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "332464",
+        "version": "0.1.2"
+      }
+    ]
+  },
+  {
+    "name": "kur-eng",
+    "headwords": "5208",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/kur-eng/1.2/freedict-kur-eng-1.2.src.tar.xz",
+        "checksum": "58bf0fca210ccb10eb2f0956455770450372d29962a2ca699a168ef3ee168f90681099f97c839ce24c3d6352d054876a1088bbd0c1db6a5a25d656aaef013af1",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "113580",
+        "version": "1.2"
+      }
+    ]
+  },
+  {
+    "name": "kur-tur",
+    "headwords": "24377",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/kur-tur/0.1.2/freedict-kur-tur-0.1.2.src.tar.xz",
+        "checksum": "2aa3f4808dcf5a816cdd0f852010323660c7c2f6a6115aff022f36ef9506a07e3a2104a3a30fff40348dcd748732d0b6b729bba68681739f30840f971f3c87c3",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "383428",
+        "version": "0.1.2"
+      }
+    ]
+  },
+  {
+    "name": "lat-deu",
+    "headwords": "5500",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/lat-deu/1.0.3/freedict-lat-deu-1.0.3.src.tar.xz",
+        "checksum": "8901f65f339a23d07dbfff86403f87599847fcf8611abfbf3feb36b7809cafef52c969a5b758ff6cf9635496d223a3d8430e5a93266fb3e73cc2f93684d12625",
+        "date": "2018-10-20",
+        "platform": "src",
+        "size": "316152",
+        "version": "1.0.3"
+      }
+    ]
+  },
+  {
+    "name": "lat-eng",
+    "headwords": "2305",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/lat-eng/0.1.2/freedict-lat-eng-0.1.2.src.tar.xz",
+        "checksum": "fb224409bffac9e0ff80573032a1d1c7e9192d391f99062c4748fed89309c6a868e0fea87b6f2075b450dfc82dbc7b41889d985781a2dcadf7166fa438ca14ed",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "86584",
+        "version": "0.1.2"
+      }
+    ]
+  },
+  {
+    "name": "lit-eng",
+    "headwords": "7031",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/lit-eng/0.7.2/freedict-lit-eng-0.7.2.src.tar.xz",
+        "checksum": "65cb278c35581d7e543ba988b683713cb1a8bf75ebe7fb2a101ceab8656ecd076460171c6f6706b4789d2eebdd46468acf3b222d5dce1eba8d288051bb94ce31",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "204304",
+        "version": "0.7.2"
+      }
+    ]
+  },
+  {
+    "name": "mkd-bul",
+    "headwords": "4546",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/mkd-bul/0.1.1/freedict-mkd-bul-0.1.1.src.tar.xz",
+        "checksum": "9f6c3a300dd9d916881dd509cb2576ba6b2500f43f83b01952a45de213af71123fc0835a28be5bbd8a1a6b3a052c4826edb388fb0866cead6cca313b8bcc24d4",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "105088",
+        "version": "0.1.1"
+      }
+    ]
+  },
+  {
+    "name": "nld-bul",
+    "headwords": "12665",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-bul/2025.11.23/freedict-nld-bul-2025.11.23.src.tar.xz",
+        "checksum": "2e89540ceed35ad5e3e1e356e763abeb0e8ba26d00ef5c799f228bf5a79bac08bdbacde3d4f05bf5c40d6a1b4249a76ec62e81bd45ddbbeea41112ebac8dc949",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "526500",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "nld-cat",
+    "headwords": "11793",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-cat/2025.11.23/freedict-nld-cat-2025.11.23.src.tar.xz",
+        "checksum": "97920054f428f990439bdc266eb884f4f57c70c181e136869d78507841fbdbe2d772a329641b4b614751246fd6f32fa315050c3ec1c7a0023f2969f0abe2a150",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "483220",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "nld-ces",
+    "headwords": "11396",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-ces/2025.11.23/freedict-nld-ces-2025.11.23.src.tar.xz",
+        "checksum": "f7f7774733c20b306bf8e3b4974bb0180a6c40ae14483b5846b8e315ee59fc34a69c2d33b6e97dbaac4ec47c289fca2aa3c68fdc2fce25b50357dfcfb817a4dd",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "474832",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "nld-dan",
+    "headwords": "10221",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-dan/2025.11.23/freedict-nld-dan-2025.11.23.src.tar.xz",
+        "checksum": "b4e1bc674546326696c1059b5a04122bef1812b26757ba333ccbeb8ed9738b8ec9754a97026cc9db697bb8f841ba751068039c32f53462ec58b01912bda2e92f",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "436336",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "nld-deu",
+    "headwords": "17224",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-deu/0.2.1/freedict-nld-deu-0.2.1.src.tar.xz",
+        "checksum": "1b4d5f32f70b9152826f44d80333418c64d1f83bfa1bf03ba9f79d39a0848a6feb40c4c00a24c7fdde6a66f3ca818f4e9c8cbd4b251c062f70f538991edcf6d0",
+        "date": "2019-11-23",
+        "platform": "src",
+        "size": "375148",
+        "version": "0.2.1"
+      }
+    ]
+  },
+  {
+    "name": "nld-ell",
+    "headwords": "10051",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-ell/2025.11.23/freedict-nld-ell-2025.11.23.src.tar.xz",
+        "checksum": "dc30b45a612e9c028478969887daf34c4578f745a6015ef29d0c8ec30cc182e5a3dc5c2c795dac08ceeebafd434193d254a074259f3c19949e55b6f2674360e8",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "443004",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "nld-eng",
+    "headwords": "22747",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-eng/0.2/freedict-nld-eng-0.2.src.tar.xz",
+        "checksum": "0fd1ac3cb2839c0e650de4f43cd8156679a240f7651a37b52946fdde93f97e40e530e3a7e7b26874dcd4593834e6e340aed156fdedb1c4a5f646f68d5b1ebc0d",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "440968",
+        "version": "0.2"
+      }
+    ]
+  },
+  {
+    "name": "nld-fin",
+    "headwords": "12735",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-fin/2025.11.23/freedict-nld-fin-2025.11.23.src.tar.xz",
+        "checksum": "03dd1e2b854f9c0fb95e7adbfd275c224945dd33e672863853c6d4974be09d567923e114fe7e34bed11aac9a7852f095a679c2e5c7e6f0b69ce2662b5079731b",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "526604",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "nld-fra",
+    "headwords": "16770",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-fra/0.2/freedict-nld-fra-0.2.src.tar.xz",
+        "checksum": "fad4a106573bf65c4e98e2ca3498fcd7338d3a186e274d4cfb5f24a23b3efab16f67da4c2a2cb1c73fdf0d380d59f4be85c4f4a633c18205867254077c0d392b",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "319848",
+        "version": "0.2"
+      }
+    ]
+  },
+  {
+    "name": "nld-gle",
+    "headwords": "18643",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-gle/2025.11.23/freedict-nld-gle-2025.11.23.src.tar.xz",
+        "checksum": "e4727b06eb699010e041f1f8e6ca8e08e7a461aff9cdffd9bfe136a03dd6a2544eb848a909edfe216282b0e20204acf63c86d9afbf8afae643010f809decabfc",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "668088",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "nld-ind",
+    "headwords": "10789",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-ind/2022.04.06/freedict-nld-ind-2022.04.06.src.tar.xz",
+        "checksum": "79b0a6d5758cfe1a83faeb2a0ea825759513a8e664cdbcc974086e8967680b1b4a9bfcf7ee17d82d2e1642d9d805a6f079ffddc235d8c346178c36ea4ccd53bd",
+        "date": "2022-04-20",
+        "platform": "src",
+        "size": "329232",
+        "version": "2022.04.06"
+      }
+    ]
+  },
+  {
+    "name": "nld-ita",
+    "headwords": "10595",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-ita/2018.09.13/freedict-nld-ita-2018.09.13.src.tar.xz",
+        "checksum": "386ddea656a9ef61ba82b5eebd01303820d72c04830a40c65041d7dabf1a3eb1c0d52492defd6adb5072695b3eb7069282b7f2ee2ed63605cdc1c18d6cfe6e45",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "375072",
+        "version": "2018.09.13"
+      }
+    ]
+  },
+  {
+    "name": "nld-jpn",
+    "headwords": "10392",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-jpn/2025.11.23/freedict-nld-jpn-2025.11.23.src.tar.xz",
+        "checksum": "530e87b2357f829b0366ed99fe11e3684b59474316c76733e550799d0a8950c0bef63ad0533721445d24aa564bd3b25287c95de120a297c8af43d427099f33e0",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "460768",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "nld-lat",
+    "headwords": "12461",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-lat/2024.10.10/freedict-nld-lat-2024.10.10.src.tar.xz",
+        "checksum": "202c4c7cc263e02356eef6b6ba17552251a5c7dac1f0b08965be4fae73e3e2957d4fe8c87f6edd752031599391e864b814b24676932fc78bc0527f63b765db70",
+        "date": "2024-10-11",
+        "platform": "src",
+        "size": "480284",
+        "version": "2024.10.10"
+      }
+    ]
+  },
+  {
+    "name": "nld-lit",
+    "headwords": "10579",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-lit/2020.10.04/freedict-nld-lit-2020.10.04.src.tar.xz",
+        "checksum": "cb448ffe3d0db32e6b20f339a1831c29abc9afddbf2fd808c3ec3344848c040eef0ff3c899c7e665e92199778a10b9493a2317092344aa455966d9d6bf26a81b",
+        "date": "2020-10-27",
+        "platform": "src",
+        "size": "337544",
+        "version": "2020.10.04"
+      }
+    ]
+  },
+  {
+    "name": "nld-pol",
+    "headwords": "12201",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-pol/2024.10.10/freedict-nld-pol-2024.10.10.src.tar.xz",
+        "checksum": "dfcb9609b01049e3ca5086661ab9144c87fe880924955d1df39ac327d7bcb3a8d50b7e22671ee76c0e8da1559e28217a8a40207daabc31e976e0dc068c01a72f",
+        "date": "2024-10-11",
+        "platform": "src",
+        "size": "512468",
+        "version": "2024.10.10"
+      }
+    ]
+  },
+  {
+    "name": "nld-por",
+    "headwords": "13233",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-por/2025.11.23/freedict-nld-por-2025.11.23.src.tar.xz",
+        "checksum": "5f7f110a3280ff4965dd74d694d5cb3f74d6ea67948b85fb47fa41b740bf54b5138917deaf0a52c72ccab3347b6db2fda0a8fc8868b623b5d4a10498e9236e78",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "537964",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "nld-rus",
+    "headwords": "13283",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-rus/2025.11.23/freedict-nld-rus-2025.11.23.src.tar.xz",
+        "checksum": "2a52d26dc5ae33d75037f4b46b458f6ef4476e261a90b47de654008eff45ab5ac1c0ded42f26368f2284c4d0a449763378cfa1f50230842acacd01543a79aef0",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "565996",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "nld-spa",
+    "headwords": "28097",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-spa/2025.11.23/freedict-nld-spa-2025.11.23.src.tar.xz",
+        "checksum": "58d88ec7ffae25246a0d2eb4fc627f9b4aaf0e71c954dc7c70e7090bc6ac87e5d1f4f4f9aa1d451118278343bb781c71e650b95958e1f0d4eff3bc7d777e6284",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "884916",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "nld-swe",
+    "headwords": "13342",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nld-swe/2025.11.23/freedict-nld-swe-2025.11.23.src.tar.xz",
+        "checksum": "955d399536f1a4c9732c7a5c7ea88c14858069f04c1fe8c73ef95d4a3a58731be582c5d8544a53bce75e1ca8828cab59c47ab3d4be5dba54af5f53a094775e96",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "539096",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "nno-nob",
+    "headwords": "67987",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/nno-nob/0.1.1/freedict-nno-nob-0.1.1.src.tar.xz",
+        "checksum": "f89856fd0aeaef89b037e71871aae8bdc9aa9c8a0f603a28d6479a6a8f80e131bcd0273b5238b706b699b1325ec795a4905d21f40ffb5ed84a7975ec8c62e1b8",
+        "date": "2018-03-28",
+        "platform": "src",
+        "size": "539048",
+        "version": "0.1.1"
+      }
+    ]
+  },
+  {
+    "name": "oci-cat",
+    "headwords": "16679",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/oci-cat/0.1.1/freedict-oci-cat-0.1.1.src.tar.xz",
+        "checksum": "a20eb240694e38ebf1167c06fbc27cc78ef737cd1c72a54116b8bc38d91d02020afa5a2ee997f0becc03058459748864b3d8b7c62c31b615bb923ddf1c2dde70",
+        "date": "2018-03-28",
+        "platform": "src",
+        "size": "148200",
+        "version": "0.1.1"
+      }
+    ]
+  },
+  {
+    "name": "pol-bul",
+    "headwords": "14683",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-bul/2025.11.23/freedict-pol-bul-2025.11.23.src.tar.xz",
+        "checksum": "a10d9c78702912d6944538e6210174c9f6310b2926ddf8ac5f77d4b794d50836b4d1f72bb096593512a78d49d0fde62126b5b05b0f8726b9ac27a60f53fa5b46",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "681864",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-cat",
+    "headwords": "10285",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-cat/2025.11.23/freedict-pol-cat-2025.11.23.src.tar.xz",
+        "checksum": "13f1ddb66776ffef6d650cfa1c7084c11075444ffe76353ebd7580915aafee200ff3259abad3e672d0175474ebdbcdfbe9562db8d071002ff0606b0fca469006",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "507232",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-ces",
+    "headwords": "15704",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-ces/2025.11.23/freedict-pol-ces-2025.11.23.src.tar.xz",
+        "checksum": "c0240c3802bffbbb71fa8c7a114d12f84c0f83258e1bfe4a51ccc187da0c8d79bc2c56ab6c5473726dc77775cd26a6ccdf20d8bf0f0c9382bb78369976c72511",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "706652",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-dan",
+    "headwords": "14706",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-dan/2025.11.23/freedict-pol-dan-2025.11.23.src.tar.xz",
+        "checksum": "77ac67ac757a86c9120e09de0c1b14c4ed6895a79d97f24681499415964f0ea87efdf3d15a19b00130e57393869f7563bffaa90420f8691bfbc6de017da2bc11",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "749544",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-deu",
+    "headwords": "26635",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-deu/2025.11.23/freedict-pol-deu-2025.11.23.src.tar.xz",
+        "checksum": "cf04b0b7a53c2c5944b09380fd29941d8a93de1dec3758ee6eca7b57b2d53fa00919afebbbe6616a4cc185fd5cd5e7630cd95c2ac261ce4a4170aaf677f133cc",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "1243748",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-ell",
+    "headwords": "14283",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-ell/2025.11.23/freedict-pol-ell-2025.11.23.src.tar.xz",
+        "checksum": "9e16d0bb1e73216bafcb6313a923b109377f421f552ebb3dc203d3d5b3f358a64daa2d05aea65326b8d7b7ac63f5c0c6d1ee137e3ed2db76a8dff2f538607559",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "757108",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-eng",
+    "headwords": "42088",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-eng/2025.11.23/freedict-pol-eng-2025.11.23.src.tar.xz",
+        "checksum": "72f887878467b906ed912e1f5ee8daef808920dc2aab64826171fac82cfb5c03253036f884b0c4914bed658f1ed066f17f00eeb39de00176b10dc1141ac7b35c",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "1950228",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-fin",
+    "headwords": "19084",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-fin/2025.11.23/freedict-pol-fin-2025.11.23.src.tar.xz",
+        "checksum": "2316f235cbe93887268795887769ba9f37af6c8fdd508b91ae7b697efb269ea7d52cc05e5328a6ef8e57f08372ab05c2566cf2a8f43d8a1065fa9f690916112d",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "896312",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-fra",
+    "headwords": "22133",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-fra/2025.11.23/freedict-pol-fra-2025.11.23.src.tar.xz",
+        "checksum": "3b4ac3eebcdd285c47cf30dcca4427de874538cf176c43d4dc9baf9eda32b28beb7bb2d82fa4e495253cc0e5d9c9dc95b7cdcdabfe0e90004e64bb50431153c8",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "1012948",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-gle",
+    "headwords": "272",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-gle/0.1.2/freedict-pol-gle-0.1.2.src.tar.xz",
+        "checksum": "3b339736c8eed91d7c5bbec0c02dd5b13bc356b7eef10ca5dc6b8cc5572c8217f0819dd10eeafedb41d76d334a0c6159a7f25fdb418052d68bdf4e681929d1b8",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "58912",
+        "version": "0.1.2"
+      }
+    ]
+  },
+  {
+    "name": "pol-ind",
+    "headwords": "13556",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-ind/2025.11.23/freedict-pol-ind-2025.11.23.src.tar.xz",
+        "checksum": "122321f7a6bbc487edacfbd4f347ee27fb76a25d8e2b1a9db57443cd46a71ef1722dab4b40fcdf388d6a765f410e77da125a71ab8ba12326bab09a0447b8769e",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "663160",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-ita",
+    "headwords": "22404",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-ita/2025.11.23/freedict-pol-ita-2025.11.23.src.tar.xz",
+        "checksum": "28b2ee7723126cfedff29a9cf30a6b503779a018aec4010290c1637da79455678ce0e9fe0c16565d2df2e889b0b76f2b8554639fb779c8744673d04e004ae028",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "1008480",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-jpn",
+    "headwords": "14401",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-jpn/2025.11.23/freedict-pol-jpn-2025.11.23.src.tar.xz",
+        "checksum": "d7736d6e94443942f12c6eb6d9d49ec272e4f6d9e34ddca0457c823104d95e0eba3a322fa3fc1c107bcdc3674eba66825e91a7d8d68f94fadbb6814404b9e3b6",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "734616",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-lit",
+    "headwords": "10824",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-lit/2025.11.23/freedict-pol-lit-2025.11.23.src.tar.xz",
+        "checksum": "53452c588d63477f35086cd4832873cd2dde3aac378641e8e74713bc16ece34a4ea7174b7f46f00dd87790fe0287a4d219c22f9dae11a8c659b05d501a0f94de",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "536064",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-nld",
+    "headwords": "17405",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-nld/2025.11.23/freedict-pol-nld-2025.11.23.src.tar.xz",
+        "checksum": "398b8103a183059f8a295aaf2186fd29b09606ca450131abbc7a21e8542a14d9a171018ab1fa5aef6090cb14d44a8bc5553a5763707e9239cab76c09c0a70143",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "828552",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-nor",
+    "headwords": "18074",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-nor/2025.11.23/freedict-pol-nor-2025.11.23.src.tar.xz",
+        "checksum": "108e2a2c6e8756d1c590c05d084933fbfd6db28dc0488f0b1509da087a9705b1d51f02596b63cee4b3a8599236080713b1245a02295cf7ef9f1d43ec220601a0",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "829960",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-por",
+    "headwords": "11739",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-por/2025.11.23/freedict-pol-por-2025.11.23.src.tar.xz",
+        "checksum": "d87bb88905b46cfc4fbf6a9e18f5910decc42eabf54b723aa6546b94483f8b044eddf166448f83190f892a6ec9aed6bcd0acb2f5125ef6218b341f158ba86833",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "589440",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-rus",
+    "headwords": "28923",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-rus/2025.11.23/freedict-pol-rus-2025.11.23.src.tar.xz",
+        "checksum": "70e5ebbb02c4b1ec7502e6cd47963edda468376f67722aa49249be0e960e6bbb4660a2385929970bd8db3183fc411f8c93ad4669804cc64645319018ce29fff3",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "1284016",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-spa",
+    "headwords": "24058",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-spa/2025.11.23/freedict-pol-spa-2025.11.23.src.tar.xz",
+        "checksum": "bb9168e6c8f9e4c524334023e82c829969cb7ffcd54a72723171c86f486c630d4b59632f1f38496c42728d8d91e033ccf9557d8d0e1f087732c4f61294caf416",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "1162388",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-swe",
+    "headwords": "13080",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-swe/2025.11.23/freedict-pol-swe-2025.11.23.src.tar.xz",
+        "checksum": "69a97c6a28c982852386d27e1287f5af1a05dae592e45294b36f741cff3ef29328482b261ea474c1a5bc5e6905c4bda069da376a2ff08b16524868f912e1c002",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "663864",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "pol-tur",
+    "headwords": "13246",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/pol-tur/2025.11.23/freedict-pol-tur-2025.11.23.src.tar.xz",
+        "checksum": "c3e99591b8d445f7b60e0a1c6b7b59e45dc078b722b83bd330f95aa4e386f32e93fe99eee2f85ef9a07c8524eb92da83d33af628a67d79fb1b6423778d42ddea",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "659384",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "por-deu",
+    "headwords": "8294",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/por-deu/0.2/freedict-por-deu-0.2.src.tar.xz",
+        "checksum": "0498d6063f26b025785a62eaecd8d6135e7ff5a0d6a52824f4120acbf617fa2abe86a2b926a059e539135c4da0f44544bb603d38f7241439127f9f4fa7e98bb5",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "175964",
+        "version": "0.2"
+      }
+    ]
+  },
+  {
+    "name": "por-eng",
+    "headwords": "10661",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/por-eng/0.2/freedict-por-eng-0.2.src.tar.xz",
+        "checksum": "88ea3cf00f5d6cfd2b7acbacc735a9f19187dfca0a7460d240f7606a57484494096bcfc3c930a70ee67cc8c8c4d6ec22a9a2a3e7e04fad19a9be988fcf8268a4",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "199456",
+        "version": "0.2"
+      }
+    ]
+  },
+  {
+    "name": "por-fra",
+    "headwords": "10240",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/por-fra/2025.11.23/freedict-por-fra-2025.11.23.src.tar.xz",
+        "checksum": "6be7a064ae12ba60c7440bd1ce6124967e6b42e1c74e3455a28b8cba96d1274d70670265a6e8d86bb62bac97ccd11bbcc281457dc091e2951630bc6f7ca78da2",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "236412",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "por-spa",
+    "headwords": "10791",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/por-spa/2025.11.23/freedict-por-spa-2025.11.23.src.tar.xz",
+        "checksum": "4e60da638b778c289fd90c6cfb552c9e2dc78ab979dd28af2ca29adec250482b874bf9bbbc9a2be81e6b6a5b70a76b9dc30ad5baadd4a5483022c8eab5198308",
+        "date": "2025-11-29",
+        "platform": "src",
+        "size": "240392",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "rus-ces",
+    "headwords": "10955",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/rus-ces/2025.11.23/freedict-rus-ces-2025.11.23.src.tar.xz",
+        "checksum": "67f781dc37733dc7b54d2bbd49e7900e2a49af2e7e85080707a753d32a1d13c00b0b017273dd5e24d2f3d107118e81ac7d99115020f8562211e5b3878f431000",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "355340",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "rus-deu",
+    "headwords": "23850",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/rus-deu/2025.11.23/freedict-rus-deu-2025.11.23.src.tar.xz",
+        "checksum": "e6b4749893bd52dd76b0e4c933a3cf765ebc7bcd881dff36096016ddf5dfe35d93b8e0a379c87db28711d61332c6545068113dc853601ebb96475a84bef8a394",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "709412",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "rus-eng",
+    "headwords": "42600",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/rus-eng/2025.11.23/freedict-rus-eng-2025.11.23.src.tar.xz",
+        "checksum": "9adf7a5eda27ccfa3e496b86b2fd575fc0e4af7ac5626a219d44e4ebfd56280deaf67cefd995ab04e9d7ef415e88f8cf0f9cae3252da6221376fd6d0c39012ba",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "1183416",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "rus-fra",
+    "headwords": "25142",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/rus-fra/2025.11.23/freedict-rus-fra-2025.11.23.src.tar.xz",
+        "checksum": "c18951e9860f1831aaab412fec4cd4d996734ab2c0b0258ea474d35eae7c8e78b5c180a08ea21b66e0876a04e69669d1814e3d442014c1ecbf0fa257c6e7217c",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "782600",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "rus-ita",
+    "headwords": "16425",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/rus-ita/2025.11.23/freedict-rus-ita-2025.11.23.src.tar.xz",
+        "checksum": "3410e0e365109be3d90c5cbd678d55a436acad4d27e7474cf1d01d6a30a0801983f4a94abfc536a6ea2e05860e25b33fed5b0831d09c0fc7596cf4a5c79fa63d",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "493380",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "rus-pol",
+    "headwords": "13322",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/rus-pol/2025.11.23/freedict-rus-pol-2025.11.23.src.tar.xz",
+        "checksum": "56aeab67f7b4510b50893d4f3cc287e28c48a2c4a3a5b5f077df198a62d85ee69a4e8c7a12180086302b0116219aba06a7478a6c257195127810648d537b7e56",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "380308",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "rus-por",
+    "headwords": "10644",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/rus-por/2025.11.23/freedict-rus-por-2025.11.23.src.tar.xz",
+        "checksum": "9f76cd6f0619c3bdb113600594e3f2dc4465b6fd395bfd17cc1f0aed9edbde482c482d3d6ff08acdf54bf6ff03fad03d4b4bc8819e895d02d3d69c3d701c1896",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "347020",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "rus-spa",
+    "headwords": "18875",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/rus-spa/2025.11.23/freedict-rus-spa-2025.11.23.src.tar.xz",
+        "checksum": "aa378ee417c729b6407d0f11381a0baf035338153c1a43c649fac1acd40a9c0af143c7ce7cddfdb87b0d43345de469970ca2eb58069193d9180e4c6910242c31",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "586520",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "rus-swe",
+    "headwords": "10214",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/rus-swe/2025.11.23/freedict-rus-swe-2025.11.23.src.tar.xz",
+        "checksum": "ed312977f60ba2898b3ff8303a15e7278fb0a2303e5b9be3b095276f7e5027305dda208f52ca6dc9a1c927628c722b9b7ac60b192ba5849d12704ab5a7ebe0d0",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "345664",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "san-deu",
+    "headwords": "107",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/san-deu/0.2.3/freedict-san-deu-0.2.3.src.tar.xz",
+        "checksum": "b12c2bb621f72ef428dcb68af51554b210fcc28e947a3540dc3437a92cc93cb93a0ef5ace8d0b150d0831ae5845df877e98fea184228158d570d21fc4b0fb940",
+        "date": "2019-11-23",
+        "platform": "src",
+        "size": "57932",
+        "version": "0.2.3"
+      }
+    ]
+  },
+  {
+    "name": "slk-eng",
+    "headwords": "827",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/slk-eng/0.2.1/freedict-slk-eng-0.2.1.src.tar.xz",
+        "checksum": "ba7669020a12f64f7d2e2b6dfa90f1376df4a2fe764273bdb06f1e04998ee6dac9584b47f20f8e14cbaae5bf7271dd221032bcc34bd1ff7c93a93cf9de4429ac",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "66540",
+        "version": "0.2.1"
+      }
+    ]
+  },
+  {
+    "name": "slv-eng",
+    "headwords": "5555",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/slv-eng/0.1/freedict-slv-eng-0.1.src.tar.xz",
+        "checksum": "4c942673834822365702197f4879b60117d284b27af2f3b06e74e844f80d25e0712a8bcf536febd1d0ab45d386f44173aad313dcaf287bb615f98db0ee39f506",
+        "date": "2020-12-13",
+        "platform": "src",
+        "size": "126844",
+        "version": "0.1"
+      }
+    ]
+  },
+  {
+    "name": "spa-ast",
+    "headwords": "49252",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/spa-ast/0.1.1/freedict-spa-ast-0.1.1.src.tar.xz",
+        "checksum": "a315c462166252b23a8041320ceb9acd2c528b46951f5786634cd30c8be8b819dd3cfff1acd17b47cf3ec6b3b4a87f0f65fc58ff7705ad4827e2bf5a81887751",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "364288",
+        "version": "0.1.1"
+      }
+    ]
+  },
+  {
+    "name": "spa-cat",
+    "headwords": "10080",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/spa-cat/2024.10.10/freedict-spa-cat-2024.10.10.src.tar.xz",
+        "checksum": "e7d5f749ddfa7a53d6cb77f4c3b03646af68dd629f26d0cfb93bfc8d1484698063909a90c42f80631b2962a36d7eeef230221b59b024a2b26480ac84ef8d4a7f",
+        "date": "2024-10-11",
+        "platform": "src",
+        "size": "447676",
+        "version": "2024.10.10"
+      }
+    ]
+  },
+  {
+    "name": "spa-ces",
+    "headwords": "10118",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/spa-ces/2025.11.23/freedict-spa-ces-2025.11.23.src.tar.xz",
+        "checksum": "09bb95b48beb75f020651ff0f20bdc6dc4603ba00ecbcc42fbc0a09afba170c3d0615c1a90655b3ce2bbf6919b9bf0e560fd3603cbb0da3a84a6d40c6b669551",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "488776",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "spa-deu",
+    "headwords": "21353",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/spa-deu/0.1/freedict-spa-deu-0.1.src.tar.xz",
+        "checksum": "8e81e22d4dcec46c0aa21aed20a9ed796e18647a31a6e7d5e9b172ff13c5b295fbf3bf04b8ebcd1cb47659c3a6c5909a9f011a81d1f2f01079732c53516d4a07",
+        "date": "2019-12-01",
+        "platform": "src",
+        "size": "326924",
+        "version": "0.1"
+      }
+    ]
+  },
+  {
+    "name": "spa-eng",
+    "headwords": "4502",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/spa-eng/0.3.1/freedict-spa-eng-0.3.1.src.tar.xz",
+        "checksum": "bc8dc9c09b0d4584d1cbaa9c3e75183431ad5cd9a42b31685f0392413a6755504909c35c5ccae3bb8eb66e3b8623df93982c8d5a331dcf516c08bfa5028ce67c",
+        "date": "2019-11-23",
+        "platform": "src",
+        "size": "121624",
+        "version": "0.3.1"
+      }
+    ]
+  },
+  {
+    "name": "spa-fin",
+    "headwords": "11403",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/spa-fin/2025.11.23/freedict-spa-fin-2025.11.23.src.tar.xz",
+        "checksum": "749d757a090a0fe5535db3d922d3855ca5b2ab7414f1d57b7388151c7c4c40cd20f5871c96b93c320d6516a8fde798a506e4b5adfe288d1598bd0b6395de6599",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "537012",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "spa-fra",
+    "headwords": "16273",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/spa-fra/2025.11.23/freedict-spa-fra-2025.11.23.src.tar.xz",
+        "checksum": "e214ec097b084c9c6ce6c9d35ac8b37f661975641af1968d6813b909485c2f853e0d6f57bcb48b673993f3e09b009fa9d9f9cf82403b4fdbd8a3a0b88b5973d5",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "693368",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "spa-gle",
+    "headwords": "11765",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/spa-gle/2025.11.23/freedict-spa-gle-2025.11.23.src.tar.xz",
+        "checksum": "7460f590c179dc8e59ed604e36f3f022794c51c65f4664943c2d36e88d82a65a071fdeec732b88353b92b29ca13531ee144f40fb0fdceac580763d63a8e80109",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "548680",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "spa-ind",
+    "headwords": "10842",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/spa-ind/2025.11.23/freedict-spa-ind-2025.11.23.src.tar.xz",
+        "checksum": "9a365536251c2d4bc90a949bae19045ed2214bbad1715b9df015e799f1ff72236115483b686bd378e9f27c94e92e844e5926afaba494329546637dcfa6e4bdde",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "505468",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "spa-ita",
+    "headwords": "10745",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/spa-ita/2025.11.23/freedict-spa-ita-2025.11.23.src.tar.xz",
+        "checksum": "0865be260eb09bc87964f613e3ad825173a85c6c60397563f439817cecb50d78f55a317eb8c26db10db8841b76582ebe76220bf29194e95751b22802c2f73e54",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "503348",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "spa-pol",
+    "headwords": "12015",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/spa-pol/2025.11.23/freedict-spa-pol-2025.11.23.src.tar.xz",
+        "checksum": "9a4d35223bc217616d168883c510be6e1aa14c12d5a5a848ac5028ef6b4cbc40084fa201ec291af8e1f0035040216976bd11c1432c5abf80528b4e6ec7826da3",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "569812",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "spa-por",
+    "headwords": "357",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/spa-por/0.2.1/freedict-spa-por-0.2.1.src.tar.xz",
+        "checksum": "0bd96cd7e40383b93e6a9fb410241f8a78d3595ed2eb0eedf7f6472886bfed3d24c53a8567fb98a1eacc6a82bca1124f7602a55f48cc9202c804757b0208d786",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "59888",
+        "version": "0.2.1"
+      }
+    ]
+  },
+  {
+    "name": "spa-rus",
+    "headwords": "11982",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/spa-rus/2025.11.23/freedict-spa-rus-2025.11.23.src.tar.xz",
+        "checksum": "c92e588b3024dc351229f93846b2cbca7c1af7b08cb2261b09424abbf87bf540a34b57cb5cc4c6558b1cd2743f2a58b6e70a4b619c739ea467d5234b235118b8",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "578944",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "spa-swe",
+    "headwords": "11075",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/spa-swe/2025.11.23/freedict-spa-swe-2025.11.23.src.tar.xz",
+        "checksum": "62f64224b135576d2a38aa8deecc78232dcb8eab64296d20fcc342cdaa1f3e047ec8de60db1ffb6e753dbc348af53696e2d2561491074376119b1cd32351bc80",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "520612",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "spa-tur",
+    "headwords": "10068",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/spa-tur/2024.10.10/freedict-spa-tur-2024.10.10.src.tar.xz",
+        "checksum": "08f54450ab5373955ec0f8f4aec45a6a22dd236befaa8e110d5e7d674ff586bdead6a1a4ccaec798a55f427e5c68503a41d045cbfc1b28ac5b8819670cb9fab2",
+        "date": "2024-10-11",
+        "platform": "src",
+        "size": "470800",
+        "version": "2024.10.10"
+      }
+    ]
+  },
+  {
+    "name": "srp-eng",
+    "headwords": "395",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/srp-eng/0.2/freedict-srp-eng-0.2.src.tar.xz",
+        "checksum": "a04822dbf895820dae81646a765620bcb3c6d73be7b7d4673e8c3c29cecfa281fb64e14c8877c3a6e1fae6b822bd5a1a9b74a6e7037069fa6bebcae136ffc6cd",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "61296",
+        "version": "0.2"
+      }
+    ]
+  },
+  {
+    "name": "swe-bul",
+    "headwords": "13646",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-bul/2025.11.23/freedict-swe-bul-2025.11.23.src.tar.xz",
+        "checksum": "f10ad36ffd23d9b8e02ebd8312db07b330b20402b0910f9f7a274d2eacef6bb9be41faba39cc97f630ab3760f37a2387c1231e77a35c7a14f000b6081b013e42",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "562336",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-cat",
+    "headwords": "16387",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-cat/2025.11.23/freedict-swe-cat-2025.11.23.src.tar.xz",
+        "checksum": "741d9667084590513a63c2dd098e4e27969a0d1d8e1cf366c4489af5021d8ec28d4fc331a69a1b73bc27be3865e7c930c5ef9c061b342b3ffd6584457d63c2a8",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "633416",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-ces",
+    "headwords": "16261",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-ces/2025.11.23/freedict-swe-ces-2025.11.23.src.tar.xz",
+        "checksum": "2977b676ebdd820fb1af9ef073534f1c1c22d97949cb196f083f495b7bcec78ef5a2d53ba84c6d0cfcb5f11d47de6a7aa5167862601ee3d9e9658b317329f157",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "637152",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-dan",
+    "headwords": "12714",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-dan/2025.11.23/freedict-swe-dan-2025.11.23.src.tar.xz",
+        "checksum": "a41e72171a0684e17f4cb3721d03cfc5bc70de3b6a6c291950167bbda8dd93e39281d7f2292d262ca63e4759f5ed050ae9bf52a45c88345a46d08587b47eb169",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "503912",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-deu",
+    "headwords": "44108",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-deu/2025.11.23/freedict-swe-deu-2025.11.23.src.tar.xz",
+        "checksum": "efc06d2401090d2166c71ccf1de55baa3022eb6188d3e5716bc8ff40e06f9c878f586fe3091409f0724e6812173e2cc6642f4c5f6b363b6f88ea5488ca581723",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "1614956",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-ell",
+    "headwords": "16167",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-ell/2025.11.23/freedict-swe-ell-2025.11.23.src.tar.xz",
+        "checksum": "8b57a675b7295f42d11a227ea71aadfed071f9b4c49af27d92667ba34d936a6dba14696db37d8d2365b6121dc64b40b1b45169b4a1b607828d06d0e8f54beac2",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "647672",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-eng",
+    "headwords": "5220",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-eng/0.2/freedict-swe-eng-0.2.src.tar.xz",
+        "checksum": "f6333261e2b666f6cff71973444600d46c37f9f5d855bf5338cbd281aa88bebb8183c0f8534daa9571e5fab96985b5e3435b41466d132591f4b476ac2fcd3410",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "119112",
+        "version": "0.2"
+      }
+    ]
+  },
+  {
+    "name": "swe-fin",
+    "headwords": "18714",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-fin/2025.11.23/freedict-swe-fin-2025.11.23.src.tar.xz",
+        "checksum": "eb0cdf4a53286af3648f894a6bda65a80ab34232adb6c0388d3a0f65a0af1caea34e94542dbf2815632385a8436c14a6cdedf6c5c95c0fa54d18285368660bce",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "751808",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-fra",
+    "headwords": "20345",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-fra/2025.11.23/freedict-swe-fra-2025.11.23.src.tar.xz",
+        "checksum": "1afae9d41e382dedf50064b7c81d5abc3aea20e17436678ef2ac4f48558c27bb2cd4406a9bfb6fc5ccd6ca6d942d3df71f182e47f9b187b594c82ea65188155d",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "765052",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-gle",
+    "headwords": "17065",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-gle/2025.11.23/freedict-swe-gle-2025.11.23.src.tar.xz",
+        "checksum": "59ff80a92b90d87e9560161562c07b657b9b42968d31a62fc8bbe42df5f7108b7b09047603708b99a69c581817f9dffca2e00c5990a206361dd46ca03142b44f",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "648564",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-ita",
+    "headwords": "12985",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-ita/2025.11.23/freedict-swe-ita-2025.11.23.src.tar.xz",
+        "checksum": "48e54a2c2d672ee9a914500989f4215fc010c7c88a6f71b8dc577ec74bb5cb6184aeddd683226c3bc6591e0558ac905129ad1e82347de9c7a34071c3a88a991c",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "532852",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-jpn",
+    "headwords": "13651",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-jpn/2025.11.23/freedict-swe-jpn-2025.11.23.src.tar.xz",
+        "checksum": "3720981280e4a75b38acc2b822ff51c9bb14b26376441cd61cc095a5a33d9bb733286da2e99e5987c954938f43cfebd8d603bb1652ad0ed7c58c5eeb443f8af6",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "581060",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-lat",
+    "headwords": "14940",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-lat/2025.11.23/freedict-swe-lat-2025.11.23.src.tar.xz",
+        "checksum": "b04e058772d461e05a01001847a990aa2d233a049a2def37eed24287ff14db276ea86030f9c37e4f32c8ccbb4305dd506194eb9907439b33f992190e62579a59",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "568644",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-lit",
+    "headwords": "10671",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-lit/2024.10.10/freedict-swe-lit-2024.10.10.src.tar.xz",
+        "checksum": "b0c331608c4fe457be5bc5db1e920f8ee1340403272c5339ac5cfd6fa5d99023d86dd0c68e35da941ec7ecd8789ee1043eaa34598c5b5317a7e7f3b8f9850adf",
+        "date": "2024-10-11",
+        "platform": "src",
+        "size": "428956",
+        "version": "2024.10.10"
+      }
+    ]
+  },
+  {
+    "name": "swe-nld",
+    "headwords": "12477",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-nld/2025.11.23/freedict-swe-nld-2025.11.23.src.tar.xz",
+        "checksum": "043036758068024e83ff7b481e55f9960bb4c426ab3c49ae4d65b306bc1c7a9111dc05b1021088f3a224a545fb648155ecf6f17049c928af505403a629d02c94",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "511388",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-nor",
+    "headwords": "17948",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-nor/2025.11.23/freedict-swe-nor-2025.11.23.src.tar.xz",
+        "checksum": "8c580c6a10616aef185254a80b8b5802c4e63608a3c4ee6609d4889d46ace6b02ca40d481d84b64f1c188d38811d49e246628ea9da1276b421b3d495850b3fcc",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "681912",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-pol",
+    "headwords": "13187",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-pol/2025.11.23/freedict-swe-pol-2025.11.23.src.tar.xz",
+        "checksum": "bce3ea2ad8d1a07bf1d64d873cdd316f9706f82c21f5dc28ec90593607006bc78eb718805152bcaf8e0b46ff0bf9f4c38d1fcfa028dc24662c096288bb7244f6",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "587108",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-por",
+    "headwords": "11502",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-por/2025.11.23/freedict-swe-por-2025.11.23.src.tar.xz",
+        "checksum": "dd3f2c0b806ff028639000e202eb615524399f147cee1cea5539e167a3c352729484c09c1736723b0b3ba58106071aed98c802e8ac3c903232bcc2d046d58bed",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "483508",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-rus",
+    "headwords": "11851",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-rus/2025.11.23/freedict-swe-rus-2025.11.23.src.tar.xz",
+        "checksum": "1aa2e2e2ad0a52b6d58d9a2a4a9b60b5553cbe346d8b73a3dfaff97b25ec447d325009bd8df074b8f636bbbcb9d049b783ec1c59e8670619a2a301a9047d7e04",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "523348",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-spa",
+    "headwords": "15577",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-spa/2025.11.23/freedict-swe-spa-2025.11.23.src.tar.xz",
+        "checksum": "0455b2be0e9487b43d99b5ab2a2fff9a51dc388f29b875f13067fbb977d73671978ff10536fe3120bf75ba219666b34faff116672c4dc3f9e02ab92e3d0e9b6e",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "629168",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-tur",
+    "headwords": "14066",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-tur/2025.11.23/freedict-swe-tur-2025.11.23.src.tar.xz",
+        "checksum": "aef010b685c97c5e5a254d0e410a86e184f6c3312bf9b93463fbb38ea6e474dd4fcf39eb189304991710cfba7eae7bcfaac2228356548020f8e09dc6704db6d3",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "576504",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swe-zho",
+    "headwords": "11793",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swe-zho/2025.11.23/freedict-swe-zho-2025.11.23.src.tar.xz",
+        "checksum": "d0b086d8be3c8e913422e3dfcba937e039e8649adb81d08c725b329cf7918f612ea79061080b3864c72c20fa6901eafde7e0aa4cc064c6ccaee85576c7a2ffa3",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "484456",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "swh-eng",
+    "headwords": "2675",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swh-eng/0.4.4/freedict-swh-eng-0.4.4.src.tar.xz",
+        "checksum": "4f0708b28fbf56d618e2bdfa2ce55803a737fe292b1ff516119572fb18ee39d8e87784d6ed514ebf038a4beb143e5e9b0601df7fcd714bb76c978b7f45f55930",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "115644",
+        "version": "0.4.4"
+      }
+    ]
+  },
+  {
+    "name": "swh-pol",
+    "headwords": "1319",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/swh-pol/0.2.3/freedict-swh-pol-0.2.3.src.tar.xz",
+        "checksum": "7dd65c6d8d11b2f46fa80e27e869972cb508479c0516fb497bee5733eba06601a01abdd30c2db4e15b11206fc5ee274020b72f13aba704809583f38e1ccbdc36",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "75664",
+        "version": "0.2.3"
+      }
+    ]
+  },
+  {
+    "name": "tur-bul",
+    "headwords": "10229",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/tur-bul/2025.11.23/freedict-tur-bul-2025.11.23.src.tar.xz",
+        "checksum": "6a51eb729796d8365ee94d58ba5da31832016a8091edeb4db4c66e0bad1bc6d685a81bae7eda7d53dd8d2e4d9ff38fbb3629d07af5e99e01149b8f4ed5ecc362",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "247852",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "tur-cat",
+    "headwords": "12202",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/tur-cat/2025.11.23/freedict-tur-cat-2025.11.23.src.tar.xz",
+        "checksum": "9234c733a3ee5401e7b7db81ff95fbbc4d9e51b0e4c9874dae67e645c21f4895b6c31789dd1da9c8ec25b14f26f72d229ac98e66c2d05bec22a02a79dc3daf3b",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "259616",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "tur-deu",
+    "headwords": "941",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/tur-deu/0.2.3/freedict-tur-deu-0.2.3.src.tar.xz",
+        "checksum": "685be8407cd725a1c61a8fb1851c226132e45b7a4c5e4a2137d8b02428fc83ff68fad7837b3219db4d56b217f78887824dfeba2fc5328db1a5aa54086568c0c6",
+        "date": "2019-11-23",
+        "platform": "src",
+        "size": "69412",
+        "version": "0.2.3"
+      }
+    ]
+  },
+  {
+    "name": "tur-eng",
+    "headwords": "1026",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/tur-eng/0.3/freedict-tur-eng-0.3.src.tar.xz",
+        "checksum": "93009760bdab27ef958c637aecd72e4a2be83b7cc852f0931560bc5b74659adadb1012f8ea8f6ba0373816b42cc8658043d6bb9bcc192438d1b60feb99524e90",
+        "date": "2018-08-19",
+        "platform": "src",
+        "size": "68924",
+        "version": "0.3"
+      }
+    ]
+  },
+  {
+    "name": "tur-fin",
+    "headwords": "14762",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/tur-fin/2025.11.23/freedict-tur-fin-2025.11.23.src.tar.xz",
+        "checksum": "1c5587a7117033cb5a7bfc1269687c305707e938e2da62274b75e4bd3630ac574c6da823942bc2c1c720e6ad02dc0b6fee430db630c05a72dae0f8bbf3c3d209",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "308300",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "tur-jpn",
+    "headwords": "12012",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/tur-jpn/2025.11.23/freedict-tur-jpn-2025.11.23.src.tar.xz",
+        "checksum": "6aaa0707eacc2b0a3ed29b0ee52fc9b034ebd420a137d30968a157c3d819f20381181714130476ff0a8c46da29cf30061a8df05b2ceb20b4d3d57f04692fee02",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "274416",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "wol-fra",
+    "headwords": "595",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/wol-fra/0.1/freedict-wol-fra-0.1.src.tar.xz",
+        "checksum": "4943e732a5afebebf05dc345f4fb43db1cb0698051ef915b4856b1d1aad8995917b2a5dbaafd732462f5d060b7c6bdbcf75c39083854257e8f427eee8dc27067",
+        "date": "2018-08-20",
+        "platform": "src",
+        "size": "53900",
+        "version": "0.1"
+      }
+    ]
+  },
+  {
+    "name": "zho-ind",
+    "headwords": "82904",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/zho-ind/2024.10.10/freedict-zho-ind-2024.10.10.src.tar.xz",
+        "checksum": "51571283ab8a3610fb8f4b093df3bf073fa93d89a59153e5ed257f43bb8616dbb26ed78580dfc72c3767cc345cfda0fe10e5317d84323af0a378f593643b6d25",
+        "date": "2024-10-11",
+        "platform": "src",
+        "size": "2288648",
+        "version": "2024.10.10"
+      }
+    ]
+  },
+  {
+    "name": "zho-kur",
+    "headwords": "55768",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/zho-kur/2025.11.23/freedict-zho-kur-2025.11.23.src.tar.xz",
+        "checksum": "143f722a491d36b4d921514d29699048c7d86ed4b67f32d6b2df673df6b09e8d883574899dc62182dbf663eb26fbe733438ee7db660c501d08c528e91bab24e1",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "1633028",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "zho-lat",
+    "headwords": "87715",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/zho-lat/2025.08.04/freedict-zho-lat-2025.08.04.src.tar.xz",
+        "checksum": "a635346d15af640dca0282ddcd2d3f4b1e03a20577eeafde67d91e5d2d4bd8ba2cf3a3ed22a3ad082e852e7d58b82b2bc7c6e1c2799fc6b02c96f80f68711705",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "803108",
+        "version": "2025.08.04"
+      }
+    ]
+  },
+  {
+    "name": "zho-lit",
+    "headwords": "85992",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/zho-lit/2024.10.10/freedict-zho-lit-2024.10.10.src.tar.xz",
+        "checksum": "e0e218ef7538bc4d4381cdbed8a545218ce1f720773dced2d942d8f663cd9d4b67c5180248075b96322eb024a431913d6792aa8c3409292fd6f2bb1db6f20bad",
+        "date": "2024-10-11",
+        "platform": "src",
+        "size": "2377048",
+        "version": "2024.10.10"
+      }
+    ]
+  },
+  {
+    "name": "zho-mlg",
+    "headwords": "71285",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/zho-mlg/2025.11.23/freedict-zho-mlg-2025.11.23.src.tar.xz",
+        "checksum": "a33874f654968802ef054cd78f0d108884b7c823d6a11a6fa91b560fea7d509aaa979fab0ad3e923a928370d20ff8d42fe46743e48ba669f12180ec493887fd6",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "1901148",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "zho-nor",
+    "headwords": "93867",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/zho-nor/2025.11.23/freedict-zho-nor-2025.11.23.src.tar.xz",
+        "checksum": "ee766429c767c3aa30dc6c263798dc240eff670e959b431d83dbd9059f66a918a79e3a4b9c9e27cfa812cd253be9684ffea8d43933ce7f8049469861ad17330d",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "2793152",
+        "version": "2025.11.23"
+      }
+    ]
+  },
+  {
+    "name": "zho-rus",
+    "headwords": "156590",
+    "releases": [
+      {
+        "URL": "https://download.freedict.org/dictionaries/zho-rus/2025.11.23/freedict-zho-rus-2025.11.23.src.tar.xz",
+        "checksum": "31a1b14fcd6592ea2f46eaee473b2343a29f9638db8f196353773b5ceeae33db0c93bda9fff3928f89985b5ac27bf4aa3cd9777735c9d7e7781f0ddf8a75b8be",
+        "date": "2025-11-28",
+        "platform": "src",
+        "size": "6490716",
+        "version": "2025.11.23"
+      }
+    ]
+  }
+]

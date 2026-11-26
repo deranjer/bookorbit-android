@@ -19,13 +19,13 @@ class AiRoutingTest {
         a.store.save(owner, AiRoute.DIRECT, AiProvider.OPENAI, "fixture-model", "", "provider-key")
         val api = mockk<ApiService>()
         val direct = mockk<DirectReadingHelp>()
-        every { direct.answer(any(), any()) } returns flowOf(ReadingHelpEvent("done", "answer"))
+        every { direct.answer(any(), any(), any()) } returns flowOf(ReadingHelpEvent("done", "answer"))
         val repository = ReadingHelpRepository(api, Json, a.store, direct, a.session)
         val access = repository.access()
         assertTrue(access.enabled)
         assertEquals("answer", repository.answer(ReadingHelpRequest("recap-note", 5, "ru", listOf("text")), access.revision).toList().single().text)
         coVerify { api wasNot Called }
-        verify(exactly = 1) { direct.answer(any(), any()) }
+        verify(exactly = 1) { direct.answer(any(), any(), any()) }
     }
 
     @Test fun `a changed connection requires a fresh confirmation before any provider request`() = runBlocking {

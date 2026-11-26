@@ -51,7 +51,7 @@ class DirectReadingHelpUiTest {
                 compose.waitUntil(10_000) { compose.onAllNodesWithText(ask).fetchSemanticsNodes().isNotEmpty() }
                 assertEquals(0, provider.requestCount); assertEquals(0, bookorbit.requestCount)
                 compose.onNodeWithText(ask).performScrollTo().performClick()
-                compose.onNodeWithText(context.getString(R.string.ai_direct_confirm, "OpenAI", "fixture-model")).assertIsDisplayed()
+                compose.onNodeWithText(context.getString(R.string.ai_direct_confirm, "OpenAI", "fixture-model"), substring = true).assertIsDisplayed()
                 assertEquals(0, provider.requestCount)
                 provider.enqueue(MockResponse().setBody("""{"choices":[{"finish_reason":"stop","message":{"content":"Fixture answer"}}]}"""))
                 compose.onNodeWithText(context.getString(R.string.help_send)).performClick()

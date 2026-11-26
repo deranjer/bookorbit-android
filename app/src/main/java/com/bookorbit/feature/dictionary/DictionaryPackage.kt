@@ -8,15 +8,18 @@ import java.util.Locale
 
 @Serializable
 data class DictionaryPackage(val id: String, val version: String, val bytes: Long, val sha512: String, val headwords: Int) {
-    val url: String get() = "https://download.freedict.org/dictionaries/$id/$version/freedict-$id-$version.src.tar.xz"
+    val url: String get() {
+        val encodedVersion = version.replace("+", "%2B")
+        return "https://download.freedict.org/dictionaries/$id/$encodedVersion/freedict-$id-$encodedVersion.src.tar.xz"
+    }
     fun validate() {
-        require(id in DICTIONARY_IDS && version.matches(Regex("[a-zA-Z0-9._-]{1,40}")) && version != "." && version != "..")
-        require(bytes in 1..MAX_DICTIONARY_DOWNLOAD && sha512.matches(Regex("[a-f0-9]{128}")) && headwords in 1..500_000)
+        require(validDictionaryId(id) && version.matches(Regex("[a-zA-Z0-9._+-]{1,40}")) && version != "." && version != "..")
+        require(bytes in 1..MAX_DICTIONARY_DOWNLOAD && sha512.matches(Regex("[a-f0-9]{128}")) && headwords in 1..1_000_000)
     }
 }
 
 internal const val MAX_DICTIONARY_DOWNLOAD = 32L * 1024 * 1024
-internal val DICTIONARY_IDS = listOf("eng-rus", "rus-eng")
+internal fun validDictionaryId(value: String): Boolean = value.matches(Regex("[a-z]{3}-[a-z]{3}"))
 internal val BUNDLED_DICTIONARY_CATALOG = listOf(
     DictionaryPackage("eng-rus", "2025.11.23", 3948540,
         "fdee5ebdbe59c2a4293b875def3befdfddd990f95ecd10eb289eff22d815ed6d31267ca4695af66811ef368dd72b16342210475e044c995831e7931ce0e4bcfe", 62181),
@@ -26,20 +29,22 @@ internal val BUNDLED_DICTIONARY_CATALOG = listOf(
 
 internal fun dictionaryCatalog(text: String, json: Json): List<DictionaryPackage> {
     val root = json.parseToJsonElement(text).jsonArray
-    return DICTIONARY_IDS.mapNotNull { id ->
-        val entry = root.firstOrNull { it.jsonObject["name"]?.jsonPrimitive?.content == id }?.jsonObject ?: return@mapNotNull null
-        val release = entry["releases"]?.jsonArray?.firstOrNull { it.jsonObject["platform"]?.jsonPrimitive?.content == "src" }?.jsonObject ?: return@mapNotNull null
+    require(root.size <= 2000)
+    return root.mapNotNull { element -> runCatching {
+        val entry = element.jsonObject
+        val id = entry["name"]?.jsonPrimitive?.content ?: return@runCatching null
+        val release = entry["releases"]?.jsonArray?.firstOrNull { it.jsonObject["platform"]?.jsonPrimitive?.content == "src" }?.jsonObject ?: return@runCatching null
         val pack = DictionaryPackage(id, release.getValue("version").jsonPrimitive.content,
             release.getValue("size").jsonPrimitive.content.toLong(), release.getValue("checksum").jsonPrimitive.content,
             entry.getValue("headwords").jsonPrimitive.content.toInt())
         pack.validate()
         require(release.getValue("URL").jsonPrimitive.content.toHttpUrl().toString() == pack.url)
         pack
-    }.also { require(it.isNotEmpty()) }
+    }.getOrNull() }.sortedBy { it.id }.also { require(it.isNotEmpty() && it.map { pack -> pack.id }.distinct().size == it.size) }
 }
 
 internal fun dictionaryWord(value: String): String {
     val word = value.trim().trim { it in ",.!?;:()[]{}«»\"'“”" }.trim()
-    require(word.isNotBlank() && word.length <= 120)
+    require(word.isNotBlank() && word.length <= 1024)
     return Normalizer.normalize(word, Normalizer.Form.NFC).lowercase(Locale.ROOT)
 }

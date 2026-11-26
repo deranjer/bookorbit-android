@@ -1,4 +1,11 @@
 <resources>
+    <string name="dictionary_choose">Choose dictionary</string>
+    <string name="dictionary_search_language">Language name or code (fra, eng…)</string>
+    <string name="dictionary_only_installed">Installed only</string>
+    <string name="dictionary_on_device">on device</string>
+    <string name="dictionary_catalog_count">Language pairs: %1$d</string>
+    <string name="dictionary_catalog_source">FreeDict catalog and sources</string>
+    <string name="dictionary_package_license_notice">Each package has its own authors and license, not necessarily CC BY-SA. Import requires a license notice and COPYING; their full text is available after installation. The app makes a normalized offline index. No dictionary data is bundled.</string>
     <string name="dictionary_attribution">Karl Bartel · Wiktionary / DBnary</string>
     <string name="dictionary_manage">Offline dictionaries</string>
     <string name="dictionary_online">Wiktionary · online</string>

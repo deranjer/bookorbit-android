@@ -1,6 +1,13 @@
 <resources>
+    <string name="ai_base_url">API base URL</string>
+    <string name="ai_allow_http">Allow unencrypted HTTP for this endpoint</string>
+    <string name="ai_http_warning">HTTP: the passage and optional token travel without encryption. Use only a trusted network.</string>
+    <string name="ai_endpoint_token_reset">The endpoint changed. Its old token will not be reused; enter a token for the new address if needed.</string>
+    <string name="ai_optional_token">API token is optional. Leave it empty for a server without authentication.</string>
+    <string name="ai_ollama_notice">Ollama base address, without /api/chat. 127.0.0.1 means this phone, not your computer. For a LAN server, enter its reachable address. The model must already be installed on that server; this app does not download models.</string>
+    <string name="ai_compatible_notice">Base address including the API prefix, for example https://host/v1/. The app appends chat/completions. Only non-streaming text Chat Completions is supported; images, tools and Story Guide are not implied.</string>
     <string name="ai_connection_title">AI connection</string>
-    <string name="ai_connection_notice">Choose the route explicitly. Direct mode sends the selected passage from your phone to a cloud provider, not an on-device model. No automatic route switching. Saving makes no network or billable request.</string>
+    <string name="ai_connection_notice">Choose the route explicitly. Direct mode sends the selected passage to the chosen endpoint, which may be local, on your network or in the cloud. It does not install a model on the phone. No automatic route switching. Saving makes no network or billable request.</string>
     <string name="ai_route_server">Through BookOrbit</string>
     <string name="ai_route_direct">Direct from phone</string>
     <string name="ai_token_stored">Token stored: %1$s</string>
@@ -16,5 +23,5 @@
     <string name="ai_save">Save</string>
     <string name="ai_active_server">Connection: through BookOrbit</string>
     <string name="ai_active_direct">Connection: %1$s · %2$s · from phone</string>
-    <string name="ai_direct_confirm">Send only this selected passage to %1$s using model %2$s? The cloud provider may charge your account. No full book, BookOrbit token or account identifiers are sent. The AI can still be wrong or reveal inferred spoilers. No retry or route fallback is automatic.</string>
+    <string name="ai_direct_confirm">Send only this selected passage to %1$s using model %2$s at the address below? The endpoint may forward it to a cloud provider and charge your account. No full book, BookOrbit token or account identifiers are sent. The AI can still be wrong or reveal inferred spoilers. No retry or route fallback is automatic.</string>
 </resources>

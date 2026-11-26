@@ -1,10 +1,21 @@
 # Offline dictionary support
 
 No dictionary data is bundled with the APK. Downloads require an explicit user action.
-The catalog initially offers English-Russian and Russian-English FreeDict/WikDict
-2025.11.23 dictionaries maintained by Karl Bartel, based on Wiktionary via DBnary.
-Their source packages identify the data license as CC BY-SA 3.0 Unported:
+The bundled catalog.json is release metadata, not dictionary data. It was generated
+from https://freedict.org/freedict-database.json on 2026-11-26, containing 305
+language pairs with source archive URL, version, size and SHA-512. The SHA-256
+of the original upstream metadata was:
+08078a2c28bb06dac716ca4b0e785621ed8bfde7c0a4aac15236c3279e2ca060
+Only validated HTTPS source releases within import safety bounds are offered.
+Catalog refresh is explicit and its result is retained for offline use.
+
+Each downloaded dictionary has its own authorship and license. For example,
+English-Russian and Russian-English FreeDict/WikDict 2025.11.23 are maintained
+by Karl Bartel and based on Wiktionary via DBnary. Their source packages identify
+the data license as CC BY-SA 3.0 Unported:
 https://creativecommons.org/licenses/by-sa/3.0/legalcode
+French-English 0.4.1 and Spanish-English 0.3.1 instead identify GPL 2.0 or later.
+Do not apply a single license or attribution to all catalog entries.
 
 The source TEI header and complete COPYING file are stored with each installed
 dictionary and viewable in the app. The app creates a normalized SQLite lookup

@@ -1,4 +1,11 @@
 <resources>
+    <string name="dictionary_choose">Выбор словаря</string>
+    <string name="dictionary_search_language">Название или код языка (fra, eng…)</string>
+    <string name="dictionary_only_installed">Только установленные</string>
+    <string name="dictionary_on_device">на устройстве</string>
+    <string name="dictionary_catalog_count">Языковых пар: %1$d</string>
+    <string name="dictionary_catalog_source">Каталог и исходники FreeDict</string>
+    <string name="dictionary_package_license_notice">У каждого пакета свои авторы и лицензия, не обязательно CC BY-SA. Для импорта нужны лицензионное описание и COPYING; полный текст доступен после установки. Приложение создаёт нормализованный офлайн-индекс. Данные словарей не встроены в APK.</string>
     <string name="dictionary_attribution">Karl Bartel · Wiktionary / DBnary</string>
     <string name="dictionary_manage">Офлайн-словари</string>
     <string name="dictionary_online">Wiktionary · онлайн</string>

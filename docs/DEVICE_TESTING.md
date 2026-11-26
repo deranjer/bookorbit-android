@@ -697,3 +697,30 @@ narration and producing a Cast-compatible encoded stream remain unverified.
   streaming, Auto, AI, dictionary, stats и OCR overlay regressions прошли.
   Архив `.local/apks/working-0.9.20-20261126/`, подпись прежняя, zipalign 16KiB
   проверен. Schema 11, retained data не очищены. Production не изменялся.
+# 0.9.21: каталог языков и расширяемые подключения ИИ (2026-11-26)
+
+- В APK только metadata FreeDict: 305 пар, включая версии с `+fd1`. Выбор
+  языка ищется по локализованному имени/коду, установленные фильтруются, выбор
+  сохраняется. Каталог обновляется явно и кешируется; открытие не делает сеть.
+- Catalog UI fra-eng/reopen/inertness: 1 × 2 (`20261126T164700255868Z`).
+  Dictionary safety, cache reopen/failed refresh, corruption/cancellation:
+  5 × 3 (`20261126T164739533545Z`). Четыре настоящих source-пакета EN↔RU,
+  FR→EN и ES→EN импортированы и найдены без сети, 18.379 s
+  (`20261126T164814907358Z`). Не каждый пакет каталога проверен на импорте.
+  CC BY-SA и GPL licenses/COPYING сохраняются отдельно, не подменяются одной.
+- ИИ: OpenAI, Gemini, OpenRouter, Ollama native и OpenAI-compatible text adapters.
+  Custom URL prefix/optional token/HTTP opt-in и endpoint-specific consent:
+  2 UI-теста × 2 (`20261126T164719360209Z`), фактический POST только локальному
+  MockWebServer, без BookOrbit bearer/cookies. Платные и реальные модельные
+  серверы не вызывались. OpenRouter request/response проверен JVM mock-тестами.
+- Keystore 1 × 2 (`20261126T164747310032Z`), OpenAI consent 1 × 2
+  (`20261126T164757810301Z`), остальные regression evidence в build-info.
+- В retained settings вручную проверены 305 пар и пять provider chips; токен
+  не вводился, unsaved direct choice отменён. Dictionary screenshots
+  `dictionary-{catalog-305-settings-final,language-chooser-final}.png`,
+  `.local/contracts/expanded-catalog-and-ai-settings.json`. Старый индекс сохранён.
+- Оба APK/lint, 615 JVM-тестов/flavor, 31 Node и 14 Python прошли. Подпись прежняя,
+  zipalign 16KiB проверен. Архив `.local/apks/working-0.9.21-20261126/`.
+- Не заявлены: live model availability/качество/цены, физический LAN/OEM-тест,
+  мультимодальность/tools/direct Story Guide или импорт абсолютно всех пакетов.
+  Никаких изменений production, истории или книг не делалось.

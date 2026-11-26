@@ -17,11 +17,11 @@ internal fun importDictionaryArchive(input: InputStream, check: () -> Unit, entr
     var copying = ""
     var count = 0
     SingleXZInputStream(input, 64 * 1024).use { xz ->
-        TarArchiveInputStream(LimitedDictionaryInput(xz, 128L * 1024 * 1024)).use { tar ->
+        TarArchiveInputStream(LimitedDictionaryInput(xz, 768L * 1024 * 1024)).use { tar ->
             while (true) {
                 check()
                 val member = tar.nextEntry ?: break
-                require(++count <= 128 && member.size in 0..(64L * 1024 * 1024))
+                require(++count <= 2048 && member.size in 0..(512L * 1024 * 1024))
                 require(!member.isSymbolicLink && !member.isLink)
                 if (!member.isFile) continue
                 when {
@@ -51,7 +51,7 @@ internal fun importDictionaryTei(input: InputStream, check: () -> Unit, entry: (
     var entryDepth = -1
     var orthDepth = -1
     var header = true
-    var allowedLicense = false
+    val availability = StringBuilder()
     var availabilityDepth = -1
     var entries = 0
     val words = mutableListOf<String>()
@@ -66,20 +66,26 @@ internal fun importDictionaryTei(input: InputStream, check: () -> Unit, entry: (
             XmlPullParser.DOCDECL -> require(parser.text.trim().matches(Regex("TEI\\s+SYSTEM\\s+[\"']freedict-P5\\.dtd[\"']")))
             XmlPullParser.START_TAG -> {
                 require(++depth <= 64)
+                require(parser.attributeCount <= 32)
+                for (index in 0 until parser.attributeCount) require(parser.getAttributeValue(index).length <= 8192)
                 val name = parser.name
                 if (header && name == "availability") availabilityDepth = depth
-                if (header && availabilityDepth >= 0 && name == "ref" && parser.getAttributeValue(null, "target") == "https://creativecommons.org/licenses/by-sa/3.0/legalcode") allowedLicense = true
+                if (header && availabilityDepth >= 0 && name == "ref") parser.getAttributeValue(null, "target")?.let {
+                    notice.append("\n").append(it).append("\n")
+                    require(notice.length <= 131072)
+                }
                 if (name == "entry") {
-                    require(!header && entryDepth < 0 && ++entries <= 500_000 && allowedLicense)
+                    require(!header && entryDepth < 0 && ++entries <= 1_000_000 && availability.isNotBlank())
                     entryDepth = depth; words.clear(); body.clear()
                 }
                 if (entryDepth >= 0 && name == "orth") { orthDepth = depth; word.clear() }
             }
             XmlPullParser.TEXT, XmlPullParser.CDSECT, XmlPullParser.ENTITY_REF -> {
                 val text = requireNotNull(parser.text) // Unresolved entities are not dropped or expanded.
-                if (header) { notice.append(text); require(notice.length <= 32768) }
-                if (entryDepth >= 0) { body.append(text); require(body.length <= 32768) }
-                if (orthDepth >= 0) { word.append(text); require(word.length <= 120) }
+                if (header) { notice.append(text); require(notice.length <= 131072) }
+                if (header && availabilityDepth >= 0) availability.append(text)
+                if (entryDepth >= 0) { body.append(text); require(body.length <= 131072) }
+                if (orthDepth >= 0) { word.append(text); require(word.length <= 1024) }
             }
             XmlPullParser.END_TAG -> {
                 if (orthDepth == depth) { words.add(dictionaryWord(word.toString())); require(words.size <= 32); orthDepth = -1 }
@@ -96,7 +102,7 @@ internal fun importDictionaryTei(input: InputStream, check: () -> Unit, entry: (
             }
         }
     }
-    require(entries > 0 && allowedLicense && depth == 0)
+    require(entries > 0 && availability.isNotBlank() && depth == 0)
     return DictionaryLicense(title, notice.toString().trim())
 }
 

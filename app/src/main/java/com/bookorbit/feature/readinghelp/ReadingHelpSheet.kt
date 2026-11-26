@@ -68,7 +68,7 @@ fun ReadingHelpSheet(fileId: Int, passage: String, repository: ReadingHelpReposi
             Text(stringResource(R.string.help_title), style = MaterialTheme.typography.headlineMedium)
             access?.let { available -> Text(when {
                 available.problem == ReadingHelpRepository.Problem.CONFIGURATION -> stringResource(R.string.ai_configuration_required)
-                available.connection?.route == com.bookorbit.feature.ai.AiRoute.DIRECT -> stringResource(R.string.ai_active_direct, available.connection.provider.displayName, available.connection.helpModel)
+                available.connection?.route == com.bookorbit.feature.ai.AiRoute.DIRECT -> stringResource(R.string.ai_active_direct, available.connection.provider.displayName, available.connection.helpModel) + "\n" + com.bookorbit.feature.ai.aiEndpointLabel(available.connection)
                 else -> stringResource(R.string.ai_active_server)
             }, style = MaterialTheme.typography.bodySmall) }
             Text(stringResource(R.string.help_context), style = MaterialTheme.typography.bodyMedium)
@@ -104,7 +104,9 @@ fun ReadingHelpSheet(fileId: Int, passage: String, repository: ReadingHelpReposi
     if (confirm) AlertDialog(onDismissRequest = { confirm = false },
         title = { Text(stringResource(R.string.help_confirm_title)) },
         text = { Text(if (access?.connection?.route == com.bookorbit.feature.ai.AiRoute.DIRECT)
-            stringResource(R.string.ai_direct_confirm, access?.connection?.provider?.displayName.orEmpty(), access?.connection?.helpModel.orEmpty())
+            stringResource(R.string.ai_direct_confirm, access?.connection?.provider?.displayName.orEmpty(), access?.connection?.helpModel.orEmpty()) + "\n\n" +
+                access?.connection?.let { com.bookorbit.feature.ai.aiEndpointLabel(it) }.orEmpty() +
+                (if (access?.connection?.baseUrl?.startsWith("http:") == true) "\n" + stringResource(R.string.ai_http_warning) else "")
             else stringResource(R.string.help_confirm_body)) },
         confirmButton = { TextButton(onClick = { confirm = false; start() }) { Text(stringResource(R.string.help_send)) } },
         dismissButton = { TextButton(onClick = { confirm = false }) { Text(stringResource(R.string.cancel)) } })

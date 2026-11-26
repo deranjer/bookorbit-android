@@ -17,12 +17,14 @@ class DirectReadingHelpTest {
     @Test fun `both provider schemas contain only selected passage and correct provider authentication`() {
         val account = AiTestAccount()
         for (provider in AiProvider.entries) {
-            val credentials = DirectAiCredentials(account.session.owner()!!, 0, provider, "fixture-model", "provider-key")
+            val credentials = DirectAiCredentials(account.session.owner()!!, 0, provider, "fixture-model", "provider-key",
+                baseUrl = if (provider == AiProvider.OPENAI_COMPATIBLE) "https://fixture.example/v1/" else defaultAiBaseUrl(provider),
+                allowInsecure = provider == AiProvider.OLLAMA)
             val call = directHelpRequest(credentials, request)
             assertTrue(call.body!!.isOneShot())
             assertNull(call.header("Cookie"))
             assertFalse(call.url.toString().contains("provider-key"))
-            if (provider == AiProvider.OPENAI) assertEquals("Bearer provider-key", call.header("Authorization"))
+            if (provider != AiProvider.GOOGLE) assertEquals("Bearer provider-key", call.header("Authorization"))
             else { assertNull(call.header("Authorization")); assertEquals("provider-key", call.header("x-goog-api-key")) }
             val buffer = okio.Buffer(); call.body!!.writeTo(buffer)
             val text = buffer.readUtf8()
@@ -100,14 +102,19 @@ class DirectReadingHelpTest {
                 chain.proceed(chain.request().newBuilder().url(server.url("/fixture")).build())
             }.build()
             for (provider in AiProvider.entries) {
-                a.store.save(owner, AiRoute.DIRECT, provider, "fixture-model", "", "provider-key")
-                val body = if (provider == AiProvider.OPENAI) """{"choices":[{"finish_reason":"stop","message":{"content":"Answer"}}]}"""
-                    else """{"candidates":[{"finishReason":"STOP","content":{"parts":[{"text":"Answer"}]}}]}"""
+                a.store.save(owner, AiRoute.DIRECT, provider, "fixture-model", "", "provider-key",
+                    baseUrl = if (provider == AiProvider.OPENAI_COMPATIBLE) "https://fixture.example/v1/" else defaultAiBaseUrl(provider),
+                    allowInsecure = provider == AiProvider.OLLAMA)
+                val body = when (provider) {
+                    AiProvider.GOOGLE -> """{"candidates":[{"finishReason":"STOP","content":{"parts":[{"text":"Answer"}]}}]}"""
+                    AiProvider.OLLAMA -> """{"done":true,"done_reason":"stop","message":{"content":"Answer"}}"""
+                    else -> """{"choices":[{"finish_reason":"stop","message":{"content":"Answer"}}]}"""
+                }
                 server.enqueue(MockResponse().setBody(body))
                 val event = withTimeout(3000) { DirectReadingHelp(a.store, a.session, client).answer(request.copy(careful = true)).toList().single() }
                 assertEquals("done", event.type); assertEquals("Answer", event.text); assertTrue(event.careful)
             }
-            assertEquals(2, server.requestCount)
+            assertEquals(AiProvider.entries.size, server.requestCount)
         }
     }
 

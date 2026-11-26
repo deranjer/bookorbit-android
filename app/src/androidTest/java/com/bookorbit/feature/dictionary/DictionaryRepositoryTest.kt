@@ -22,6 +22,31 @@ import kotlinx.coroutines.withTimeout
 import java.util.concurrent.TimeUnit
 
 class DictionaryRepositoryTest {
+    @Test fun refreshedLanguageCatalogSurvivesReopenAndFailedRefreshKeepsIt() = runBlocking {
+        val app = ApplicationProvider.getApplicationContext<Context>()
+        val dir = File(app.cacheDir, "dictionary-catalog-test-${UUID.randomUUID()}")
+        try {
+            MockWebServer().use { server ->
+                val client = OkHttpClient.Builder().addInterceptor { chain ->
+                    require(chain.request().url.toString() == "https://freedict.org/freedict-database.json")
+                    chain.proceed(chain.request().newBuilder().url(server.url("/catalog")).build())
+                }.build()
+                val pack = BUNDLED_DICTIONARY_CATALOG.first().copy(id = "fra-eng")
+                val body = """[{"name":"fra-eng","headwords":"${pack.headwords}","releases":[{"platform":"src","version":"${pack.version}","size":"${pack.bytes}","checksum":"${pack.sha512}","URL":"${pack.url}"}]}]"""
+                val repository = DictionaryRepository(dir, client)
+                server.enqueue(MockResponse().setBody(body))
+                assertEquals(listOf(pack), repository.catalog())
+                val request = server.takeRequest()
+                assertNull(request.getHeader("Authorization")); assertNull(request.getHeader("Cookie"))
+                assertEquals(listOf(pack), DictionaryRepository(dir, client).availableCatalog())
+                server.enqueue(MockResponse().setBody("invalid-json"))
+                assertTrue(runCatching { repository.catalog() }.isFailure)
+                assertEquals(listOf(pack), DictionaryRepository(dir, client).availableCatalog())
+                assertEquals(2, server.requestCount)
+            }
+        } finally { dir.deleteRecursively() }
+    }
+
     private val tei = """<?xml version="1.0"?><!DOCTYPE TEI SYSTEM "freedict-P5.dtd"><TEI><teiHeader><title>Test dictionary</title><availability><ref target="https://creativecommons.org/licenses/by-sa/3.0/legalcode">CC BY-SA 3.0</ref></availability></teiHeader><text><body><entry><form><orth>Hello</orth></form><sense><cit><quote>привет &amp; здравствуйте</quote></cit></sense></entry></body></text></TEI>"""
 
     @Test fun verifiedIndexIsOfflineAndFailedUpdateRetainsPreviousDictionary() = runBlocking {
@@ -46,14 +71,14 @@ class DictionaryRepositoryTest {
         } finally { dir.deleteRecursively() }
     }
 
-    @Test fun parserRejectsInternalEntitiesAndUnknownLicenseWithoutExternalRequests() {
+    @Test fun parserRejectsInternalEntitiesAndMissingLicenseWithoutExternalRequests() {
         val hostile = tei.replace("SYSTEM \"freedict-P5.dtd\"", "[<!ENTITY leak SYSTEM 'http://127.0.0.1:9/secret'>]")
         assertTrue(runCatching { importDictionaryTei(ByteArrayInputStream(hostile.toByteArray()), {}) { _, _ -> } }.isFailure)
-        assertTrue(runCatching { importDictionaryTei(ByteArrayInputStream(tei.replace("by-sa/3.0", "unknown/1.0").toByteArray()), {}) { _, _ -> } }.isFailure)
+        assertTrue(runCatching { importDictionaryTei(ByteArrayInputStream(tei.replace(Regex("<availability>.*?</availability>"), "").toByteArray()), {}) { _, _ -> } }.isFailure)
     }
 
     @Test fun parserAndArchiveRespectCancellationAndEntryLimits() {
-        assertTrue(runCatching { importDictionaryTei(ByteArrayInputStream(tei.replace("Hello", "h".repeat(121)).toByteArray()), {}) { _, _ -> } }.isFailure)
+        assertTrue(runCatching { importDictionaryTei(ByteArrayInputStream(tei.replace("Hello", "h".repeat(1025)).toByteArray()), {}) { _, _ -> } }.isFailure)
         var checks = 0
         assertTrue(runCatching { importDictionaryTei(ByteArrayInputStream(tei.toByteArray()), { if (++checks > 5) throw kotlinx.coroutines.CancellationException() }) { _, _ -> } }.exceptionOrNull() is kotlinx.coroutines.CancellationException)
     }

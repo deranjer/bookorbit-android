@@ -42,8 +42,8 @@ class ReadingHelpRepository @Inject constructor(@com.bookorbit.core.network.Mobi
         if (connection?.valid == false) return Access(problem = Problem.CONFIGURATION)
         val revision = connection?.revision
         if (connection?.route == AiRoute.DIRECT) return Access(
-            enabled = connection.hasToken && connection.helpModel.isNotBlank(), careful = true,
-            problem = Problem.CONFIGURATION.takeIf { !connection.hasToken || connection.helpModel.isBlank() },
+            enabled = (!connection.provider.requiresToken || connection.hasToken) && connection.helpModel.isNotBlank(), careful = true,
+            problem = Problem.CONFIGURATION.takeIf { connection.provider.requiresToken && !connection.hasToken || connection.helpModel.isBlank() },
             connection = connection, revision = revision, owner = owner)
         return serverAccess().copy(connection = connection, revision = revision, owner = owner)
     }
@@ -81,7 +81,7 @@ class ReadingHelpRepository @Inject constructor(@com.bookorbit.core.network.Mobi
         if (request.careful && !access.careful) throw Failure(Problem.CAREFUL_OFF)
         val owner = access.owner
         if (owner != null && session?.owns(owner) != true) throw Failure(Problem.AUTH)
-        val selected = if (access.connection?.route == AiRoute.DIRECT) direct?.answer(request, owner) ?: throw Failure(Problem.CONFIGURATION)
+        val selected = if (access.connection?.route == AiRoute.DIRECT) direct?.answer(request, owner, access.revision) ?: throw Failure(Problem.CONFIGURATION)
             else serverAnswer(request)
         try {
             selected.collect { event ->

@@ -23,14 +23,31 @@ data class InstalledDictionary(val pack: DictionaryPackage, val title: String, v
 
 /** Public dictionary transport is intentionally independent of BookOrbit credentials and cookies. */
 @Singleton
-class DictionaryRepository internal constructor(private val root: File, private val client: OkHttpClient) {
+class DictionaryRepository internal constructor(private val root: File, private val client: OkHttpClient,
+    private val bootstrap: () -> List<DictionaryPackage> = { BUNDLED_DICTIONARY_CATALOG }) {
     @Inject constructor(@ApplicationContext context: Context) : this(File(context.filesDir, "dictionaries"),
         OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
-            .retryOnConnectionFailure(false).callTimeout(120, TimeUnit.SECONDS).build())
+            .retryOnConnectionFailure(false).callTimeout(120, TimeUnit.SECONDS).build(),
+        { context.assets.open("dictionaries/catalog.json").bufferedReader().use { dictionaryCatalog(it.readText(), Json) } })
     init { require(root.isDirectory || root.mkdirs()) }
     private val json = Json { ignoreUnknownKeys = true }
     private val installMutex = Mutex()
     private val databaseMutex = Mutex()
+    private val catalogMutex = Mutex()
+
+    /** Metadata only. Opening settings never downloads a dictionary or refreshes over the network. */
+    suspend fun availableCatalog(): List<DictionaryPackage> = withContext(Dispatchers.IO) {
+        catalogMutex.withLock {
+            val cached = File(root, "catalog.json")
+            runCatching {
+                require(cached.length() in 1..2_097_152)
+                json.decodeFromString<List<DictionaryPackage>>(cached.readText()).also { packs ->
+                    require(packs.isNotEmpty() && packs.size <= 2000 && packs.map { it.id }.distinct().size == packs.size)
+                    packs.forEach { it.validate() }
+                }
+            }.getOrElse { bootstrap() }
+        }
+    }
 
     suspend fun catalog(): List<DictionaryPackage> = withContext(Dispatchers.IO) {
         withResponse("https://freedict.org/freedict-database.json") { result ->
@@ -38,13 +55,23 @@ class DictionaryRepository internal constructor(private val root: File, private 
             val source = requireNotNull(result.body).source()
             source.request(2_097_153)
             require(source.buffer.size <= 2_097_152)
-            dictionaryCatalog(source.readUtf8(), json)
+            val packs = dictionaryCatalog(source.readUtf8(), json)
+            catalogMutex.withLock {
+                val pending = File(root, "catalog-${UUID.randomUUID()}.pending")
+                try {
+                    pending.writeText(json.encodeToString(kotlinx.serialization.builtins.ListSerializer(DictionaryPackage.serializer()), packs))
+                    currentCoroutineContext().ensureActive()
+                    Files.move(pending.toPath(), File(root, "catalog.json").toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+                } finally { pending.delete() }
+            }
+            packs
         }
     }
 
     suspend fun installed(): List<InstalledDictionary> = withContext(Dispatchers.IO) {
-        databaseMutex.withLock { DICTIONARY_IDS.mapNotNull { id ->
-            val file = database(id)
+        databaseMutex.withLock { root.listFiles().orEmpty().filter { it.isFile && it.name.endsWith(".sqlite") && validDictionaryId(it.name.removeSuffix(".sqlite")) }
+            .sortedBy { it.name }.mapNotNull { file ->
+            val id = file.name.removeSuffix(".sqlite")
             if (!file.isFile) null else runCatching {
                 open(file).use { db ->
                     fun value(key: String) = db.rawQuery("SELECT value FROM metadata WHERE name = ?", arrayOf(key)).use {
@@ -107,7 +134,7 @@ class DictionaryRepository internal constructor(private val root: File, private 
         try {
             SQLiteDatabase.openOrCreateDatabase(pending, null).use { db ->
                 db.execSQL("PRAGMA page_size = 4096")
-                db.rawQuery("PRAGMA max_page_count = 65536", null).use { require(it.moveToFirst() && it.getLong(0) == 65536L) }
+                db.rawQuery("PRAGMA max_page_count = 131072", null).use { require(it.moveToFirst() && it.getLong(0) == 131072L) }
                 db.rawQuery("PRAGMA journal_mode = DELETE", null).use { require(it.moveToFirst() && it.getString(0).equals("delete", true)) }
                 db.execSQL("CREATE TABLE metadata(name TEXT PRIMARY KEY, value TEXT NOT NULL)")
                 db.execSQL("CREATE TABLE entries(word TEXT NOT NULL, definition TEXT NOT NULL)")
@@ -119,7 +146,7 @@ class DictionaryRepository internal constructor(private val root: File, private 
                     val license = db.compileStatement("INSERT INTO entries(word, definition) VALUES(?, ?)").use { insert ->
                         archive.inputStream().use { input -> importDictionaryArchive(input, { job.ensureActive() }) { word, definition ->
                             indexed += word.toByteArray().size + definition.toByteArray().size
-                            require(indexed <= 128L * 1024 * 1024 && ++rows <= 500_000)
+                            require(indexed <= 256L * 1024 * 1024 && ++rows <= 2_000_000)
                             insert.bindString(1, word); insert.bindString(2, definition); insert.executeInsert()
                         } }
                     }
@@ -140,12 +167,12 @@ class DictionaryRepository internal constructor(private val root: File, private 
     }
 
     suspend fun remove(id: String) = withContext(Dispatchers.IO) {
-        require(id in DICTIONARY_IDS)
+        require(validDictionaryId(id))
         installMutex.withLock { databaseMutex.withLock { require(!database(id).exists() || database(id).delete()) } }
     }
 
     suspend fun lookup(id: String, word: String): String? = withContext(Dispatchers.IO) {
-        require(id in DICTIONARY_IDS)
+        require(validDictionaryId(id))
         val key = dictionaryWord(word)
         databaseMutex.withLock {
             require(database(id).isFile)
@@ -153,7 +180,9 @@ class DictionaryRepository internal constructor(private val root: File, private 
                 db.rawQuery("SELECT definition FROM entries WHERE word = ? LIMIT 10", arrayOf(key)).use { rows ->
                     val definitions = mutableListOf<String>()
                     while (rows.moveToNext()) { currentCoroutineContext().ensureActive(); definitions.add(rows.getString(0)) }
-                    definitions.takeIf { it.isNotEmpty() }?.joinToString("\n\n")?.take(32768)
+                    definitions.takeIf { it.isNotEmpty() }?.joinToString("\n\n")?.let {
+                        if (it.length > 131072) it.take(131072) + "\n[…]" else it
+                    }
                 }
             }
         }
