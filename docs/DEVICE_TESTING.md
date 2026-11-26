@@ -661,3 +661,20 @@ narration and producing a Cast-compatible encoded stream remain unverified.
   Архив `.local/apks/working-0.9.18-20261126/`; regressions/evidence в build-info.
 - Live paid-provider, физическая приёмка, качество ответов, полная spoiler-safety
   и структурированный direct Story Guide не приняты. Production не изменялся.
+# 0.9.19: изоляция аннотаций (2026-11-26)
+
+- Кеш разделён по server/user/readerFileId; owner-tag и readerFileId передаются
+  серверу без дополнительных DTO-полей. Очереди не coalesce/delete чужие строки;
+  legacy JSON и операции без владельца сохраняются, но не присваиваются аккаунту.
+- Настоящая in-memory Room и локальный HTTP: 1 тест × 3 на финальном APK
+  (`20261126T130721009435Z`). Пересоздание repository сохраняет проекцию/заметки;
+  это не disk-reopen или process-death. No-op scheduler не запускает fixture worker.
+- Read-only fixture GET book 5/file 84: 200, пустой список. Доказательство в
+  `.local/contracts/annotation-reader-projection.json`; реальная серверная
+  подсветка/её повторное открытие этим запросом не проверены.
+- Оба APK/lint, 603 JVM-теста/flavor, 31 Node и 14 Python прошли. Финальные
+  selection/narration/streaming/Auto/AI/dictionary/stats regressions прошли;
+  evidence в `.local/apks/working-0.9.19-20261126/build-info.json`.
+- Подпись прежняя, 16KiB zipalign проверен. Retained downloads не очищены.
+  Полная привязка ревизии файла, uncertain-create reconciliation, синхронизация
+  геометрии комикса и физическая приёмка остаются открытыми. Production не менялся.

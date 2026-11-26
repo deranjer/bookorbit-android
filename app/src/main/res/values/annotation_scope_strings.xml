@@ -1,0 +1,3 @@
+<resources>
+    <string name="reader_legacy_annotation_scope">Old highlights without a verified owner are kept locally. They will not be shown or sent as another account. Server highlights are reloaded for this edition.</string>
+</resources>

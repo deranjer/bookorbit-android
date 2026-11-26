@@ -60,7 +60,7 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
 
 /**
  * Records which account queued each offline highlight change and reading session. Rows already queued
- * keep a null owner, so they still go out with whoever is signed in.
+ * keep a null owner; current clients preserve but do not send those without verified ownership.
  */
 val MIGRATION_7_8 = object : Migration(7, 8) {
     override fun migrate(db: SupportSQLiteDatabase) {

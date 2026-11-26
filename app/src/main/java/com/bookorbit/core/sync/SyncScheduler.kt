@@ -18,16 +18,16 @@ import javax.inject.Singleton
  * duplicate [schedule] call while one is already queued is a cheap no-op ([ExistingWorkPolicy.KEEP]).
  */
 @Singleton
-class SyncScheduler @Inject constructor(
-    @ApplicationContext private val context: Context,
-) {
-    fun schedule() {
+class SyncScheduler internal constructor(private val enqueue: () -> Unit) {
+    @Inject constructor(@ApplicationContext context: Context) : this({
         val request = OneTimeWorkRequestBuilder<SyncWorker>()
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.SECONDS)
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(TAG, ExistingWorkPolicy.KEEP, request)
-    }
+    })
+
+    fun schedule() = enqueue()
 
     companion object {
         const val TAG = "sync-pending-writes"

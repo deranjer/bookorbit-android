@@ -2,6 +2,7 @@ package com.bookorbit.feature.reader
 
 import android.util.Log
 import com.bookorbit.core.auth.SessionManager
+import com.bookorbit.core.auth.SessionOwner
 import com.bookorbit.core.db.AnnotationCacheDao
 import com.bookorbit.core.db.AnnotationCacheEntity
 import com.bookorbit.core.db.AnnotationOp
@@ -13,8 +14,8 @@ import com.bookorbit.core.network.ApiService
 import com.bookorbit.core.sync.SyncScheduler
 import com.bookorbit.core.sync.isPermanentRejection
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
@@ -38,14 +39,15 @@ import javax.inject.Singleton
  */
 @Singleton
 class ReaderAnnotationRepository @Inject constructor(
-    private val api: ApiService,
+    @com.bookorbit.core.network.AnnotationApi private val api: ApiService,
     private val ops: PendingAnnotationOpDao,
     private val cache: AnnotationCacheDao,
     private val json: Json,
     private val syncScheduler: SyncScheduler,
     private val session: SessionManager,
 ) {
-    private val listSerializer = ListSerializer(BookAnnotation.serializer())
+    private val cacheLock = Mutex()
+    private val cacheEpochs = mutableMapOf<Pair<Int, String>, Long>()
 
     /**
      * The reader and the sync worker both flush. One flush at a time, so two of them can't read the
@@ -64,28 +66,48 @@ class ReaderAnnotationRepository @Inject constructor(
      * reader shows the placeholder until it reloads, so an edit or a delete made in between is sent to
      * the new highlight. Guarded by [queueLock].
      */
-    private val createdIds = mutableMapOf<Int, Int>()
+    private data class Placeholder(val server: String, val userId: Int, val id: Int)
+    private val createdIds = mutableMapOf<Placeholder, Int>()
 
-    private val currentUserId: Int? get() = session.currentUser?.id
-
-    private fun PendingAnnotationOpEntity.ownedBy(user: Int?) = this.userId == null || this.userId == user
+    private fun owner(expected: SessionOwner? = null): SessionOwner? = (expected ?: session.owner())
+        ?.takeIf { session.owns(it) && !session.dataScopeChanged() }
 
     /** Highlights now: the server copy (fresh if reachable, else the cached one) plus queued changes. */
-    suspend fun load(bookId: Int): List<BookAnnotation> {
-        val fresh = runCatching { api.getAnnotations(bookId) }.getOrNull()
-        if (fresh != null) cache.put(AnnotationCacheEntity(bookId, json.encodeToString(listSerializer, fresh)))
-        return view(bookId, fresh ?: cached(bookId))
+    suspend fun load(bookId: Int, fileId: Int, expectedOwner: SessionOwner? = null): List<BookAnnotation> {
+        require(fileId > 0)
+        val owner = owner(expectedOwner) ?: return emptyList()
+        val key = bookId to annotationOwnerPrefix(owner)
+        val epoch = cacheLock.withLock { cacheEpochs[key] ?: 0L }
+        val fresh = try { api.getAnnotations(bookId, fileId, owner).also { rows -> require(rows.all { it.bookId == bookId }) } }
+        catch (error: CancellationException) { throw error }
+        catch (_: Exception) { null }
+        if (this.owner(owner) == null) return emptyList()
+        val stored = if (fresh != null) changeCache(bookId, expectedEpoch = key.second to epoch) { snapshot ->
+            snapshot.copy(scopes = snapshot.scopes + (annotationScope(owner, fileId) to fresh))
+        } else false
+        return view(bookId, fileId, owner, if (fresh != null && stored == null) fresh else cached(bookId, fileId, owner))
     }
 
     /** Highlights without touching the network: the cached server copy plus queued changes. */
-    suspend fun local(bookId: Int): List<BookAnnotation> = view(bookId, cached(bookId))
+    suspend fun local(bookId: Int, fileId: Int, expectedOwner: SessionOwner? = null): List<BookAnnotation> {
+        require(fileId > 0)
+        val owner = owner(expectedOwner) ?: return emptyList()
+        return view(bookId, fileId, owner, cached(bookId, fileId, owner))
+    }
 
-    private suspend fun cached(bookId: Int): List<BookAnnotation> =
-        cache.get(bookId)?.let { runCatching { json.decodeFromString(listSerializer, it.json) }.getOrNull() }.orEmpty()
+    suspend fun hasUnownedData(bookId: Int): Boolean = ops.unownedCount(bookId) > 0 ||
+        decodeAnnotationCache(cache.get(bookId)?.json, json).legacyJson != null
+
+    private suspend fun cached(bookId: Int, fileId: Int, owner: SessionOwner): List<BookAnnotation> =
+        decodeAnnotationCache(cache.get(bookId)?.json, json).scopes[annotationScope(owner, fileId)].orEmpty()
 
     /** Only CFI-anchored annotations are usable in the EPUB-family reader (PDF ones carry a page rect). */
-    private suspend fun view(bookId: Int, base: List<BookAnnotation>): List<BookAnnotation> =
-        overlayPendingOps(base.filter { it.cfi != null }, ops.forBook(bookId).filter { it.ownedBy(currentUserId) })
+    private suspend fun view(bookId: Int, fileId: Int, owner: SessionOwner, base: List<BookAnnotation>): List<BookAnnotation> {
+        val pending = ops.forOwnedBook(bookId, owner.userId).filter { it.kind != AnnotationOp.CREATE || it.bookFileId == fileId }
+        if (this.owner(owner) == null) return emptyList()
+        return overlayPendingOps(base.filter { it.bookId == bookId && it.cfi != null && it.positionStatus != "failed" &&
+            (it.jumpFileId == null || it.jumpFileId == fileId) }, pending)
+    }
 
     suspend fun create(
         bookId: Int,
@@ -95,10 +117,13 @@ class ReaderAnnotationRepository @Inject constructor(
         color: String,
         note: String?,
         chapterTitle: String?,
+        expectedOwner: SessionOwner? = null,
     ) {
+        val owner = requireNotNull(owner(expectedOwner))
         queueLock.withLock {
+            require(this.owner(owner) != null)
             // Placeholder ids are negative and descending so they never clash with a server id.
-            val tempId = minOf(ops.minCreateId() ?: 0, createdIds.keys.minOrNull() ?: 0, 0) - 1
+            val tempId = minOf(ops.minCreateId() ?: 0, createdIds.keys.minOfOrNull { it.id } ?: 0, 0) - 1
             ops.insert(
                 PendingAnnotationOpEntity(
                     bookId = bookId,
@@ -111,49 +136,53 @@ class ReaderAnnotationRepository @Inject constructor(
                     noteSet = note != null,
                     chapterTitle = chapterTitle,
                     bookFileId = fileId,
-                    userId = currentUserId,
+                    userId = owner.userId,
                 ),
             )
         }
         syncScheduler.schedule()
     }
 
-    suspend fun setColor(bookId: Int, id: Int, color: String) {
-        patch(bookId, id) { it.copy(color = color) }
+    suspend fun setColor(bookId: Int, id: Int, color: String, expectedOwner: SessionOwner? = null) {
+        patch(bookId, id, expectedOwner) { it.copy(color = color) }
     }
 
     /** A blank note clears it. */
-    suspend fun setNote(bookId: Int, id: Int, note: String) {
-        patch(bookId, id) { it.copy(note = note, noteSet = true) }
+    suspend fun setNote(bookId: Int, id: Int, note: String, expectedOwner: SessionOwner? = null) {
+        patch(bookId, id, expectedOwner) { it.copy(note = note, noteSet = true) }
     }
 
-    private suspend fun patch(bookId: Int, id: Int, change: (PendingAnnotationOpEntity) -> PendingAnnotationOpEntity) {
+    private suspend fun patch(bookId: Int, id: Int, expectedOwner: SessionOwner?, change: (PendingAnnotationOpEntity) -> PendingAnnotationOpEntity) {
+        val owner = requireNotNull(owner(expectedOwner))
         queueLock.withLock {
-            val create = if (id < 0) ops.find(AnnotationOp.CREATE, id) else null
+            require(this.owner(owner) != null)
+            val create = if (id < 0) ops.findOwned(AnnotationOp.CREATE, id, owner.userId)?.takeIf { it.bookId == bookId } else null
             if (create != null) {
                 // Not on the server yet: fold the edit into the queued create.
                 ops.update(change(create))
             } else {
-                serverId(id)?.let { queueUpdate(bookId, it, currentUserId, change) }
+                serverId(id, owner)?.let { queueUpdate(bookId, it, owner.userId, change) }
             }
         }
         syncScheduler.schedule()
     }
 
-    suspend fun delete(bookId: Int, id: Int) {
+    suspend fun delete(bookId: Int, id: Int, expectedOwner: SessionOwner? = null) {
+        val owner = requireNotNull(owner(expectedOwner))
         queueLock.withLock {
-            if (id < 0 && ops.find(AnnotationOp.CREATE, id) != null) {
+            require(this.owner(owner) != null)
+            if (id < 0 && ops.findOwned(AnnotationOp.CREATE, id, owner.userId)?.bookId == bookId) {
                 // Never reached the server: just cancel the create.
-                ops.deleteFor(id, listOf(AnnotationOp.CREATE))
+                ops.deleteOwned(id, listOf(AnnotationOp.CREATE), owner.userId)
             } else {
-                serverId(id)?.let { queueDelete(bookId, it, currentUserId) }
+                serverId(id, owner)?.let { queueDelete(bookId, it, owner.userId) }
             }
         }
         syncScheduler.schedule()
     }
 
     /** The server id for an id the reader shows: a placeholder maps to its highlight once created. */
-    private fun serverId(id: Int): Int? = if (id < 0) createdIds[id] else id
+    private fun serverId(id: Int, owner: SessionOwner): Int? = if (id < 0) createdIds[Placeholder(owner.serverUrl, owner.userId, id)] else id
 
     private suspend fun queueUpdate(
         bookId: Int,
@@ -161,14 +190,16 @@ class ReaderAnnotationRepository @Inject constructor(
         userId: Int?,
         change: (PendingAnnotationOpEntity) -> PendingAnnotationOpEntity,
     ) {
-        val existing = ops.find(AnnotationOp.UPDATE, id)
+        if (userId == null) return
+        val existing = ops.findOwned(AnnotationOp.UPDATE, id, userId)
         if (existing != null) ops.update(change(existing))
         else ops.insert(change(PendingAnnotationOpEntity(bookId = bookId, kind = AnnotationOp.UPDATE, annotationId = id, userId = userId)))
     }
 
     private suspend fun queueDelete(bookId: Int, id: Int, userId: Int?) {
-        ops.deleteFor(id, listOf(AnnotationOp.UPDATE))
-        if (ops.find(AnnotationOp.DELETE, id) == null) {
+        if (userId == null) return
+        ops.deleteOwned(id, listOf(AnnotationOp.UPDATE), userId)
+        if (ops.findOwned(AnnotationOp.DELETE, id, userId) == null) {
             ops.insert(PendingAnnotationOpEntity(bookId = bookId, kind = AnnotationOp.DELETE, annotationId = id, userId = userId))
         }
     }
@@ -180,32 +211,39 @@ class ReaderAnnotationRepository @Inject constructor(
      * made during the flush go out in it too.
      */
     suspend fun flushPending(): Boolean = flushLock.withLock {
-        val user = currentUserId ?: return@withLock false
-        var op = mine(user).firstOrNull()
+        val owner = owner() ?: return@withLock false
+        val user = owner.userId
+        var op = ops.firstOwned(user)
         while (op != null) {
+            if (this.owner(owner) == null) return@withLock false
             try {
-                val sent = send(op)
-                settle(op, if (op.kind == AnnotationOp.CREATE) sent?.id else null)
-                cacheSent(op, sent)
+                val sent = send(op, owner)
+                if (op.kind == AnnotationOp.CREATE || op.kind == AnnotationOp.UPDATE) {
+                    require(sent != null && sent.bookId == op.bookId && sent.id > 0)
+                    if (op.kind == AnnotationOp.UPDATE) require(sent.id == op.annotationId)
+                }
+                settle(op, if (op.kind == AnnotationOp.CREATE) sent?.id else null, owner)
+                cacheSent(op, sent, owner)
+            } catch (error: CancellationException) {
+                throw error
             } catch (e: HttpException) {
+                if (this.owner(owner) == null) return@withLock false
                 // A permanent rejection won't succeed on retry; 404 means it's already gone.
                 if (isPermanentRejection(e.code())) {
                     Log.w(TAG, "dropping ${op.kind} ${op.annotationId}: HTTP ${e.code()}")
                     ops.delete(op.id)
-                    if (e.code() == 404 && op.kind != AnnotationOp.CREATE) dropFromCache(op.bookId, op.annotationId)
+                    if (e.code() == 404 && op.kind != AnnotationOp.CREATE) dropFromCache(op.bookId, op.annotationId, owner)
                 } else {
                     return@withLock true
                 }
             } catch (e: Exception) {
                 // Offline (or server down): leave the rest queued, in order.
-                return@withLock true
+                return@withLock this.owner(owner) != null
             }
-            op = mine(user).firstOrNull()
+            op = ops.firstOwned(user)
         }
         false
     }
-
-    private suspend fun mine(user: Int) = ops.all().filter { it.ownedBy(user) }
 
     /**
      * [op] has reached the server; [createdId] is the id of the highlight it created, if it was a create.
@@ -214,10 +252,10 @@ class ReaderAnnotationRepository @Inject constructor(
      * update stays queued and goes out again with its new values. A create's later changes become an
      * update, or a delete, of the highlight the server has just made.
      */
-    private suspend fun settle(op: PendingAnnotationOpEntity, createdId: Int?) = queueLock.withLock {
+    private suspend fun settle(op: PendingAnnotationOpEntity, createdId: Int?, owner: SessionOwner) = queueLock.withLock {
         val now = ops.get(op.id)
         if (op.kind == AnnotationOp.CREATE && createdId != null) {
-            createdIds[op.annotationId] = createdId
+            createdIds[Placeholder(owner.serverUrl, owner.userId, op.annotationId)] = createdId
             if (now == null) {
                 queueDelete(op.bookId, createdId, op.userId)
                 return@withLock
@@ -245,29 +283,50 @@ class ReaderAnnotationRepository @Inject constructor(
      * offline, a sent edit would revert. So the cached copy takes what the server answered. Best effort: a
      * failure here must not make a successful send look failed (it would be sent again).
      */
-    private suspend fun cacheSent(op: PendingAnnotationOpEntity, sent: BookAnnotation?) {
+    private suspend fun cacheSent(op: PendingAnnotationOpEntity, sent: BookAnnotation?, owner: SessionOwner) {
         when (op.kind) {
-            AnnotationOp.CREATE, AnnotationOp.UPDATE -> if (sent != null) {
-                updateCache(op.bookId) { list ->
-                    if (list.any { it.id == sent.id }) list.map { if (it.id == sent.id) sent else it } else list + sent
+            AnnotationOp.CREATE -> if (sent != null && op.bookFileId != null && sent.bookId == op.bookId) {
+                changeCache(op.bookId, mutationOwner = owner) { snapshot ->
+                    val key = annotationScope(owner, op.bookFileId)
+                    val list = snapshot.scopes[key].orEmpty()
+                    snapshot.copy(scopes = snapshot.scopes + (key to (list.filterNot { it.id == sent.id } + sent)))
                 }
             }
-            AnnotationOp.DELETE -> dropFromCache(op.bookId, op.annotationId)
+            AnnotationOp.UPDATE -> if (sent != null && sent.bookId == op.bookId) updateOwnedCache(op.bookId, owner) { list ->
+                // A PATCH response has canonical coordinates, not each reader edition's projection.
+                list.map { if (it.id == sent.id) it.copy(color = sent.color, note = sent.note, style = sent.style) else it }
+            }
+            AnnotationOp.DELETE -> dropFromCache(op.bookId, op.annotationId, owner)
         }
     }
 
-    private suspend fun dropFromCache(bookId: Int, id: Int) = updateCache(bookId) { list -> list.filterNot { it.id == id } }
+    private suspend fun dropFromCache(bookId: Int, id: Int, owner: SessionOwner) = updateOwnedCache(bookId, owner) { list -> list.filterNot { it.id == id } }
 
-    private suspend fun updateCache(bookId: Int, change: (List<BookAnnotation>) -> List<BookAnnotation>) {
-        runCatching {
-            val list = cached(bookId)
-            val updated = change(list)
-            if (updated != list) cache.put(AnnotationCacheEntity(bookId, json.encodeToString(listSerializer, updated)))
-        }.onFailure { Log.w(TAG, "cached highlights of book $bookId not updated", it) }
+    private suspend fun updateOwnedCache(bookId: Int, owner: SessionOwner, change: (List<BookAnnotation>) -> List<BookAnnotation>) = changeCache(bookId, mutationOwner = owner) { snapshot ->
+        val prefix = annotationOwnerPrefix(owner)
+        snapshot.copy(scopes = snapshot.scopes.mapValues { (key, rows) -> if (key.startsWith(prefix)) change(rows) else rows })
+    }
+
+    private suspend fun changeCache(bookId: Int, mutationOwner: SessionOwner? = null, expectedEpoch: Pair<String, Long>? = null,
+        change: (ScopedAnnotationCache) -> ScopedAnnotationCache): Boolean? {
+        return try {
+            cacheLock.withLock {
+                if (expectedEpoch != null && (cacheEpochs[bookId to expectedEpoch.first] ?: 0L) != expectedEpoch.second) return@withLock false
+                mutationOwner?.let { owner ->
+                    val key = bookId to annotationOwnerPrefix(owner)
+                    cacheEpochs[key] = (cacheEpochs[key] ?: 0) + 1
+                }
+                val current = decodeAnnotationCache(cache.get(bookId)?.json, json)
+                val updated = change(current)
+                if (updated != current) cache.put(AnnotationCacheEntity(bookId, json.encodeToString(ScopedAnnotationCache.serializer(), updated)))
+                true
+            }
+        } catch (error: CancellationException) { throw error }
+        catch (error: Exception) { Log.w(TAG, "cached highlights of book $bookId not updated", error); null }
     }
 
     /** Sends [op]. Returns the server's copy of the highlight it created or changed (null for a delete). */
-    private suspend fun send(op: PendingAnnotationOpEntity): BookAnnotation? = when (op.kind) {
+    private suspend fun send(op: PendingAnnotationOpEntity, owner: SessionOwner): BookAnnotation? = when (op.kind) {
         AnnotationOp.CREATE -> api.createAnnotation(
             op.bookId,
             CreateAnnotation(
@@ -279,6 +338,7 @@ class ReaderAnnotationRepository @Inject constructor(
                 note = op.note?.takeIf { op.noteSet && it.isNotBlank() },
                 chapterTitle = op.chapterTitle,
             ),
+            owner,
         )
         AnnotationOp.UPDATE -> api.updateAnnotation(
             op.bookId,
@@ -288,9 +348,10 @@ class ReaderAnnotationRepository @Inject constructor(
                 // A blank note is sent as an explicit null, which the server accepts to clear it.
                 if (op.noteSet) put("note", if (op.note.isNullOrBlank()) JsonNull else JsonPrimitive(op.note))
             },
+            owner,
         )
         AnnotationOp.DELETE -> {
-            api.deleteAnnotation(op.bookId, op.annotationId)
+            api.deleteAnnotation(op.bookId, op.annotationId, owner)
             null
         }
         else -> null

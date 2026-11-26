@@ -287,6 +287,37 @@ Do not import production databases, secrets or books into development fixtures.
   сохранение текста, координат, страницы, точного fileId и ревизии, заметок/цвета,
   повторное отображение и синхронизацию без дублей. Не выдавать EPUB CFI за
   поддерживаемый сервером якорь комикса; несовместимость показать явно.
+  Повторный read-only аудит stock AnnotationService подтвердил: `pdf` требует
+  настоящего PDF bookFileId, а `readerFileId` проецирует CFI для текстовой читалки;
+  это не API якорей комикса. При аудите найден клиентский кеш аннотаций только по
+  bookId и coalescing очереди без проверки пользователя. Начат срез 0.9.19:
+  scope server/user/file для кеша, readerFileId projection, owner-tag запросов,
+  owner-specific coalescing/delete и прекращение flush при смене lease.
+  Старые cache JSON и операции userId=null сохраняются без присвоения следующему
+  аккаунту, с явным предупреждением. Room-схема не меняется, данные не удаляются.
+  Полная привязка legacy/outbox к ревизии файла и uncertain-ack reconciliation
+  остаются отдельными незавершёнными задачами; синхронизация геометрии комикса
+  не объявляется реализованной. Срез изоляции 0.9.19 проверен: оба APK/lint,
+  603 JVM-теста/flavor, 31 Node и 14 Python прошли. One-shot JSON transport
+  аннотаций не повторяет POST при 503 Retry-After: 0 и не следует redirect;
+  это не решает повтор следующего flush после неопределённого успеха.
+  PATCH сохраняет reader-projected CFI вместо canonical response CFI;
+  старый GET после успешного удаления не возвращает удалённый хайлайт в кеш.
+  Неверные bookId/id в mutation response не подтверждают строку очереди.
+  Отдельная проверка Room/локального HTTP выполнена 3 раза
+  (`20261126T130434104843Z`): очереди двух пользователей не объединяются,
+  legacy userId=null остаётся, кеш проекции и заметка переживают пересоздание
+  repository. Планировщик в тесте подменён no-op callback: retained SyncWorker
+  не запускается; база теста in-memory, это не process-death/database-reopen тест.
+  Read-only fixture GET для book 5/file 84 с `readerFileId=84` вернул 200 и пустой
+  список (`.local/contracts/annotation-reader-projection.json`); реальный серверный
+  хайлайт этим GET не проверен и для доказательства ничего не создавалось.
+  Финальный Room-тест повторён 3 раза (`20261126T130721009435Z`); selection,
+  local/native narration, streaming, Auto, AI consent/Keystore, dictionary и stats
+  regressions прошли на финальном code919. Evidence/hashes в
+  `.local/apks/working-0.9.19-20261126/build-info.json`, подпись прежняя,
+  16KiB zipalign проверен. Retained загрузки не очищались
+  (`annotation-scope-downloads-retained.png`). Production не изменялся, пуша нет.
 - [x] Скачиваемые словари: каталог, выбор языка/источника, предварительная загрузка,
   лицензии и размер, удаление/обновление и поиск полностью офлайн. Онлайн-запрос
   на сайт — только дополнительный источник, а не замена локальных словарей.

@@ -337,25 +337,47 @@ class ReaderViewModel @Inject constructor(
 
     // --- highlights & notes ---
 
+    private var warnedLegacyAnnotations = false
+    private var annotationRequest = 0L
+
     private fun loadAnnotations() {
+        val owner = activityOwner ?: return
+        val fileId = _ui.value.resolved?.fileId ?: return
+        val request = ++annotationRequest
         viewModelScope.launch {
             // Show what we already have straight away (cached server copy + queued changes), then
             // push anything queued and refresh from the server.
-            _ui.update { it.copy(annotations = annotationRepo.local(bookId)) }
+            val rows = annotationRepo.local(bookId, fileId, owner)
+            if (!session.owns(owner) || request != annotationRequest) return@launch
+            _ui.update { it.copy(annotations = rows) }
+            if (!warnedLegacyAnnotations && annotationRepo.hasUnownedData(bookId) && session.owns(owner)) {
+                warnedLegacyAnnotations = true
+                _ui.update { it.copy(message = UiText.of(R.string.reader_legacy_annotation_scope)) }
+            }
+            if (request != annotationRequest) return@launch
             syncAnnotations()
         }
     }
 
     /** Replay queued changes, then reload so placeholder ids are swapped for the server's. */
     private fun syncAnnotations() {
+        val owner = activityOwner ?: return
+        val fileId = _ui.value.resolved?.fileId ?: return
+        val request = ++annotationRequest
         viewModelScope.launch {
+            if (!session.owns(owner)) return@launch
             annotationRepo.flushPending()
-            _ui.update { it.copy(annotations = annotationRepo.load(bookId)) }
+            val rows = annotationRepo.load(bookId, fileId, owner)
+            if (session.owns(owner) && request == annotationRequest) _ui.update { it.copy(annotations = rows) }
         }
     }
 
     private suspend fun refreshLocalAnnotations() {
-        _ui.update { it.copy(annotations = annotationRepo.local(bookId), toolbar = null) }
+        val owner = activityOwner ?: return
+        val fileId = _ui.value.resolved?.fileId ?: return
+        val request = ++annotationRequest
+        val rows = annotationRepo.local(bookId, fileId, owner)
+        if (session.owns(owner) && request == annotationRequest) _ui.update { it.copy(annotations = rows, toolbar = null) }
     }
 
     fun onSelection(text: String, cfi: String?, rect: ViewportRect?, narration: ReadAlongPosition? = null) {
@@ -384,14 +406,15 @@ class ReaderViewModel @Inject constructor(
     fun saveNote(note: String) = saveAnnotation(color = null, note = note)
 
     private fun saveAnnotation(color: String?, note: String?) {
+        val owner = activityOwner ?: return
         val target = _ui.value.toolbar ?: return
         val fileId = _ui.value.resolved?.fileId
         viewModelScope.launch {
             runCatching {
                 when {
                     target.annotationId != null -> {
-                        if (color != null) annotationRepo.setColor(bookId, target.annotationId, color)
-                        if (note != null) annotationRepo.setNote(bookId, target.annotationId, note)
+                        if (color != null) annotationRepo.setColor(bookId, target.annotationId, color, owner)
+                        if (note != null) annotationRepo.setNote(bookId, target.annotationId, note, owner)
                     }
                     target.selection != null && fileId != null -> annotationRepo.create(
                         bookId = bookId,
@@ -401,6 +424,7 @@ class ReaderViewModel @Inject constructor(
                         color = color ?: ReaderAnnotationRepository.COLORS.first().second,
                         note = note,
                         chapterTitle = _ui.value.chapterTitle,
+                        expectedOwner = owner,
                     )
                 }
             }.onSuccess {
@@ -413,8 +437,9 @@ class ReaderViewModel @Inject constructor(
     }
 
     fun deleteAnnotation(id: Int) {
+        val owner = activityOwner ?: return
         viewModelScope.launch {
-            runCatching { annotationRepo.delete(bookId, id) }
+            runCatching { annotationRepo.delete(bookId, id, owner) }
                 .onSuccess {
                     refreshLocalAnnotations()
                     syncAnnotations()

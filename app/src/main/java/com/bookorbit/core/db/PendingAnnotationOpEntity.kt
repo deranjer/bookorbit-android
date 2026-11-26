@@ -41,7 +41,7 @@ data class PendingAnnotationOpEntity(
     /**
      * Account that made the change. It is sent only while that account is signed in, so another
      * account signing in on this device never receives it. Null for rows queued before this was
-     * recorded: those go out with whoever is signed in.
+     * recorded: those remain quarantined until ownership can be established explicitly.
      */
     val userId: Int? = null,
 )
@@ -57,11 +57,23 @@ interface PendingAnnotationOpDao {
     @Query("SELECT * FROM pending_annotation_ops ORDER BY id ASC")
     suspend fun all(): List<PendingAnnotationOpEntity>
 
+    @Query("SELECT * FROM pending_annotation_ops WHERE userId = :userId ORDER BY id ASC LIMIT 1")
+    suspend fun firstOwned(userId: Int): PendingAnnotationOpEntity?
+
     @Query("SELECT * FROM pending_annotation_ops WHERE bookId = :bookId ORDER BY id ASC")
     suspend fun forBook(bookId: Int): List<PendingAnnotationOpEntity>
 
+    @Query("SELECT * FROM pending_annotation_ops WHERE bookId = :bookId AND userId = :userId ORDER BY id ASC")
+    suspend fun forOwnedBook(bookId: Int, userId: Int): List<PendingAnnotationOpEntity>
+
+    @Query("SELECT COUNT(*) FROM pending_annotation_ops WHERE bookId = :bookId AND userId IS NULL")
+    suspend fun unownedCount(bookId: Int): Int
+
     @Query("SELECT * FROM pending_annotation_ops WHERE kind = :kind AND annotationId = :annotationId LIMIT 1")
     suspend fun find(kind: String, annotationId: Int): PendingAnnotationOpEntity?
+
+    @Query("SELECT * FROM pending_annotation_ops WHERE kind = :kind AND annotationId = :annotationId AND userId = :userId LIMIT 1")
+    suspend fun findOwned(kind: String, annotationId: Int, userId: Int): PendingAnnotationOpEntity?
 
     @Query("SELECT * FROM pending_annotation_ops WHERE id = :id")
     suspend fun get(id: Long): PendingAnnotationOpEntity?
@@ -71,6 +83,9 @@ interface PendingAnnotationOpDao {
 
     @Query("DELETE FROM pending_annotation_ops WHERE annotationId = :annotationId AND kind IN (:kinds)")
     suspend fun deleteFor(annotationId: Int, kinds: List<String>)
+
+    @Query("DELETE FROM pending_annotation_ops WHERE annotationId = :annotationId AND kind IN (:kinds) AND userId = :userId")
+    suspend fun deleteOwned(annotationId: Int, kinds: List<String>, userId: Int)
 
     /** The lowest placeholder id in use, so the next one can go below it. */
     @Query("SELECT MIN(annotationId) FROM pending_annotation_ops WHERE kind = 'create'")

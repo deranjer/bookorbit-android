@@ -198,12 +198,14 @@ interface ApiService {
     ): com.bookorbit.core.model.HubAnnotationPage
 
     @GET("books/{bookId}/annotations")
-    suspend fun getAnnotations(@Path("bookId") bookId: Int): List<com.bookorbit.core.model.BookAnnotation>
+    suspend fun getAnnotations(@Path("bookId") bookId: Int, @Query("readerFileId") readerFileId: Int? = null,
+        @Tag owner: com.bookorbit.core.auth.SessionOwner? = null): List<com.bookorbit.core.model.BookAnnotation>
 
     @POST("books/{bookId}/annotations")
     suspend fun createAnnotation(
         @Path("bookId") bookId: Int,
         @Body body: com.bookorbit.core.model.CreateAnnotation,
+        @Tag owner: com.bookorbit.core.auth.SessionOwner? = null,
     ): com.bookorbit.core.model.BookAnnotation
 
     /** Patch body is a raw object so a note can be cleared with an explicit `null`. */
@@ -212,10 +214,12 @@ interface ApiService {
         @Path("bookId") bookId: Int,
         @Path("id") id: Int,
         @Body body: kotlinx.serialization.json.JsonObject,
+        @Tag owner: com.bookorbit.core.auth.SessionOwner? = null,
     ): com.bookorbit.core.model.BookAnnotation
 
     @DELETE("books/{bookId}/annotations/{id}")
-    suspend fun deleteAnnotation(@Path("bookId") bookId: Int, @Path("id") id: Int)
+    suspend fun deleteAnnotation(@Path("bookId") bookId: Int, @Path("id") id: Int,
+        @Tag owner: com.bookorbit.core.auth.SessionOwner? = null)
 
     @POST("books/files/{fileId}/sessions")
     suspend fun saveReadingSession(
