@@ -66,12 +66,21 @@ class NativeNarrationStreaming @Inject constructor(
 
 /** Native-only plan: no JWT or authenticated URL is passed to WebView. Media3 requests HTTP Range. */
 @androidx.annotation.OptIn(UnstableApi::class)
+internal interface NativeNarrationSource {
+    val timeline: NativeNarrationTimeline
+    val owner: SessionOwner
+    fun resourceUri(href: String): String
+    fun dataSourceFactory(): DataSource.Factory
+    fun close() {}
+}
+
+@androidx.annotation.OptIn(UnstableApi::class)
 internal class NativeNarrationPlan(
-    val timeline: NativeNarrationTimeline,
-    val owner: SessionOwner,
+    override val timeline: NativeNarrationTimeline,
+    override val owner: SessionOwner,
     private val session: SessionManager,
     private val client: OkHttpClient,
-) {
+) : NativeNarrationSource {
     private val urls = timeline.clips.map { it.audioHref }.toSet().associateWith { href ->
         val builder = "${owner.serverUrl.trimEnd('/')}/api/v1/epub/${timeline.bookId}/media-overlay/file/".toHttpUrl().newBuilder()
         // Unlike v3.9.0's generic EPUB file route, this route decodes only once.
@@ -81,8 +90,9 @@ internal class NativeNarrationPlan(
     private val allowed = urls.values.toSet()
 
     fun resourceUrl(href: String): HttpUrl = urls[href] ?: throw IOException("Narration resource is not in the playlist")
+    override fun resourceUri(href: String) = resourceUrl(href).toString()
 
-    fun dataSourceFactory(): DataSource.Factory {
+    override fun dataSourceFactory(): DataSource.Factory {
         val calls = Call.Factory { request ->
             requireOwner()
             if (request.url !in allowed) throw IOException("Narration resource identity changed")

@@ -257,7 +257,7 @@ fun ReaderScreen(
         if (shownReadAlong.available && ui.loaded && !rendererFailed && showChrome) {
             ReadAlongBar(shownReadAlong, onCommand = { action, rate ->
                 scope.launch {
-                    if (activeNative != null || (ui.resolved?.stream != null && action in setOf("start", "resume", "restart")))
+                    if (activeNative != null || action in setOf("start", "resume", "restart"))
                         controller.readAlong("pause")
                     if (vm.nativeReadAlong(action, rate)) return@launch
                     if (action in setOf("start", "resume", "restart")) vm.prepareReadAlong()

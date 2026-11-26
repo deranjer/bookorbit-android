@@ -26,10 +26,10 @@ class NativeNarrationSession @Inject constructor() {
     @MainThread internal fun ticket(): Long = ++generation
     @MainThread internal fun isCurrent(ticket: Long) = ticket == generation
     @MainThread internal fun start(ticket: Long, queue: NativeNarrationQueue, owner: ReadAlongOwner, saved: ReadAlongPosition?, section: Int): Boolean {
-        if (!isCurrent(ticket)) return false
-        val target = port ?: return false
+        if (!isCurrent(ticket)) { queue.plan.close(); return false }
+        val target = port ?: run { queue.plan.close(); return false }
         try { target.start(queue, owner, saved, section) }
-        catch (e: Exception) { target.leave(); throw e }
+        catch (e: Exception) { target.leave(); queue.plan.close(); throw e }
         return true
     }
     @MainThread internal fun publish(state: State?) { mutableState.value = state }

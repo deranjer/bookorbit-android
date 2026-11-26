@@ -127,8 +127,10 @@ internal class NativeNarrationPlayback(
         player.pause()
         wrapper?.detach(); wrapper = null
         activity?.let(activities::endNarration); activity = null
+        val released = queue
         queue = null; owner = null
         player.clearMediaItems()
+        released?.plan?.close()
         shared.publish(null)
         restoreAudiobook()
     }

@@ -46,6 +46,7 @@ class ReaderViewModel @Inject constructor(
     private val appSettings: com.bookorbit.core.settings.AppSettingsStore,
     val nativeNarration: NativeNarrationSession,
     private val nativeStreaming: NativeNarrationStreaming,
+    private val localNarration: LocalNativeNarration,
 ) : ViewModel() {
 
     val bookId: Int = savedStateHandle.get<Int>("id") ?: 0
@@ -117,13 +118,17 @@ class ReaderViewModel @Inject constructor(
     suspend fun nativeReadAlong(action: String, rate: Double?): Boolean {
         val owner = readAlongOwner ?: return false
         if (nativeNarration.command(owner, action, rate)) return true
-        if (action !in setOf("start", "resume", "restart") || _ui.value.resolved?.stream == null ||
+        val resolved = _ui.value.resolved ?: return false
+        if (action !in setOf("start", "resume", "restart") ||
             player.state.value.isCasting) return false
         val account = activityOwner ?: return false
         if (!session.owns(account)) return true
         val ticket = nativeNarration.ticket()
+        var pending: NativeNarrationSource? = null
         try {
-            val plan = nativeStreaming.open(bookId, selectedFileId, account)
+            val plan = if (resolved.ref != null) localNarration.open(resolved.ref, bookId, owner, account)
+                else nativeStreaming.open(bookId, selectedFileId, account)
+            pending = plan
             if (!nativeNarration.isCurrent(ticket)) return true
             val saved = if (action == "restart") null else readAlongPositions.load(owner)
             val queue = NativeNarrationQueue(plan, _ui.value.title.orEmpty())
@@ -132,8 +137,10 @@ class ReaderViewModel @Inject constructor(
             }) return true
             if (!session.owns(account) || player.state.value.isCasting) return true
             nativeOwnsCheckpoints = nativeNarration.start(ticket, queue, owner, saved, currentSection)
+            if (nativeOwnsCheckpoints) pending = null
         } catch (e: kotlinx.coroutines.CancellationException) { throw e }
         catch (_: Exception) { _ui.update { it.copy(message = UiText.of(com.bookorbit.R.string.reader_native_narration_failed)) } }
+        finally { pending?.close() }
         return true
     }
 

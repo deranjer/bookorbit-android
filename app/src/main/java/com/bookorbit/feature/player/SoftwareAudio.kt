@@ -51,6 +51,7 @@ private class RetryableCodecAudioRenderer(context: Context, adapter: MediaCodecA
     MediaCodecAudioRenderer(context, adapter, selector, fallback, handler, listener, sink) {
     @Volatile private var softwareMime: String? = null
     fun preferSoftware(mime: String?) {
+        if (softwareMime == mime) return
         softwareMime = mime
         onRendererCapabilitiesChanged()
     }

@@ -4,6 +4,52 @@ Record phone model, Android version and the app version shown in Settings. Debug
 builds are development artifacts, not a promise of a stable release. Prefer the
 isolated synthetic fixture server; do not delete production books or history.
 
+## 0.9.13 local native narration (2026-11-26)
+
+Both APKs/lints pass, with 551 JVM tests per flavor, 27 reader Node and 14 Python
+checks. The local EPUB path feeds the same service-owned queue/MediaSession as
+streamed SMIL; it never falls back to HTTP on local parse/revision/resource errors.
+Snapshots are SHA-256 verified against the reader's edition fingerprint; audio
+is extracted on demand to seekable temporary files with account checks.
+
+Final emulator instrumentation: `LocalNativeNarrationTest`, two cases twice,
+`.local/instrumentation/20261126T102520179598Z/`. Tests cover actual local PCM
+playback through the production renderer factory, exact clip seek, natural
+transition, restart after ended, fresh-source restore, changed-original snapshot
+isolation, rejected revisions, account invalidation and temporary-file cleanup.
+The configured server URL is unreachable (`127.0.0.1:1`). Online native clip,
+Auto and software decoder regressions also pass respectively in
+`20261126T102530579718Z`, `20261126T102535309031Z`, `20261126T102541620094Z`.
+
+Manual retained-emulator acceptance uses the downloaded **Read Along Chapters**:
+
+- Disable Wi-Fi and mobile data; `dumpsys connectivity` says
+  `Active default network: none`. Open from Profile → Downloads.
+- Restart narration, press Home. Over 12 seconds MediaSession remains PLAYING and
+  advances item 2/0ms → item 3/1782ms without errors. Evidence:
+  `.local/contracts/offline-native-narration-background.json`.
+- Actual text highlight is visible in
+  `.local/device-screenshots/offline-narration-highlight.png`.
+- Pause and allow the existing checkpoint writer to persist 0.849 seconds at
+  `OEBPS/second.xhtml#one`, `OEBPS/second.mp3`. Force-stop the application without
+  clearing data. Reopen the downloaded edition while still offline. There is no
+  audio session before explicit Play; Play restores item 2 at **849ms**.
+  `.local/contracts/offline-native-narration-{saved-before-process,process-restore}.json`
+  and `offline-narration-process-restore.png`. This is force-stop/reopen, not an
+  OS low-memory kill test. Emulator networking was re-enabled afterward.
+
+The first Android run exposed unsupported Harmony JAXP flags; mandatory DTD
+refusal and a throwing entity resolver now work without those optional flags.
+The first UI restart exposed a Media3 NPE caused by redundant renderer capability
+invalidation; the shared renderer now ignores an unchanged MIME preference.
+Both failures were fixed and rerun, not counted as successful evidence.
+
+Remaining acceptance: SAF-backed EPUBs, large-book extraction latency/space,
+physical audible output, Bluetooth/screen-off transport, OS-kill scenarios.
+Selection-based “Слушать отсюда” remains a separate unfinished requirement.
+Phone reports from 2026-11-26 (system navigation overlap and headset seek error)
+are tracked explicitly in `docs/CLIENT_PLAN.md`; emulator success does not close them.
+
 ## Both 0.9.0 and 0.9.1
 
 1. Log in, browse the library, open a description and search for a book.

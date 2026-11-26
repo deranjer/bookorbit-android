@@ -10,7 +10,7 @@ import kotlin.math.roundToLong
 
 /** One native item per exact SMIL clip; queue construction never starts playback. */
 @androidx.annotation.OptIn(UnstableApi::class)
-internal class NativeNarrationQueue(val plan: NativeNarrationPlan, title: String, author: String? = null) {
+internal class NativeNarrationQueue(val plan: NativeNarrationSource, title: String, author: String? = null) {
     val id = UUID.randomUUID().toString()
     val items = plan.timeline.clips.map { clip ->
         val startMs = (clip.clipBeginSeconds * 1000).roundToLong()
@@ -26,7 +26,7 @@ internal class NativeNarrationQueue(val plan: NativeNarrationPlan, title: String
                 putInt(EXTRA_CLIP_INDEX, clip.index)
             }).build()
         MediaItem.Builder().setMediaId("epub-narration:$id:${clip.index}")
-            .setUri(plan.resourceUrl(clip.audioHref).toString()).setMimeType(clip.audioMimeType)
+            .setUri(plan.resourceUri(clip.audioHref)).setMimeType(clip.audioMimeType)
             .setClippingConfiguration(bounds).setMediaMetadata(metadata).build()
     }
 
