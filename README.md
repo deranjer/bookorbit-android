@@ -270,6 +270,24 @@ targeted diagnostics, not a complete network trace or crash recorder.
 
 ## Development & verification
 
+### CI and debug prereleases
+
+Ordinary PR/push/manual **Android Build** runs have no persistent signing secrets.
+Their downloadable APK artifacts use a temporary runner key, not the published
+development certificate, and cannot update installations signed with that certificate.
+
+To publish, dispatch **Debug Prerelease** on `main`. It requires an exact merged-PR
+commit, runs the checks/build without the private key, then signs both APKs in a
+separate `debug-release` environment job and attaches them, checksums and source/run
+metadata to a clearly marked prerelease. The signing job does not check out or run
+repository build scripts. A failed release stays a draft; assets are not overwritten.
+
+The persistent development keystore is an **environment secret**, available only
+to main deployments in that release environment, not a repository secret. The stable
+release/Play workflows use the separate `stable-release` environment and are not
+triggered by normal pushes. Administrators can change these protections; branch
+protection alone cannot prohibit an administrator creating a release manually.
+
 ```sh
 bash tools/android/gradle.sh \
   :app:testFdroidDebugUnitTest :app:testFullDebugUnitTest \

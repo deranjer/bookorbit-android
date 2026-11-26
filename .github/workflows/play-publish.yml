@@ -18,8 +18,13 @@ on:
 
 jobs:
   publish:
+    if: github.ref == 'refs/heads/main'
     name: Upload AAB to internal track
     runs-on: ubuntu-latest
+    environment: stable-release
+    permissions:
+      contents: read
+      pull-requests: read
     env:
       HAS_PLAY_PUBLISHING: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
       HAS_RELEASE_SIGNING: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' }}
@@ -29,7 +34,21 @@ jobs:
         if: ${{ env.HAS_PLAY_PUBLISHING == 'true' }}
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
-          ref: ${{ inputs.tag }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Require a release from a merged PR
+        if: ${{ env.HAS_PLAY_PUBLISHING == 'true' }}
+        env:
+          TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          SHA=$(git rev-parse "refs/tags/$TAG^{commit}")
+          python3 tools/android/verify-release-source.py "$GITHUB_REPOSITORY" "$SHA"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json tagName
+          git checkout --detach "$SHA"
 
       - name: Set up JDK 21
         if: ${{ env.HAS_PLAY_PUBLISHING == 'true' }}

@@ -1,0 +1,102 @@
+name: Debug Prerelease
+
+# Only this explicit release workflow may access the persistent debug signing key.
+# PR/push builds use ephemeral keys. The signing job runs no repository build code.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: debug-prerelease
+  cancel-in-progress: false
+
+jobs:
+  provenance:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+      - name: Require the exact merged PR commit on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/android/verify-release-source.py "$GITHUB_REPOSITORY" "$GITHUB_SHA"
+
+  build:
+    needs: provenance
+    uses: ./.github/workflows/android-build.yml
+    # Deliberately no secrets: inherit and no release environment.
+
+  publish:
+    needs: [provenance, build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: debug-release
+    permissions:
+      contents: write
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EXPECTED_CERT: 9f8472c84b54b5033314fb3cd26ac949a2b7d818a78530263c3e8dc955c64f0d
+    steps:
+      # No checkout: neither Gradle nor repository scripts run in this job.
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          packages: 'build-tools;36.0.0'
+      - name: Download APKs built and checked in this release run
+        env:
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name app-full-debug --dir full
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name app-fdroid-debug --dir fdroid
+      - name: Create the debug release draft before accessing the signing key
+        run: |
+          set -euo pipefail
+          TAG="debug-${GITHUB_SHA:0:12}"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          cat > notes.md <<EOF
+          Development debug APKs from merged-PR main commit $GITHUB_SHA.
+
+          This is a test prerelease, not a stable release. Full includes Cast; fdroid excludes it. Both flavors replace each other and use package io.github.monkecode.bookorbitclient.debug.
+
+          Physical-device enrollment, real photo/model inference, audible output, Bluetooth/OEM/Doze, Cast hardware and broader SAF/migration acceptance remain pending. Server trust requires a separately reviewed exact package/certificate policy; no production server was changed.
+
+          Signing certificate SHA-256: $EXPECTED_CERT
+          Build and checks: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          EOF
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Debug prerelease ${GITHUB_SHA:0:12}" --notes-file notes.md
+      - name: Sign release assets with the persistent debug key
+        env:
+          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          KEY="$RUNNER_TEMP/debug-release.keystore"
+          trap 'rm -f "$KEY"' EXIT
+          test -n "$DEBUG_KEYSTORE_BASE64"
+          printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 --decode > "$KEY"
+          mkdir assets
+          for flavor in full fdroid; do
+            APK="assets/bookorbit-$flavor-debug.apk"
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" sign --ks "$KEY" --ks-key-alias androiddebugkey --ks-pass pass:android --key-pass pass:android --out "$APK" "$flavor/app-$flavor-debug.apk"
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$APK" | tee "$RUNNER_TEMP/cert.txt"
+            grep -Fx "Signer #1 certificate SHA-256 digest: $EXPECTED_CERT" "$RUNNER_TEMP/cert.txt"
+            "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 "$APK"
+          done
+          (cd assets && sha256sum ./*.apk > SHA256SUMS.txt)
+          printf 'commit=%s\ncertificate_sha256=%s\nrun=https://github.com/%s/actions/runs/%s\n' "$GITHUB_SHA" "$EXPECTED_CERT" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > assets/build-info.txt
+      - name: Attach verified APKs and publish the prerelease
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" assets/*.apk assets/SHA256SUMS.txt assets/build-info.txt --repo "$GITHUB_REPOSITORY"
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
